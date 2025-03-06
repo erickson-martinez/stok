@@ -1,19 +1,20 @@
-import { loadUserFromLocalStorage, setupLogin, setupLogout } from './auth.js';
-import { setupModalEvents } from './modals.js';
+document.getElementById('loginForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    const name = document.getElementById('userName').value;
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'block';
+    document.getElementById('loggedUserName').textContent = name;
+});
 
-import { setupProductForm, setupEditForm } from './products.js';
-import { setupFinanceForm } from './finances.js';
+document.getElementById('logoutBtn').addEventListener('click', function () {
+    document.getElementById('mainContent').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'block';
+});
 
-// Inicialização
-loadUserFromLocalStorage();
-setupLogin();
-setupLogout();
-setupModalEvents();
+document.getElementById('openModalBtn').addEventListener('click', function () {
+    document.getElementById('productModal').style.display = 'block';
+});
 
-// Estoque produtos
-setupProductForm();
-setupEditForm();
-
-
-// Finanças
-setupFinanceForm();
+document.getElementById('closeModalBtn').addEventListener('click', function () {
+    document.getElementById('productModal').style.display = 'none';
+});
