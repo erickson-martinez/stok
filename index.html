@@ -9,6 +9,8 @@
 </head>
 
 <body>
+
+    <!-- Tela de Login -->
     <div id="loginScreen" class="modal" style="display: block;">
         <div class="modal-content">
             <h2>Entrar</h2>
@@ -20,6 +22,7 @@
             </form>
         </div>
     </div>
+    <!-- Após o loginScreen -->
     <div id="mainContent" style="display: none;">
         <button id="logoutBtn">Sair</button>
         <h1>Estoque Casa</h1>
@@ -27,6 +30,99 @@
         <button id="openModalBtn">Adicionar Produto</button>
         <div id="productList"></div>
     </div>
+    <!-- Modal de Adição -->
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <span id="closeModalBtn" class="close">×</span>
+            <h2>Adicionar Produto</h2>
+            <form id="productForm">
+                <input type="text" id="name" placeholder="Nome do Produto" required>
+                <input type="number" id="quantity" placeholder="Quantidade" required>
+                <input type="text" id="brand" placeholder="Marca" required>
+                <select id="unitType" required>
+                    <option value="unidade">Unidade</option>
+                    <option value="pacote">Pacote</option>
+                    <option value="embalagem">Embalagem</option>
+                    <option value="litro">Litro</option>
+                </select>
+                <input type="text" id="unitQuantity" placeholder="Quantidade por Unidade" required>
+                <input type="number" id="idealQuantity" placeholder="Quantidade Ideal" required>
+                <button type="submit">Salvar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Edição -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span id="closeEditModalBtn" class="close">×</span>
+            <h2>Editar Produto</h2>
+            <form id="editForm">
+                <input type="text" id="editName" readonly>
+                <input type="number" id="editQuantity" placeholder="Quantidade" required>
+                <input type="text" id="editBrand" placeholder="Marca" required>
+                <select id="editUnitType" required>
+                    <option value="unidade">Unidade</option>
+                    <option value="pacote">Pacote</option>
+                    <option value="embalagem">Embalagem</option>
+                    <option value="litro">Litro</option>
+                </select>
+                <input type="text" id="editUnitQuantity" placeholder="Quantidade por Unidade" required>
+                <input type="number" id="editIdealQuantity" placeholder="Quantidade Ideal" required>
+                <button type="submit">Atualizar</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <span id="closeConfirmModalBtn" class="close">×</span>
+            <h2>Confirmar Ação</h2>
+            <p id="confirmMessage"></p>
+            <div class="modal-actions">
+                <button id="cancelConfirmBtn">Cancelar</button>
+                <button id="confirmActionBtn">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Feedback -->
+    <div id="feedbackModal" class="modal">
+        <div class="modal-content">
+            <span id="closeFeedbackModalBtn" class="close">×</span>
+            <h2>Resultado</h2>
+            <p id="feedbackMessage"></p>
+            <div class="modal-actions">
+                <button id="closeFeedbackBtn">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Cadastro de Novo Usuário -->
+    <div id="registerConfirmModal" class="modal">
+        <div class="modal-content">
+            <span id="closeRegisterConfirmModalBtn" class="close">×</span>
+            <h2>Confirmação de Cadastro</h2>
+            <p id="registerConfirmMessage"></p>
+            <div class="modal-actions">
+                <button id="cancelRegisterBtn">Cancelar</button>
+                <button id="confirmRegisterBtn">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Compartilhamento -->
+    <div id="shareModal" class="modal">
+        <div class="modal-content">
+            <span id="closeShareModalBtn" class="close">×</span>
+            <h2>Compartilhar Lista</h2>
+            <form id="shareForm">
+                <input type="tel" id="sharePhone" placeholder="Telefone (ex: 11987654321)" required>
+                <button type="submit">Compartilhar</button>
+            </form>
+        </div>
+    </div>
+
     <script type="module" src="frontend/js/main.js"></script>
 </body>
 

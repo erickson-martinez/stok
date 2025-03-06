@@ -36,7 +36,6 @@ function saveUserToLocalStorage(user) {
     console.log("Usuário salvo no localStorage:", user);
 }
 
-// Função para carregar o usuário do localStorage
 function loadUserFromLocalStorage() {
     const userData = localStorage.getItem("currentUser");
     if (userData) {
@@ -49,7 +48,6 @@ function loadUserFromLocalStorage() {
     }
 }
 
-// Função para limpar o usuário do localStorage
 function clearUserFromLocalStorage() {
     localStorage.removeItem("currentUser");
     console.log("Sessão limpa do localStorage");
@@ -115,7 +113,6 @@ if (closeModalBtn) {
     console.error("closeModalBtn não encontrado");
 }
 
-
 function openConfirmModal(message, onConfirm) {
     console.log("Dentro de openConfirmModal, mensagem:", message);
     if (!confirmModal) {
@@ -131,8 +128,7 @@ function openConfirmModal(message, onConfirm) {
     console.log("Mudando display para block");
     confirmModal.style.display = "block";
     confirmModal.style.zIndex = "10010";
-    confirmModal.style.visibility = "visible"; // Controlado explicitamente
-    console.log("Display após mudança:", confirmModal.style.display);
+    confirmModal.style.visibility = "visible";
 
     if (!confirmActionBtn) {
         console.error("confirmActionBtn não encontrado");
@@ -153,7 +149,7 @@ function openConfirmModal(message, onConfirm) {
             console.log("Botão Cancelar clicado");
             confirmModal.style.display = "none";
             confirmModal.style.visibility = "hidden";
-            if (addModal) addModal.style.display = "block"; // Reabre o addModal
+            if (addModal) addModal.style.display = "block";
         };
     }
 
@@ -164,7 +160,7 @@ function openConfirmModal(message, onConfirm) {
             console.log("Botão × clicado");
             confirmModal.style.display = "none";
             confirmModal.style.visibility = "hidden";
-            if (addModal) addModal.style.display = "block"; // Reabre o addModal
+            if (addModal) addModal.style.display = "block";
         };
     }
 }
@@ -205,7 +201,7 @@ if (loginForm) {
 
             if (response.ok) {
                 currentUser = { name, phone, password };
-                saveUserToLocalStorage(currentUser); // Salva no localStorage
+                saveUserToLocalStorage(currentUser);
                 if (loginScreen) loginScreen.style.display = "none";
                 else console.error("loginScreen não encontrado");
                 if (mainContent) mainContent.style.display = "block";
@@ -229,7 +225,7 @@ if (loginForm) {
                             throw new Error(errorText);
                         }
                         currentUser = { name, phone, password };
-                        saveUserToLocalStorage(currentUser); // Salva no localStorage após cadastro
+                        saveUserToLocalStorage(currentUser);
                         if (loginScreen) loginScreen.style.display = "none";
                         else console.error("loginScreen não encontrado");
                         if (mainContent) mainContent.style.display = "block";
@@ -260,7 +256,7 @@ if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
         console.log("Botão Sair clicado");
         currentUser = null;
-        clearUserFromLocalStorage(); // Limpa o localStorage
+        clearUserFromLocalStorage();
         if (mainContent) mainContent.style.display = "none";
         if (loginScreen) loginScreen.style.display = "block";
         document.getElementById("loginForm").reset();
@@ -269,9 +265,13 @@ if (logoutBtn) {
     console.error("logoutBtn não encontrado");
 }
 
+// Função consolidada para carregar produtos
 async function loadProducts() {
     console.log("Carregando produtos...");
-    if (!currentUser) return console.error("Nenhum usuário logado");
+    if (!currentUser) {
+        console.error("Nenhum usuário logado");
+        return;
+    }
 
     try {
         const response = await fetch(`${API_URL}/products?ownerPhone=${currentUser.phone}`);
@@ -279,136 +279,13 @@ async function loadProducts() {
         if (!response.ok) throw new Error("Erro ao carregar produtos");
         const products = await response.json();
 
-        if (!productList) {
+        const list = document.getElementById("productList");
+        if (!list) {
             console.error("productList não encontrado");
             return;
         }
 
-        productList.innerHTML = ""; // Limpa a lista
-        products.forEach(product => {
-            const details = document.createElement("details");
-            const summary = document.createElement("summary");
-            summary.textContent = product.name;
-            details.appendChild(summary);
-            productList.appendChild(details);
-        });
-    } catch (error) {
-        console.error("Erro ao carregar produtos:", error);
-        openFeedbackModal("Falha ao carregar a lista de produtos");
-    }
-}
-
-
-// Outros eventos (logout, etc.)
-logoutBtn.addEventListener("click", () => {
-    currentUser = null;
-    mainContent.style.display = "none";
-    loginScreen.style.display = "block";
-    document.getElementById("loginForm").reset();
-});
-
-// (Inclua aqui as outras funções como loadProducts, openEditModal, etc.)
-
-// Botão de logout
-logoutBtn.addEventListener("click", () => {
-    currentUser = null;
-    mainContent.style.display = "none";
-    loginScreen.style.display = "block";
-    document.getElementById("loginForm").reset();
-});
-
-// Cadastro de produtos
-document.getElementById("productForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    console.log("Formulário de cadastro de produto enviado");
-
-    const product = {
-        name: document.getElementById("name").value,
-        quantity: parseInt(document.getElementById("quantity").value),
-        brand: document.getElementById("brand").value,
-        unitType: document.getElementById("unitType").value,
-        unitQuantity: document.getElementById("unitQuantity").value,
-        idealQuantity: parseInt(document.getElementById("idealQuantity").value),
-        ownerPhone: currentUser.phone,
-    };
-
-    // Fecha todos os modais antes de abrir o confirmModal
-    if (addModal) {
-        addModal.style.display = "none";
-        console.log("addModal fechado");
-    }
-    if (shareModal) {
-        shareModal.style.display = "none";
-        console.log("shareModal fechado");
-    }
-    if (editModal) {
-        editModal.style.display = "none";
-        console.log("editModal fechado");
-    }
-    if (feedbackModal) {
-        feedbackModal.style.display = "none";
-        console.log("feedbackModal fechado");
-    }
-
-    openConfirmModal("Deseja confirmar o cadastro deste produto?", async () => {
-        try {
-            const response = await fetch(`${API_URL}/products`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(product),
-            });
-            if (!response.ok) throw new Error("Erro ao adicionar produto");
-            document.getElementById("productForm").reset();
-            loadProducts();
-            openFeedbackModal("Produto adicionado com sucesso!");
-        } catch (error) {
-            console.error("Erro:", error);
-            openFeedbackModal("Falha ao adicionar produto");
-        }
-    });
-});
-
-// Edição de produtos
-document.getElementById("editForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const productId = editModal.dataset.productId;
-    const updatedProduct = {
-        quantity: parseInt(document.getElementById("editQuantity").value),
-        brand: document.getElementById("editBrand").value,
-        unitType: document.getElementById("editUnitType").value,
-        unitQuantity: document.getElementById("editUnitQuantity").value,
-        idealQuantity: parseInt(document.getElementById("editIdealQuantity").value),
-    };
-
-    openConfirmModal("Deseja confirmar a edição deste produto?", async () => {
-        try {
-            const response = await fetch(`${API_URL}/products/${productId}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(updatedProduct),
-            });
-            if (!response.ok) throw new Error("Erro ao atualizar produto");
-            editModal.style.display = "none";
-            loadProducts();
-            openFeedbackModal("Produto atualizado com sucesso!");
-        } catch (error) {
-            console.error("Erro:", error);
-            openFeedbackModal("Falha ao atualizar produto");
-        }
-    });
-});
-
-// Carregar produtos do usuário logado
-async function loadProducts() {
-    if (!currentUser) return;
-
-    try {
-        const response = await fetch(`${API_URL}/products?ownerPhone=${currentUser.phone}`);
-        if (!response.ok) throw new Error("Erro ao carregar produtos");
-        const products = await response.json();
-        const list = document.getElementById("productList");
-        list.innerHTML = "";
+        list.innerHTML = ""; // Limpa a lista
 
         const today = new Date();
         const dayOfMonth = today.getDate();
@@ -516,6 +393,87 @@ async function loadProducts() {
     }
 }
 
+// Cadastro de produtos
+document.getElementById("productForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    console.log("Formulário de cadastro de produto enviado");
+
+    const product = {
+        name: document.getElementById("name").value,
+        quantity: parseInt(document.getElementById("quantity").value),
+        brand: document.getElementById("brand").value,
+        unitType: document.getElementById("unitType").value,
+        unitQuantity: document.getElementById("unitQuantity").value,
+        idealQuantity: parseInt(document.getElementById("idealQuantity").value),
+        ownerPhone: currentUser.phone,
+    };
+
+    if (addModal) {
+        addModal.style.display = "none";
+        console.log("addModal fechado");
+    }
+    if (shareModal) {
+        shareModal.style.display = "none";
+        console.log("shareModal fechado");
+    }
+    if (editModal) {
+        editModal.style.display = "none";
+        console.log("editModal fechado");
+    }
+    if (feedbackModal) {
+        feedbackModal.style.display = "none";
+        console.log("feedbackModal fechado");
+    }
+
+    openConfirmModal("Deseja confirmar o cadastro deste produto?", async () => {
+        try {
+            const response = await fetch(`${API_URL}/products`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(product),
+            });
+            if (!response.ok) throw new Error("Erro ao adicionar produto");
+            document.getElementById("productForm").reset();
+            loadProducts();
+            openFeedbackModal("Produto adicionado com sucesso!");
+        } catch (error) {
+            console.error("Erro:", error);
+            openFeedbackModal("Falha ao adicionar produto");
+        }
+    });
+});
+
+// Edição de produtos
+document.getElementById("editForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const productId = editModal.dataset.productId;
+    const updatedProduct = {
+        quantity: parseInt(document.getElementById("editQuantity").value),
+        brand: document.getElementById("editBrand").value,
+        unitType: document.getElementById("editUnitType").value,
+        unitQuantity: document.getElementById("editUnitQuantity").value,
+        idealQuantity: parseInt(document.getElementById("editIdealQuantity").value),
+    };
+
+    openConfirmModal("Deseja confirmar a edição deste produto?", async () => {
+        try {
+            const response = await fetch(`${API_URL}/products/${productId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(updatedProduct),
+            });
+            if (!response.ok) throw new Error("Erro ao atualizar produto");
+            editModal.style.display = "none";
+            loadProducts();
+            openFeedbackModal("Produto atualizado com sucesso!");
+        } catch (error) {
+            console.error("Erro:", error);
+            openFeedbackModal("Falha ao atualizar produto");
+        }
+    });
+});
+
 function openEditModal(product) {
     editModal.dataset.productId = product._id;
     document.getElementById("editName").value = product.name;
@@ -543,7 +501,6 @@ function openShareModal(product) {
     }
     console.log("shareForm encontrado");
 
-    // Limpar listener anterior para evitar duplicação
     shareForm.removeEventListener("submit", shareForm.onsubmit);
 
     shareForm.onsubmit = async (e) => {
@@ -565,7 +522,6 @@ function openShareModal(product) {
         }
         console.log("Telefone capturado:", sharePhone);
 
-        console.log("Chamando openConfirmModal");
         openConfirmModal(`Deseja compartilhar a lista com ${sharePhone}?`, async () => {
             console.log("Confirmação recebida, iniciando compartilhamento");
             try {
@@ -579,12 +535,12 @@ function openShareModal(product) {
                     throw new Error(`Erro ao compartilhar lista: ${errorText}`);
                 }
                 console.log("Compartilhamento bem-sucedido");
-                shareModal.style.display = "none"; // Fecha o shareModal após sucesso
+                shareModal.style.display = "none";
                 shareForm.reset();
                 openFeedbackModal("Lista compartilhada com sucesso!");
             } catch (error) {
                 console.error("Erro:", error.message);
-                shareModal.style.display = "none"; // Fecha o shareModal em caso de erro
+                shareModal.style.display = "none";
                 openFeedbackModal(`Falha ao compartilhar lista: ${error.message}`);
             }
         });
