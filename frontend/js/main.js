@@ -1,4 +1,4 @@
-const API_URL = "http://192.168.1.67:3000";
+const API_URL = "https://stok-hiqo.onrender.com";
 
 // Elementos da interface
 const loginScreen = document.getElementById("loginScreen");
