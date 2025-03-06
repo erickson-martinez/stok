@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Finanças</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <!-- Tela de Login -->
+    <div id="loginScreen" class="modal" style="display: block;">
+        <div class="modal-content">
+            <h2>Entrar</h2>
+            <form id="loginForm">
+                <input type="text" id="userName" placeholder="Seu Nome" required>
+                <input type="tel" id="userPhone" placeholder="Seu Telefone (ex: 11987654321)" required>
+                <input type="password" id="userPassword" placeholder="Senha (opcional)">
+                <button type="submit">Entrar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tela Principal -->
+    <div id="mainContent" style="display: none;">
+        <h1>Gerenciador de Finanças</h1>
+        <p>Bem-vindo, <span id="loggedUserName"></span>!</p>
+        <button id="logoutBtn">Sair</button>
+        <button id="openAddModalBtn">Adicionar Transação</button>
+        <div id="financeList"></div>
+    </div>
+
+    <!-- Modal de Adição de Transação -->
+    <div id="addModal" class="modal">
+        <div class="modal-content">
+            <span id="closeAddModalBtn" class="close">×</span>
+            <h2>Adicionar Transação</h2>
+            <form id="financeForm">
+                <input type="text" id="description" placeholder="Descrição" required>
+                <input type="number" id="amount" placeholder="Valor" step="0.01" required>
+                <select id="type" required>
+                    <option value="income">Entrada</option>
+                    <option value="expense">Despesa</option>
+                </select>
+                <input type="date" id="date" required>
+                <button type="submit">Salvar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmação -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <span id="closeConfirmModalBtn" class="close">×</span>
+            <h2>Confirmar Ação</h2>
+            <p id="confirmMessage"></p>
+            <div class="modal-actions">
+                <button id="cancelConfirmBtn">Cancelar</button>
+                <button id="confirmActionBtn">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Feedback -->
+    <div id="feedbackModal" class="modal">
+        <div class="modal-content">
+            <span id="closeFeedbackModalBtn" class="close">×</span>
+            <h2>Resultado</h2>
+            <p id="feedbackMessage"></p>
+            <button id="closeFeedbackBtn">Fechar</button>
+        </div>
+    </div>
+
+    <script type="module" src="/js/main.js"></script>
+</body>
+
+</html>
