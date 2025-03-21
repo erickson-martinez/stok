@@ -4,75 +4,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerenciador de Finanças</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Controle de Despesas</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+        integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="../css/finances.css">
 </head>
 
 <body>
-    <!-- Tela de Login -->
-    <div id="loginScreen" class="modal" style="display: block;">
-        <div class="modal-content">
-            <h2>Entrar</h2>
-            <form id="loginForm">
-                <input type="text" id="userName" placeholder="Seu Nome" required>
-                <input type="tel" id="userPhone" placeholder="Seu Telefone (ex: 11987654321)" required>
-                <input type="password" id="userPassword" placeholder="Senha (opcional)">
-                <button type="submit">Entrar</button>
-            </form>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Menu</h2>
+                <button class="close-btn" id="closeSidebar">✖</button>
+            </div>
+            <ul class="sidebar-menu" id="sidebarMenu">
+                <!-- Itens do menu serão inseridos via JavaScript -->
+            </ul>
         </div>
-    </div>
 
-    <!-- Tela Principal -->
-    <div id="mainContent" style="display: none;">
-        <h1>Gerenciador de Finanças</h1>
-        <p>Bem-vindo, <span id="loggedUserName"></span>!</p>
-        <button id="logoutBtn">Sair</button>
-        <button id="openAddModalBtn">Adicionar Transação</button>
-        <div id="financeList"></div>
-    </div>
+        <!-- Conteúdo Principal -->
+        <div class="main-content">
+            <header>
+                <button class="menu-btn" id="openSidebar">☰</button>
+                <div class="user-initials" id="userInitials" title="Perfil"></div>
+            </header>
+            <!-- Modal de Perfil -->
+            <div class="modal" id="userModal">
+                <div class="modal-content">
+                    <p id="userFullName"></p>
+                    <div class="user-info">
+                        <span id="userPhone"></span>
+                        <button class="logout-btn" id="logout">Sair</button>
+                    </div>
+                </div>
+            </div>
+            <div class="content">
+                <div class="header">
+                    <button class="btn" onclick="changeMonth(-1)">◄</button>
+                    <h2><span id="currentMonth">Março 2025</span></h2>
+                    <button class="btn" onclick="changeMonth(1)">►</button>
+                    <button class="btn btn-icon" onclick="openShareModal()">
+                        <i class="fas fa-share-alt"></i>
+                    </button>
+                </div>
 
-    <!-- Modal de Adição de Transação -->
-    <div id="addModal" class="modal">
-        <div class="modal-content">
-            <span id="closeAddModalBtn" class="close">×</span>
-            <h2>Adicionar Transação</h2>
-            <form id="financeForm">
-                <input type="text" id="description" placeholder="Descrição" required>
-                <input type="number" id="amount" placeholder="Valor" step="0.01" required>
-                <select id="type" required>
-                    <option value="income">Entrada</option>
-                    <option value="expense">Despesa</option>
-                </select>
-                <input type="date" id="date" required>
-                <button type="submit">Salvar</button>
-            </form>
+                <div class="lists-button">
+                    <div class="list">
+                        <button class="btn btn-receita" onclick="openActionModal('edit', 'receita')">Receitas +</button>
+                    </div>
+                    <div class="list">
+                        <button class="btn btn-despesa" onclick="openActionModal('edit', 'despesa')">Despesas +</button>
+                    </div>
+                </div>
+
+                <div class="lists">
+                    <div class="card" id="receitasCard">
+                        <div id="border-receitas-card" class="card-border">
+                            <div class="card-header">
+                                <h3>Receitas - <span id="receitasMonth"></span></h3>
+                            </div>
+                            <div class="card-content" id="receitasList"></div>
+                        </div>
+                    </div>
+                    <div class="card" id="despesasCard">
+                        <div id="border-despesas-card" class="card-border">
+                            <div class="card-header">
+                                <h3>Despesas - <span id="despesasMonth"></span></h3>
+                            </div>
+                            <div class="card-content" id="despesasList"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <!-- Modal de Confirmação -->
-    <div id="confirmModal" class="modal">
-        <div class="modal-content">
-            <span id="closeConfirmModalBtn" class="close">×</span>
-            <h2>Confirmar Ação</h2>
-            <p id="confirmMessage"></p>
-            <div class="modal-actions">
-                <button id="cancelConfirmBtn">Cancelar</button>
-                <button id="confirmActionBtn">Confirmar</button>
+        <!-- Modal de Ação -->
+        <div id="actionModal" class="modal finance-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalTitle"></h3>
+                    <span class="close" onclick="closeModal()">×</span>
+                </div>
+                <div id="modalBody">
+                    <div class="form-group">
+                        <label>Nome</label>
+                        <input type="text" id="modalNome" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label>Valor</label>
+                        <input type="number" id="modalValor" step="0.01" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label>Data</label>
+                        <input type="date" id="modalData" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label><input type="checkbox" id="modalRecorrencia" disabled> Recorrência</label>
+                        <div id="modalRecorrenciaMeses" style="display: none;">
+                            <label>Quantidade de Meses</label>
+                            <input type="number" id="modalQtdMeses" min="1" disabled>
+                        </div>
+                    </div>
+                </div>
+                <div id="modalButtons" class="modal-buttons"></div>
             </div>
         </div>
     </div>
-
-    <!-- Modal de Feedback -->
-    <div id="feedbackModal" class="modal">
-        <div class="modal-content">
-            <span id="closeFeedbackModalBtn" class="close">×</span>
-            <h2>Resultado</h2>
-            <p id="feedbackMessage"></p>
-            <button id="closeFeedbackBtn">Fechar</button>
-        </div>
-    </div>
-
-    <script type="module" src="/js/main.js"></script>
+    <script src="/frontend/js/finances.js"></script>
 </body>
 
 </html>

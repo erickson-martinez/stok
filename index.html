@@ -4,126 +4,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estoque Casa</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Redirecionando...</title>
+    <script>
+        // Redireciona automaticamente para frontend/login.html ao carregar a página
+        window.onload = function () {
+            window.location.href = "frontend/login.html";
+        };
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+
+        .message {
+            text-align: center;
+            color: #333;
+        }
+
+        .message a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .message a:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
 
 <body>
-
-    <!-- Tela de Login -->
-    <div id="loginScreen" class="modal" style="display: block;">
-        <div class="modal-content">
-            <h2>Entrar</h2>
-            <form id="loginForm">
-                <input type="text" id="userName" placeholder="Seu Nome" required>
-                <input type="tel" id="userPhone" placeholder="Seu Telefone (ex: 11987654321)" required>
-                <input type="password" id="userPassword" placeholder="Senha (opcional)">
-                <button type="submit">Entrar</button>
-            </form>
-        </div>
+    <div class="message">
+        <p>Redirecionando para a tela de login...</p>
+        <p>Caso não seja redirecionado, <a href="frontend/login.html">clique aqui</a>.</p>
     </div>
-    <!-- Após o loginScreen -->
-    <div id="mainContent" style="display: none;">
-        <button id="logoutBtn">Sair</button>
-        <h1>Estoque Casa</h1>
-        <p>Bem-vindo, <span id="loggedUserName"></span>!</p>
-        <button id="openModalBtn">Adicionar Produto</button>
-        <div id="productList"></div>
-    </div>
-    <!-- Modal de Adição -->
-    <div id="productModal" class="modal">
-        <div class="modal-content">
-            <span id="closeModalBtn" class="close">×</span>
-            <h2>Adicionar Produto</h2>
-            <form id="productForm">
-                <input type="text" id="name" placeholder="Nome do Produto" required>
-                <input type="number" id="quantity" placeholder="Quantidade" required>
-                <input type="text" id="brand" placeholder="Marca" required>
-                <select id="unitType" required>
-                    <option value="unidade">Unidade</option>
-                    <option value="pacote">Pacote</option>
-                    <option value="embalagem">Embalagem</option>
-                    <option value="litro">Litro</option>
-                </select>
-                <input type="text" id="unitQuantity" placeholder="Quantidade por Unidade" required>
-                <input type="number" id="idealQuantity" placeholder="Quantidade Ideal" required>
-                <button type="submit">Salvar</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal de Edição -->
-    <div id="editModal" class="modal">
-        <div class="modal-content">
-            <span id="closeEditModalBtn" class="close">×</span>
-            <h2>Editar Produto</h2>
-            <form id="editForm">
-                <input type="text" id="editName" readonly>
-                <input type="number" id="editQuantity" placeholder="Quantidade" required>
-                <input type="text" id="editBrand" placeholder="Marca" required>
-                <select id="editUnitType" required>
-                    <option value="unidade">Unidade</option>
-                    <option value="pacote">Pacote</option>
-                    <option value="embalagem">Embalagem</option>
-                    <option value="litro">Litro</option>
-                </select>
-                <input type="text" id="editUnitQuantity" placeholder="Quantidade por Unidade" required>
-                <input type="number" id="editIdealQuantity" placeholder="Quantidade Ideal" required>
-                <button type="submit">Atualizar</button>
-            </form>
-        </div>
-    </div>
-
-    <div id="confirmModal" class="modal">
-        <div class="modal-content">
-            <span id="closeConfirmModalBtn" class="close">×</span>
-            <h2>Confirmar Ação</h2>
-            <p id="confirmMessage"></p>
-            <div class="modal-actions">
-                <button id="cancelConfirmBtn">Cancelar</button>
-                <button id="confirmActionBtn">Confirmar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal de Feedback -->
-    <div id="feedbackModal" class="modal">
-        <div class="modal-content">
-            <span id="closeFeedbackModalBtn" class="close">×</span>
-            <h2>Resultado</h2>
-            <p id="feedbackMessage"></p>
-            <div class="modal-actions">
-                <button id="closeFeedbackBtn">Fechar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal de Cadastro de Novo Usuário -->
-    <div id="registerConfirmModal" class="modal">
-        <div class="modal-content">
-            <span id="closeRegisterConfirmModalBtn" class="close">×</span>
-            <h2>Confirmação de Cadastro</h2>
-            <p id="registerConfirmMessage"></p>
-            <div class="modal-actions">
-                <button id="cancelRegisterBtn">Cancelar</button>
-                <button id="confirmRegisterBtn">Confirmar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal de Compartilhamento -->
-    <div id="shareModal" class="modal">
-        <div class="modal-content">
-            <span id="closeShareModalBtn" class="close">×</span>
-            <h2>Compartilhar Lista</h2>
-            <form id="shareForm">
-                <input type="tel" id="sharePhone" placeholder="Telefone (ex: 11987654321)" required>
-                <button type="submit">Compartilhar</button>
-            </form>
-        </div>
-    </div>
-
-    <script type="module" src="frontend/js/main.js"></script>
 </body>
 
 </html>

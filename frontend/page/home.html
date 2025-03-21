@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+    <link rel="stylesheet" href="../css/home.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Menu</h2>
+                <button class="close-btn" id="closeSidebar">✖</button>
+            </div>
+            <ul class="sidebar-menu" id="sidebarMenu">
+                <!-- Itens do menu serão inseridos via JavaScript -->
+            </ul>
+        </div>
+
+        <!-- Conteúdo Principal -->
+        <div class="main-content">
+            <header>
+                <button class="menu-btn" id="openSidebar">☰</button>
+                <div class="user-initials" id="userInitials" title="Perfil"></div>
+            </header>
+            <!-- Modal -->
+            <div class="modal" id="userModal">
+                <div class="modal-content">
+                    <p id="userFullName"></p>
+                    <div class="user-info">
+                        <span id="userPhone"></span>
+                        <button class="logout-btn" id="logout">Sair</button>
+                    </div>
+                </div>
+            </div>
+            <div class="content">
+                <h2>Conteúdo Principal</h2>
+                <p>Esta é a área principal da sua aplicação. Escolha uma opção no menu lateral.</p>
+            </div>
+        </div>
+    </div>
+    <script src="/frontend/js/home.js"></script>
+</body>
+
+</html>
