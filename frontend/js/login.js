@@ -1,69 +1,89 @@
-// Definindo a constante API_URL
 const API_URL = "https://stok-hiqo.onrender.com";
 
-// Função para lidar com o login
-function handleLogin(event) {
-    event.preventDefault();
-
-    const phoneInput = document.getElementById("phone");
-    const passInput = document.getElementById("pass");
+// Função para fazer login
+document.getElementById("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const phone = document.getElementById("phone").value;
+    const pass = document.getElementById("pass").value;
     const errorMessage = document.getElementById("error-message");
 
-    const loginData = {
-        phone: phoneInput.value,
-        pass: passInput.value,
-    };
-
-    fetch(`${API_URL}/users/auth`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(loginData),
-    })
-        .then((response) => {
-            if (!response.ok) {
-                throw new Error("Erro na autenticação");
-            }
-            return response.json();
-        })
-        .then((data) => {
-            // Salva o usuário no localStorage
-            localStorage.setItem("currentUser", JSON.stringify(data.user));
-            // Redireciona para a home
-            window.location.href = "page/home.html";
-        })
-        .catch((error) => {
-            errorMessage.textContent = "Telefone ou senha inválidos";
-            console.error("Erro:", error);
+    try {
+        const response = await fetch(`${API_URL}/users/auth`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone, pass }),
         });
+
+        // Log da resposta bruta para depuração
+        const textResponse = await response.text();
+        console.log("Resposta bruta do servidor:", textResponse);
+
+        // Tenta解析 como JSON
+        const data = JSON.parse(textResponse);
+
+        if (!response.ok) {
+            throw new Error(data.error || "Erro ao autenticar");
+        }
+
+        localStorage.setItem("currentUser", JSON.stringify(data.user));
+        window.location.href = "./page/home.html";
+    } catch (err) {
+        errorMessage.textContent = err.message;
+        console.error("Erro ao processar resposta:", err);
+    }
+});
+
+// Função para abrir o modal de cadastro
+document.getElementById("registerButton").addEventListener("click", () => {
+    document.getElementById("registerModal").style.display = "block";
+});
+
+// Função para fechar o modal de cadastro
+function closeRegisterModal() {
+    document.getElementById("registerModal").style.display = "none";
+    document.getElementById("register-error").textContent = ""; // Limpa mensagens de erro
+    document.getElementById("registerForm").reset(); // Reseta o formulário
 }
 
-// Função para carregar o usuário na home
-function loadHome() {
-    const userNameSpan = document.getElementById("userName");
-    const logoutButton = document.getElementById("logout");
-    const currentUser = localStorage.getItem("currentUser");
-
-    if (currentUser) {
-        const user = JSON.parse(currentUser);
-        userNameSpan.textContent = user.name;
-    } else {
-        window.location.href = "index.html"; // Redireciona para login se não houver usuário
+// Fecha o modal ao clicar fora dele
+document.addEventListener("click", (event) => {
+    const modal = document.getElementById("registerModal");
+    if (event.target === modal) {
+        closeRegisterModal();
     }
+});
 
-    if (logoutButton) {
-        logoutButton.addEventListener("click", () => {
-            localStorage.removeItem("currentUser");
-            window.location.href = "index.html";
+// Função para cadastrar novo usuário
+async function registerUser() {
+    const name = document.getElementById("registerName").value;
+    const phone = document.getElementById("registerPhone").value;
+    const pass = document.getElementById("registerPass").value;
+    const errorMessage = document.getElementById("register-error");
+
+    try {
+        const response = await fetch(`${API_URL}/users`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, phone, pass }),
         });
-    }
-}
 
-// Verifica em qual página estamos e aplica a lógica correspondente
-if (document.getElementById("loginForm")) {
-    const loginForm = document.getElementById("loginForm");
-    loginForm.addEventListener("submit", handleLogin);
-} else if (document.getElementById("userName")) {
-    loadHome();
+        // Log da resposta bruta para depuração
+        const textResponse = await response.text();
+        console.log("Resposta bruta do servidor (cadastro):", textResponse);
+
+        // Tenta解析 como JSON
+        const data = JSON.parse(textResponse);
+
+        if (!response.ok) {
+            throw new Error(data.error || "Erro ao cadastrar usuário");
+        }
+
+        // Após sucesso, armazena o usuário no localStorage e redireciona
+        localStorage.setItem("currentUser", JSON.stringify({ name, phone }));
+        closeRegisterModal();
+        window.location.href = "./page/home.html";
+    } catch (err) {
+        errorMessage.textContent = err.message;
+        console.error("Erro ao processar resposta (cadastro):", err);
+    }
 }

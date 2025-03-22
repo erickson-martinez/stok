@@ -11,19 +11,57 @@
 <body>
     <div class="login-container">
         <h1>Login</h1>
-        <form id="loginForm">
+        <form id="loginForm" autocomplete="off">
             <div class="input-group">
                 <label for="phone">Telefone</label>
-                <input type="text" id="phone" name="phone" placeholder="Digite seu telefone" required>
+                <input type="text" id="phone" name="phone" placeholder="Digite seu telefone" required
+                    autocomplete="tel">
             </div>
             <div class="input-group">
                 <label for="pass">Senha</label>
-                <input type="password" id="pass" name="pass" placeholder="Digite sua senha" required>
+                <input type="password" id="pass" name="pass" placeholder="Digite sua senha" required
+                    autocomplete="new-password">
             </div>
             <button type="submit">Entrar</button>
             <p id="error-message" class="error"></p>
         </form>
+        <button id="registerButton" class="register-link">Cadastrar</button>
     </div>
+
+    <!-- Modal de Cadastro -->
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Cadastrar Novo Usuário</h2>
+                <span class="close-modal" onclick="closeRegisterModal()">×</span>
+            </div>
+            <div id="modalBody">
+                <form id="registerForm" autocomplete="off">
+                    <div class="input-group">
+                        <label for="registerName">Nome</label>
+                        <input type="text" id="registerName" name="name" placeholder="Digite seu nome" required
+                            autocomplete="off">
+                    </div>
+                    <div class="input-group">
+                        <label for="registerPhone">Telefone</label>
+                        <input type="text" id="registerPhone" name="phone" placeholder="Digite seu telefone" required
+                            autocomplete="tel">
+                    </div>
+                    <div class="input-group">
+                        <label for="registerPass">Senha</label>
+                        <input type="password" id="registerPass" name="pass" placeholder="Digite sua senha" required
+                            autocomplete="new-password">
+                    </div>
+                    <p id="register-error" class="error"></p>
+                </form>
+            </div>
+            <div id="modalButtons" class="modal-footer">
+                <button onclick="closeRegisterModal()">Cancelar</button>
+                <button onclick="registerUser()">Cadastrar</button>
+            </div>
+        </div>
+    </div>
+
     <script src="./js/login.js"></script>
 </body>
 

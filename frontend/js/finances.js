@@ -6,7 +6,7 @@ const menuItems = [
     { name: "Estoque", route: "./stock.html" },
 ];
 
-// Função para carregar o menu dinamicamente
+// Carrega o menu lateral dinamicamente
 function loadSidebarMenu() {
     const sidebarMenu = document.getElementById("sidebarMenu");
     sidebarMenu.innerHTML = "";
@@ -20,12 +20,12 @@ function loadSidebarMenu() {
     });
 }
 
-// Função para obter as iniciais do nome
+// Obtém as iniciais do nome
 function getInitials(name) {
     return name.split(" ").map(word => word[0]).join("").toUpperCase().slice(0, 2);
 }
 
-// Função para carregar a tela de finanças
+// Carrega a tela de finanças
 function loadFinances() {
     const userInitialsDiv = document.getElementById("userInitials");
     const userFullName = document.getElementById("userFullName");
@@ -49,12 +49,12 @@ function loadFinances() {
 
     loadSidebarMenu();
 
-    // Abrir/fechar modal de perfil
+    // Abre/fecha o modal de perfil
     userInitialsDiv.addEventListener("click", () => {
         userModal.classList.toggle("active");
     });
 
-    // Fechar modal ao clicar fora
+    // Fecha o modal ao clicar fora
     document.addEventListener("click", (event) => {
         if (!userModal.contains(event.target) && !userInitialsDiv.contains(event.target)) {
             userModal.classList.remove("active");
@@ -67,43 +67,42 @@ function loadFinances() {
         window.location.href = "../login.html";
     });
 
-    // Abrir sidebar
+    // Abre a barra lateral
     openSidebarButton.addEventListener("click", () => {
         sidebar.classList.add("active");
     });
 
-    // Fechar sidebar
+    // Fecha a barra lateral
     closeSidebarButton.addEventListener("click", () => {
         sidebar.classList.remove("active");
     });
 
-    // Fechar sidebar ao clicar fora
+    // Fecha a barra lateral ao clicar fora
     document.addEventListener("click", (event) => {
         if (!sidebar.contains(event.target) && !openSidebarButton.contains(event.target)) {
             sidebar.classList.remove("active");
         }
     });
 
-    // Inicializar finanças
+    // Inicializa as finanças
     updateMonth();
     setupFinanceEvents();
 }
 
 // Variáveis globais
 let currentDate = new Date();
-const phoneNumber = '67984726820';
 let currentType = '';
 let editingId = null;
 const receitas = [];
 const despesas = [];
 
-// Função para formatar o mês e ano
+// Formata o mês e ano
 function formatMonth(date) {
     return date.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })
         .replace(/^\w/, c => c.toUpperCase());
 }
 
-// Função para atualizar o mês exibido e buscar dados
+// Atualiza o mês exibido e busca os dados
 function updateMonth() {
     const monthText = formatMonth(currentDate);
     document.getElementById('currentMonth').textContent = monthText;
@@ -112,25 +111,44 @@ function updateMonth() {
     fetchMonthData();
 }
 
-// Função para trocar de mês
+// Muda o mês
 function changeMonth(delta) {
     currentDate.setMonth(currentDate.getMonth() + delta);
     updateMonth();
 }
 
-// Função para buscar dados do mês
+// Busca os dados do mês na API
 async function fetchMonthData() {
-    const year = currentDate.getFullYear();
-    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const phone = JSON.parse(localStorage.getItem("currentUser")).phone;
+    console.log('Buscando dados para o telefone:', phone);
     try {
-        const response = await fetch(`${API_URL}/finances?userPhone=${JSON.parse(localStorage.getItem("currentUser")).phone}&year=${year}&month=${month}`);
-        if (!response.ok) throw new Error("Erro ao carregar finanças");
+        const response = await fetch(`${API_URL}/expenses?phone=${phone}`);
+        if (!response.ok) throw new Error(`Erro ao carregar finanças: ${response.statusText}`);
         const data = await response.json();
+        console.log('Dados recebidos da API:', data);
 
         receitas.length = 0;
         despesas.length = 0;
-        data.receitas.forEach(item => receitas.push(item));
-        data.despesas.forEach(item => despesas.push(item));
+        if (data.receita) {
+            data.receita.forEach(item => receitas.push({
+                id: item._id,
+                name: item.name,
+                valor: item.value,
+                data: item.date,
+                recorrencia: false
+            }));
+        }
+        if (data.despesa) {
+            data.despesa.forEach(item => despesas.push({
+                id: item._id,
+                name: item.name,
+                valor: item.value,
+                data: item.date,
+                recorrencia: false
+            }));
+        }
+        console.log('Receitas após preenchimento:', receitas);
+        console.log('Despesas após preenchimento:', despesas);
         updateLists();
         calculateColors();
     } catch (err) {
@@ -140,11 +158,11 @@ async function fetchMonthData() {
     }
 }
 
-// Configurar eventos de finanças
+// Configura eventos de finanças
 function setupFinanceEvents() {
     const actionModal = document.getElementById("actionModal");
 
-    // Fechar modal ao clicar fora
+    // Fecha o modal ao clicar fora
     document.addEventListener("click", (event) => {
         if (event.target === actionModal) {
             actionModal.style.display = "none";
@@ -152,8 +170,9 @@ function setupFinanceEvents() {
     });
 }
 
-// Função para abrir o modal
+// Abre o modal de ação
 function openActionModal(action, type, item = null) {
+    console.log('Abrindo modal:', action, type, item);
     currentType = type;
     editingId = item ? item.id : null;
     const modal = document.getElementById("actionModal");
@@ -162,7 +181,7 @@ function openActionModal(action, type, item = null) {
     const modalButtons = document.getElementById("modalButtons");
 
     const titlePrefix = type === "receita" ? "Receita" : "Despesa";
-    modalHeader.className = `modal-header ${type}`;
+    modalHeader.className = `modal-header ${type || 'share'}`;
     if (action === "edit") {
         modalTitle.textContent = item ? `Editar ${titlePrefix}` : `Nova ${titlePrefix}`;
     } else if (action === "view") {
@@ -172,13 +191,6 @@ function openActionModal(action, type, item = null) {
     } else if (action === "share") {
         modalTitle.textContent = "Compartilhar";
     }
-
-    const nome = document.getElementById("modalNome");
-    const valor = document.getElementById("modalValor");
-    const data = document.getElementById("modalData");
-    const recorrencia = document.getElementById("modalRecorrencia");
-    const recorrenciaMeses = document.getElementById("modalRecorrenciaMeses");
-    const qtdMeses = document.getElementById("modalQtdMeses");
 
     if (action === "share") {
         document.getElementById("modalBody").innerHTML = `
@@ -204,49 +216,59 @@ function openActionModal(action, type, item = null) {
         };
         document.getElementById("shareQtdMeses").oninput = updateShareTitle;
         updateShareTitle();
+        modal.style.display = "block";
+        return; // Sai da função após configurar o modo "share"
+    }
+
+    // Configuração dos campos padrão (edit/view/delete)
+    const nome = document.getElementById("modalNome");
+    const valor = document.getElementById("modalValor");
+    const data = document.getElementById("modalData");
+    const recorrencia = document.getElementById("modalRecorrencia");
+    const recorrenciaMeses = document.getElementById("modalRecorrenciaMeses");
+    const qtdMeses = document.getElementById("modalQtdMeses");
+
+    if (item) {
+        nome.value = item.name;
+        valor.value = item.valor;
+        data.value = item.data.split("T")[0];
+        recorrencia.checked = item.recorrencia;
+        recorrenciaMeses.style.display = item.recorrencia ? "block" : "none";
+        qtdMeses.value = item.qtdrecorrencia ? item.qtdrecorrencia.split("-")[1] : "";
     } else {
-        if (item) {
-            nome.value = item.name;
-            valor.value = item.valor;
-            data.value = item.data;
-            recorrencia.checked = item.recorrencia;
-            recorrenciaMeses.style.display = item.recorrencia ? "block" : "none";
-            qtdMeses.value = item.qtdrecorrencia ? item.qtdrecorrencia.split("-")[1] : "";
-        } else {
-            nome.value = "";
-            valor.value = "";
-            data.value = currentDate.toISOString().split("T")[0];
-            recorrencia.checked = false;
-            recorrenciaMeses.style.display = "none";
-            qtdMeses.value = "";
-        }
+        nome.value = "";
+        valor.value = "";
+        data.value = currentDate.toISOString().split("T")[0];
+        recorrencia.checked = false;
+        recorrenciaMeses.style.display = "none";
+        qtdMeses.value = "";
+    }
 
-        const isEditable = action === "edit";
-        nome.disabled = !isEditable;
-        valor.disabled = !isEditable;
-        data.disabled = !isEditable;
-        recurrencia.disabled = !isEditable;
-        qtdMeses.disabled = !isEditable;
+    const isEditable = action === "edit";
+    nome.disabled = !isEditable;
+    valor.disabled = !isEditable;
+    data.disabled = !isEditable;
+    recorrencia.disabled = !isEditable;
+    qtdMeses.disabled = !isEditable;
 
-        modalButtons.innerHTML = "";
-        if (action === "edit") {
-            modalButtons.innerHTML = `
-                <button onclick="closeModal()">Cancelar</button>
-                <button onclick="saveItem()">Salvar</button>
-            `;
-            recorrencia.onchange = (e) => {
-                recorrenciaMeses.style.display = e.target.checked ? "block" : "none";
-            };
-        } else if (action === "view") {
-            modalButtons.innerHTML = `
-                <button onclick="closeModal()">Sair</button>
-            `;
-        } else if (action === "delete") {
-            modalButtons.innerHTML = `
-                <button onclick="closeModal()">Cancelar</button>
-                <button onclick="confirmDelete('${item.id}')">Confirmar</button>
-            `;
-        }
+    modalButtons.innerHTML = "";
+    if (action === "edit") {
+        modalButtons.innerHTML = `
+            <button onclick="closeModal()">Cancelar</button>
+            <button onclick="saveItem()">Salvar</button>
+        `;
+        recorrencia.onchange = (e) => {
+            recorrenciaMeses.style.display = e.target.checked ? "block" : "none";
+        };
+    } else if (action === "view") {
+        modalButtons.innerHTML = `
+            <button onclick="closeModal()">Sair</button>
+        `;
+    } else if (action === "delete") {
+        modalButtons.innerHTML = `
+            <button onclick="closeModal()">Cancelar</button>
+            <button onclick="confirmDelete('${item.id}')">Confirmar</button>
+        `;
     }
 
     modal.style.display = "block";
@@ -257,62 +279,59 @@ function closeModal() {
 }
 
 async function saveItem() {
+    const phone = JSON.parse(localStorage.getItem("currentUser")).phone;
     const item = {
-        id: editingId || Date.now().toString(),
+        _id: editingId || undefined,
         name: document.getElementById("modalNome").value,
-        valor: parseFloat(document.getElementById("modalValor").value),
-        data: document.getElementById("modalData").value || currentDate.toISOString().split("T")[0],
-        recorrencia: document.getElementById("modalRecorrencia").checked,
-        phoneNumber: JSON.parse(localStorage.getItem("currentUser")).phone,
+        value: parseFloat(document.getElementById("modalValor").value),
+        date: document.getElementById("modalData").value || currentDate.toISOString().split("T")[0],
     };
 
-    if (item.recorrencia) {
-        const qtdMeses = document.getElementById("modalQtdMeses").value;
-        const itemDate = new Date(item.data);
-        const currentMonth = itemDate.getMonth() + 1;
-        const finalMonth = currentMonth + parseInt(qtdMeses) - 1;
-        item.qtdrecorrencia = `${String(currentMonth).padStart(2, "0")}-${String(finalMonth).padStart(2, "0")}`;
-    } else {
-        item.qtdrecorrencia = null;
+    const payload = {
+        phone,
+        [currentType]: [item]
+    };
+
+    console.log('Enviando payload para a API:', payload);
+
+    try {
+        if (editingId) {
+            const response = await fetch(`${API_URL}/expenses`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+            if (!response.ok) throw new Error(`Erro ao atualizar item: ${response.statusText}`);
+            console.log('Resposta do PATCH:', await response.json());
+        } else {
+            const response = await fetch(`${API_URL}/expenses`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+            if (!response.ok) throw new Error(`Erro ao criar item: ${response.statusText}`);
+            console.log('Resposta do POST:', await response.json());
+        }
+
+        await fetchMonthData();
+        closeModal();
+    } catch (err) {
+        console.error('Erro ao salvar item:', err);
     }
-
-    const list = currentType === "receita" ? receitas : despesas;
-    const endpoint = currentType === "receita" ? "receitas" : "despesas";
-
-    if (editingId) {
-        const index = list.findIndex(i => i.id === editingId);
-        list[index] = item;
-        await fetch(`${API_URL}/${endpoint}/${editingId}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(item),
-        });
-    } else {
-        list.push(item);
-        await fetch(`${API_URL}/${endpoint}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(item),
-        });
-    }
-
-    updateLists();
-    calculateColors();
-    closeModal();
 }
 
 function updateLists(filteredReceitas = receitas, filteredDespesas = despesas) {
+    console.log('Atualizando listas com receitas:', filteredReceitas);
+    console.log('Atualizando listas com despesas:', filteredDespesas);
     const currentYear = currentDate.getFullYear();
     const currentMonth = currentDate.getMonth() + 1;
+    console.log('Filtrando para ano:', currentYear, 'e mês:', currentMonth);
 
     const receitasFiltradas = filteredReceitas.filter(item => {
         const itemDate = new Date(item.data);
         const itemYear = itemDate.getFullYear();
         const itemMonth = itemDate.getMonth() + 1;
-        if (item.recorrencia && item.qtdrecorrencia) {
-            const [startMonth, endMonth] = item.qtdrecorrencia.split("-").map(Number);
-            return currentYear === itemYear && currentMonth >= startMonth && currentMonth <= endMonth;
-        }
+        console.log(`Item Receita: ${item.name}, Ano: ${itemYear}, Mês: ${itemMonth}`);
         return itemYear === currentYear && itemMonth === currentMonth;
     });
 
@@ -320,12 +339,12 @@ function updateLists(filteredReceitas = receitas, filteredDespesas = despesas) {
         const itemDate = new Date(item.data);
         const itemYear = itemDate.getFullYear();
         const itemMonth = itemDate.getMonth() + 1;
-        if (item.recorrencia && item.qtdrecorrencia) {
-            const [startMonth, endMonth] = item.qtdrecorrencia.split("-").map(Number);
-            return currentYear === itemYear && currentMonth >= startMonth && currentMonth <= endMonth;
-        }
+        console.log(`Item Despesa: ${item.name}, Ano: ${itemYear}, Mês: ${itemMonth}`);
         return itemYear === currentYear && itemMonth === currentMonth;
     });
+
+    console.log('Receitas filtradas:', receitasFiltradas);
+    console.log('Despesas filtradas:', despesasFiltradas);
 
     const receitasCard = document.getElementById("receitasCard");
     const despesasCard = document.getElementById("despesasCard");
@@ -334,14 +353,18 @@ function updateLists(filteredReceitas = receitas, filteredDespesas = despesas) {
         document.getElementById("receitasList").innerHTML = receitasFiltradas.map(item => createListItem(item, "receita")).join("");
         receitasCard.style.display = "block";
     } else {
-        receitasCard.style.display = "none";
+        console.log('Nenhuma receita filtrada para exibir');
+        document.getElementById("receitasList").innerHTML = "<p>Sem receitas para este mês</p>";
+        receitasCard.style.display = "block";
     }
 
     if (despesasFiltradas.length > 0) {
         document.getElementById("despesasList").innerHTML = despesasFiltradas.map(item => createListItem(item, "despesa")).join("");
         despesasCard.style.display = "block";
     } else {
-        despesasCard.style.display = "none";
+        console.log('Nenhuma despesa filtrada para exibir');
+        document.getElementById("despesasList").innerHTML = "<p>Sem despesas para este mês</p>";
+        despesasCard.style.display = "block";
     }
 
     document.getElementById("receitasList").removeEventListener("click", handleOptionsClick);
@@ -402,16 +425,18 @@ function showOptions(event, id, type) {
 }
 
 async function confirmDelete(id) {
-    const list = currentType === "receita" ? receitas : despesas;
-    const endpoint = currentType === "receita" ? "receitas" : "despesas";
-    const index = list.findIndex(i => i.id === id);
-    if (index !== -1) {
-        list.splice(index, 1);
-        await fetch(`${API_URL}/${endpoint}/${id}`, { method: "DELETE" });
+    const phone = JSON.parse(localStorage.getItem("currentUser")).phone;
+    try {
+        const response = await fetch(`${API_URL}/expenses?phone=${phone}&type=${currentType}&id=${id}`, {
+            method: "DELETE",
+        });
+        if (!response.ok) throw new Error(`Erro ao deletar item: ${response.statusText}`);
+        console.log('Item deletado, buscando dados atualizados');
+        await fetchMonthData();
+        closeModal();
+    } catch (err) {
+        console.error('Erro ao deletar item:', err);
     }
-    updateLists();
-    calculateColors();
-    closeModal();
 }
 
 function calculateColors() {
@@ -436,12 +461,6 @@ function calculateColors() {
 
     document.getElementById("border-receitas-card").style.borderColor = colorReceita;
     document.getElementById("border-despesas-card").style.borderColor = colorDespesa;
-
-    fetch(`${API_URL}/colors`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phoneNumber: JSON.parse(localStorage.getItem("currentUser")).phone, colorReceita, colorDespesa }),
-    }).catch(err => console.error("Erro ao salvar cores:", err));
 }
 
 function openShareModal() {
@@ -463,7 +482,6 @@ async function shareData() {
     const shareAll = document.getElementById("shareAll").checked;
     const qtdMeses = document.getElementById("shareQtdMeses").value;
     console.log("Compartilhando com:", phone, shareAll ? "12 meses" : `${qtdMeses} meses`);
-    // Aqui você pode adicionar a lógica de compartilhamento real com o backend
     closeModal();
 }
 
