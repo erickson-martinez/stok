@@ -1,4 +1,4 @@
-const API_URL = "https://stok-hiqo.onrender.com";
+const API_URL = "https://stok-5ytv.onrender.com";
 
 // Função para fazer login
 document.getElementById("loginForm").addEventListener("submit", async (e) => {
