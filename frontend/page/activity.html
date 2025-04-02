@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Atividades</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+        integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="../css/activity.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Menu</h2>
+                <button class="close-btn" id="closeSidebar">✖</button>
+            </div>
+            <ul class="sidebar-menu" id="sidebarMenu">
+                <!-- Itens do menu serão inseridos via JavaScript -->
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <header>
+                <button class="menu-btn" id="openSidebar">☰</button>
+                <div class="user-initials" id="userInitials" title="Perfil"></div>
+            </header>
+
+            <!-- Profile Modal -->
+            <div class="modal" id="userModal">
+                <div class="modal-content">
+                    <p id="userFullName"></p>
+                    <div class="user-info">
+                        <span id="userPhone"></span>
+                        <button class="logout-btn" id="logout">Sair</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content">
+                <div class="header">
+                    <h2>Controle de Atividades</h2>
+                </div>
+
+                <!-- Timer Section -->
+                <div class="timer-container">
+                    <div class="timer-display" id="timer">00:00:00</div>
+
+                    <div class="timer-controls">
+                        <button class="btn" id="startPauseBtn">Iniciar</button>
+                        <button class="btn" id="resetBtn" style="display: none;">Retornar</button>
+                    </div>
+
+                    <div class="progress-container">
+                        <div class="progress-bar" id="progressBar"></div>
+                    </div>
+                    <p id="progressText">0% completado (0 de 8 horas)</p>
+                </div>
+
+                <!-- Activity Input -->
+                <div class="activity-input-container">
+                    <input type="text" class="activity-input" id="activityInput"
+                        placeholder="Descreva sua atividade atual...">
+                    <button class="btn" id="saveActivityBtn">
+                        <i class="fas fa-save"></i> Salvar
+                    </button>
+                </div>
+
+                <!-- Daily Log -->
+                <div class="card">
+                    <div class="card-border">
+                        <div class="card-header">
+                            <h3>Registro do Dia</h3>
+                        </div>
+                        <div class="card-content" id="dailyLog">
+                            <p>Nenhuma atividade registrada hoje</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <audio id="alarmSound" src="https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3" preload="auto"></audio>
+    <script src="../js/activity.js"></script>
+</body>
+
+</html>

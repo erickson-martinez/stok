@@ -4,6 +4,7 @@ const API_URL = "https://stok-hiqo.onrender.com";
 const menuItems = [
     { name: "Financeiro", route: "./finances.html" },
     { name: "Estoque", route: "./stock.html" },
+    { name: "Trabalho", route: "./activity.html" },
 ];
 
 // Carrega o menu lateral dinamicamente
