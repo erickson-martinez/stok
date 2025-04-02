@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import UserController from "./controllers/userController.ts";
 import ProductController from "./controllers/productController.ts";
 import expenseController from "./controllers/expenseController";
+import activityController from './controllers/activityController';
 
 dotenv.config();
 const app: Express = express();
@@ -47,6 +48,11 @@ app.get("/expenses", expenseController.getExpenses);
 app.post("/expenses", expenseController.createExpense);
 app.patch("/expenses", expenseController.updateExpense);
 app.delete("/expenses", expenseController.deleteExpense);
+
+// Rotas das atividades
+app.get('/activity/:phone', activityController.getActivities);
+app.post('/activity', activityController.createOrUpdateActivity);
+app.delete('/activity', activityController.deleteActivity);
 
 const PORT: number = Number(process.env.PORT) || 3000;
 app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));

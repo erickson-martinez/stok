@@ -14,6 +14,8 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
             body: JSON.stringify({ phone, pass }),
         });
 
+        console.log(response.data)
+
         // Log da resposta bruta para depuração
         const textResponse = await response.text();
         console.log("Resposta bruta do servidor:", textResponse);
