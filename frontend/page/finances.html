@@ -43,10 +43,13 @@
             <div class="content">
                 <div class="header">
                     <button class="btn" onclick="changeMonth(-1)">◄</button>
-                    <h2><span id="currentMonth">Março 2025</span></h2>
+                    <h2><span id="currentMonth">Abril 2025</span></h2>
                     <button class="btn" onclick="changeMonth(1)">►</button>
                     <button class="btn btn-icon" onclick="openShareModal()">
                         <i class="fas fa-share-alt"></i>
+                    </button>
+                    <button class="btn btn-icon" onclick="openReportModal()">
+                        <i class="fas fa-file-alt"></i>
                     </button>
                 </div>
 
@@ -63,7 +66,8 @@
                     <div class="card" id="receitasCard">
                         <div id="border-receitas-card" class="card-border">
                             <div class="card-header">
-                                <h3>Receitas - <span id="receitasMonth"></span></h3>
+                                <h3>Receitas - <span id="receitasMonth"></span> <span id="saldoRestante"
+                                        class="header-value"></span></h3>
                             </div>
                             <div class="card-content" id="receitasList"></div>
                         </div>
@@ -71,7 +75,8 @@
                     <div class="card" id="despesasCard">
                         <div id="border-despesas-card" class="card-border">
                             <div class="card-header">
-                                <h3>Despesas - <span id="despesasMonth"></span></h3>
+                                <h3>Despesas - <span id="despesasMonth"></span> <span id="totalDespesas"
+                                        class="header-value"></span></h3>
                             </div>
                             <div class="card-content" id="despesasList"></div>
                         </div>
@@ -109,6 +114,22 @@
                     </div>
                 </div>
                 <div id="modalButtons" class="modal-buttons"></div>
+            </div>
+        </div>
+
+        <!-- Report Modal -->
+        <div id="reportModal" class="modal finance-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Resumo Financeiro (Próximos 11 Meses)</h3>
+                    <span class="close" onclick="closeReportModal()">×</span>
+                </div>
+                <div id="reportBody">
+                    <div id="reportSummary"></div>
+                </div>
+                <div class="modal-buttons">
+                    <button onclick="closeReportModal()">Fechar</button>
+                </div>
             </div>
         </div>
     </div>
