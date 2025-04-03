@@ -1,4 +1,5 @@
 const API_URL = "https://stok-5ytv.onrender.com";
+//const API_URL = "http://192.168.1.67:3000";
 
 // Configuração do menu em JSON
 const menuItems = [
@@ -79,14 +80,13 @@ function loadFinances() {
         }
     });
 
-    // Carrega os dados ao iniciar a tela
-    fetchMonthData(); // Requisição inicial
+    fetchMonthData();
     updateMonth();
     setupFinanceEvents();
 }
 
 // Variáveis globais
-let currentDate = new Date(); // Usa a data atual do sistema (ex.: 02/04/2025)
+let currentDate = new Date();
 let currentType = '';
 let editingId = null;
 const receitas = [];
@@ -95,7 +95,7 @@ const despesas = [];
 function formatMonth(date) {
     const month = date.toLocaleString('pt-BR', { month: 'long' }).replace(/^\w/, c => c.toUpperCase());
     const year = date.getFullYear();
-    return `${month} ${year}`; // Formato "Abril 2025"
+    return `${month} ${year}`;
 }
 
 function updateMonth() {
@@ -103,46 +103,90 @@ function updateMonth() {
     document.getElementById('currentMonth').textContent = monthText;
     document.getElementById('receitasMonth').textContent = monthText;
     document.getElementById('despesasMonth').textContent = monthText;
-    updateLists(); // Atualiza as listas com base nos dados em memória
-    calculateColors(); // Calcula as cores sem nova requisição
+    updateLists();
+    calculateColors();
 }
 
 function changeMonth(delta) {
     currentDate.setMonth(currentDate.getMonth() + delta);
-    updateMonth(); // Apenas atualiza a UI, sem requisição
+    updateMonth();
 }
 
 async function fetchMonthData() {
-    const phone = JSON.parse(localStorage.getItem("currentUser")).phone;
-    console.log('Buscando dados para o telefone:', phone);
-    try {
-        const response = await fetch(`${API_URL}/expenses?phone=${phone}`);
-        if (!response.ok) throw new Error(`Erro ao carregar finanças: ${response.statusText}`);
-        const data = await response.json();
-        console.log('Dados recebidos da API:', data);
+    const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+    const phone = currentUser.phone;
+    const phoneShared = currentUser.phoneShared || phone;
 
-        receitas.length = 0; // Limpa o array existente
-        despesas.length = 0; // Limpa o array existente
-        if (data.receita) {
-            data.receita.forEach(item => receitas.push({
+    console.log('Buscando dados para:', { phone, phoneShared });
+
+    try {
+        // Faz duas requisições em paralelo
+        const [expensesResponse, sharedResponse] = await Promise.all([
+            fetch(`${API_URL}/expenses/${phone}`),
+            fetch(`${API_URL}/expensesShared/${phoneShared}`)
+        ]);
+
+        if (!expensesResponse.ok) throw new Error(`Erro ao carregar finanças: ${expensesResponse.statusText}`);
+        if (!sharedResponse.ok) throw new Error(`Erro ao carregar finanças compartilhadas: ${sharedResponse.statusText}`);
+
+        const expensesData = await expensesResponse.json();
+        const sharedData = await sharedResponse.json();
+
+        console.log('Dados recebidos:', { expensesData, sharedData });
+
+        // Limpa os arrays
+        receitas.length = 0;
+        despesas.length = 0;
+
+        // Processa despesas próprias (primeiro item do array expensesData)
+        if (expensesData.length > 0 && expensesData[0].receita) {
+            expensesData[0].receita.forEach(item => receitas.push({
                 id: item._id,
                 name: item.name,
                 valor: item.value,
                 data: item.date,
-                recorrencia: false
+                recorrencia: false,
+                shared: false // Itens próprios não são compartilhados
             }));
         }
-        if (data.despesa) {
-            data.despesa.forEach(item => despesas.push({
+
+        if (expensesData.length > 0 && expensesData[0].despesa) {
+            expensesData[0].despesa.forEach(item => despesas.push({
                 id: item._id,
                 name: item.name,
                 valor: item.value,
                 data: item.date,
-                recorrencia: false
+                recorrencia: false,
+                shared: false // Itens próprios não são compartilhados
             }));
         }
-        console.log('Receitas após preenchimento:', receitas);
-        console.log('Despesas após preenchimento:', despesas);
+
+        // Processa despesas compartilhadas (primeiro item do array sharedData)
+        if (sharedData.length > 0 && sharedData[0].receita) {
+            sharedData[0].receita.forEach(item => receitas.push({
+                id: item._id,
+                name: item.name,
+                valor: item.value,
+                data: item.date,
+                recorrencia: false,
+                shared: true // Itens compartilhados
+            }));
+        }
+
+        if (sharedData.length > 0 && sharedData[0].despesa) {
+            sharedData[0].despesa.forEach(item => despesas.push({
+                id: item._id,
+                name: item.name,
+                valor: item.value,
+                data: item.date,
+                recorrencia: false,
+                shared: true // Itens compartilhados
+            }));
+        }
+
+        console.log('Receitas após processamento:', receitas);
+        console.log('Despesas após processamento:', despesas);
+
         updateLists();
         calculateColors();
     } catch (err) {
@@ -191,26 +235,13 @@ function openActionModal(action, type, item = null) {
         document.getElementById("modalBody").innerHTML = `
             <div class="form-group">
                 <label>Telefone</label>
-                <input type="tel" id="sharePhone">
-            </div>
-            <div class="form-group">
-                <label><input type="checkbox" id="shareAll"> Compartilhar tudo (12 meses)</label>
-                <div id="shareMonths" style="display: none;">
-                    <label>Quantidade de Meses</label>
-                    <input type="number" id="shareQtdMeses" min="1">
-                </div>
+                <input type="tel" id="sharePhone" placeholder="Digite o número de telefone">
             </div>
         `;
         modalButtons.innerHTML = `
             <button onclick="closeModal()">Cancelar</button>
             <button onclick="shareData()">Compartilhar</button>
         `;
-        document.getElementById("shareAll").onchange = (e) => {
-            document.getElementById("shareMonths").style.display = e.target.checked ? "none" : "block";
-            updateShareTitle();
-        };
-        document.getElementById("shareQtdMeses").oninput = updateShareTitle;
-        updateShareTitle();
         modal.style.display = "block";
         return;
     }
@@ -238,7 +269,7 @@ function openActionModal(action, type, item = null) {
         qtdMeses.value = "";
     }
 
-    const isEditable = action === "edit";
+    const isEditable = action === "edit" && !item?.shared;
     nome.disabled = !isEditable;
     valor.disabled = !isEditable;
     data.disabled = !isEditable;
@@ -249,7 +280,7 @@ function openActionModal(action, type, item = null) {
     if (action === "edit") {
         modalButtons.innerHTML = `
             <button onclick="closeModal()">Cancelar</button>
-            <button onclick="saveItem()">Salvar</button>
+            <button onclick="saveItem()" ${isEditable ? '' : 'disabled'}>Salvar</button>
         `;
         recorrencia.onchange = (e) => {
             recorrenciaMeses.style.display = e.target.checked ? "block" : "none";
@@ -261,7 +292,7 @@ function openActionModal(action, type, item = null) {
     } else if (action === "delete") {
         modalButtons.innerHTML = `
             <button onclick="closeModal()">Cancelar</button>
-            <button onclick="confirmDelete('${item.id}')">Confirmar</button>
+            <button onclick="confirmDelete('${item.id}')" ${item?.shared ? 'disabled' : ''}>Confirmar</button>
         `;
     }
 
@@ -286,8 +317,6 @@ async function saveItem() {
         [currentType]: [item]
     };
 
-    console.log('Enviando payload para a API:', payload);
-
     try {
         if (editingId) {
             const response = await fetch(`${API_URL}/expenses`, {
@@ -296,7 +325,6 @@ async function saveItem() {
                 body: JSON.stringify(payload),
             });
             if (!response.ok) throw new Error(`Erro ao atualizar item: ${response.statusText}`);
-            console.log('Resposta do PATCH:', await response.json());
         } else {
             const response = await fetch(`${API_URL}/expenses`, {
                 method: "POST",
@@ -304,10 +332,7 @@ async function saveItem() {
                 body: JSON.stringify(payload),
             });
             if (!response.ok) throw new Error(`Erro ao criar item: ${response.statusText}`);
-            console.log('Resposta do POST:', await response.json());
         }
-
-        // Após salvar ou editar, atualiza os dados com uma nova requisição
         await fetchMonthData();
         closeModal();
     } catch (err) {
@@ -316,30 +341,18 @@ async function saveItem() {
 }
 
 function updateLists(filteredReceitas = receitas, filteredDespesas = despesas) {
-    console.log('Atualizando listas com receitas:', filteredReceitas);
-    console.log('Atualizando listas com despesas:', filteredDespesas);
     const currentYear = currentDate.getFullYear();
     const currentMonth = currentDate.getMonth() + 1;
-    console.log('Filtrando para ano:', currentYear, 'e mês:', currentMonth);
 
     const receitasFiltradas = filteredReceitas.filter(item => {
         const itemDate = new Date(item.data);
-        const itemYear = itemDate.getFullYear();
-        const itemMonth = itemDate.getMonth() + 1;
-        console.log(`Item Receita: ${item.name}, Ano: ${itemYear}, Mês: ${itemMonth}`);
-        return itemYear === currentYear && itemMonth === currentMonth;
+        return itemDate.getFullYear() === currentYear && (itemDate.getMonth() + 1) === currentMonth;
     });
 
     const despesasFiltradas = filteredDespesas.filter(item => {
         const itemDate = new Date(item.data);
-        const itemYear = itemDate.getFullYear();
-        const itemMonth = itemDate.getMonth() + 1;
-        console.log(`Item Despesa: ${item.name}, Ano: ${itemYear}, Mês: ${itemMonth}`);
-        return itemYear === currentYear && itemMonth === currentMonth;
+        return itemDate.getFullYear() === currentYear && (itemDate.getMonth() + 1) === currentMonth;
     });
-
-    console.log('Receitas filtradas:', receitasFiltradas);
-    console.log('Despesas filtradas:', despesasFiltradas);
 
     const receitasCard = document.getElementById("receitasCard");
     const despesasCard = document.getElementById("despesasCard");
@@ -348,7 +361,6 @@ function updateLists(filteredReceitas = receitas, filteredDespesas = despesas) {
         document.getElementById("receitasList").innerHTML = receitasFiltradas.map(item => createListItem(item, "receita")).join("");
         receitasCard.style.display = "block";
     } else {
-        console.log('Nenhuma receita filtrada para exibir');
         document.getElementById("receitasList").innerHTML = "<p>Sem receitas para este mês</p>";
         receitasCard.style.display = "block";
     }
@@ -357,7 +369,6 @@ function updateLists(filteredReceitas = receitas, filteredDespesas = despesas) {
         document.getElementById("despesasList").innerHTML = despesasFiltradas.map(item => createListItem(item, "despesa")).join("");
         despesasCard.style.display = "block";
     } else {
-        console.log('Nenhuma despesa filtrada para exibir');
         document.getElementById("despesasList").innerHTML = "<p>Sem despesas para este mês</p>";
         despesasCard.style.display = "block";
     }
@@ -378,14 +389,28 @@ function handleOptionsClick(event) {
 }
 
 function createListItem(item, type) {
+    const sharedBadge = item.shared ? `
+        <span class="shared-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                <polyline points="16 6 12 2 8 6"></polyline>
+                <line x1="12" y1="2" x2="12" y2="15"></line>
+            </svg>
+        </span>
+    ` : '';
+
     return `
-        <div class="list-item">
-            <span>${item.name}</span>
+        <div class="list-item ${item.shared ? 'shared-item' : ''}">
+            <span>${item.name} ${sharedBadge}</span>
             <span class="options-trigger" data-id="${item.id}" data-type="${type}">⋯</span>
             <div id="options-${item.id}" class="options-menu">
-                <button onclick="openActionModal('edit', '${type}', getItemById('${item.id}', '${type}'))">Editar</button>
-                <button onclick="openActionModal('view', '${type}', getItemById('${item.id}', '${type}'))">Visualizar</button>
-                <button onclick="openActionModal('delete', '${type}', getItemById('${item.id}', '${type}'))">Deletar</button>
+                ${!item.shared ? `
+                    <button onclick="openActionModal('edit', '${type}', getItemById('${item.id}', '${type}'))">Editar</button>
+                    <button onclick="openActionModal('view', '${type}', getItemById('${item.id}', '${type}'))">Visualizar</button>
+                    <button onclick="openActionModal('delete', '${type}', getItemById('${item.id}', '${type}'))">Deletar</button>
+                ` : `
+                    <button onclick="openActionModal('view', '${type}', getItemById('${item.id}', '${type}'))">Visualizar</button>
+                `}
             </div>
         </div>
     `;
@@ -426,8 +451,7 @@ async function confirmDelete(id) {
             method: "DELETE",
         });
         if (!response.ok) throw new Error(`Erro ao deletar item: ${response.statusText}`);
-        console.log('Item deletado, buscando dados atualizados');
-        await fetchMonthData(); // Atualiza os dados após deletar
+        await fetchMonthData();
         closeModal();
     } catch (err) {
         console.error('Erro ao deletar item:', err);
@@ -484,22 +508,45 @@ function openShareModal() {
     openActionModal("share", null);
 }
 
-function updateShareTitle() {
-    const shareAll = document.getElementById("shareAll").checked;
-    const qtdMeses = document.getElementById("shareQtdMeses").value;
-    const date = new Date();
-    const futureDate = new Date(date.setMonth(date.getMonth() + (shareAll ? 12 : parseInt(qtdMeses || 1))));
-    const month = futureDate.toLocaleString("pt-BR", { month: "long" });
-    const year = futureDate.getFullYear();
-    document.getElementById("modalTitle").textContent = `Compartilhar até ${month.charAt(0).toUpperCase() + month.slice(1)} ${year}`;
-}
-
 async function shareData() {
-    const phone = document.getElementById("sharePhone").value;
-    const shareAll = document.getElementById("shareAll").checked;
-    const qtdMeses = document.getElementById("shareQtdMeses").value;
-    console.log("Compartilhando com:", phone, shareAll ? "12 meses" : `${qtdMeses} meses`);
-    closeModal();
+    const sharePhone = document.getElementById("sharePhone").value;
+    const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+    const currentPhone = currentUser.phone;
+
+    if (!sharePhone) {
+        alert("Por favor, insira um número de telefone para compartilhar.");
+        return;
+    }
+
+    if (sharePhone === currentPhone) {
+        alert("Você não pode compartilhar com o mesmo telefone.");
+        return;
+    }
+
+    const payload = {
+        phone: currentPhone,
+        phoneShared: sharePhone
+    };
+
+    try {
+        const response = await fetch(`${API_URL}/expenses`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) throw new Error(`Erro ao compartilhar dados: ${response.statusText}`);
+
+        currentUser.phoneShared = sharePhone;
+        localStorage.setItem("currentUser", JSON.stringify(currentUser));
+
+        alert(`Dados compartilhados com sucesso para ${sharePhone}!`);
+        closeModal();
+        await fetchMonthData();
+    } catch (err) {
+        console.error("Erro ao compartilhar dados:", err);
+        alert("Ocorreu um erro ao compartilhar os dados. Tente novamente.");
+    }
 }
 
 // Funções para o modal de relatório
@@ -507,19 +554,15 @@ function openReportModal() {
     const modal = document.getElementById("reportModal");
     const reportSummary = document.getElementById("reportSummary");
 
-    // Define o início como 2 meses antes do atual
     const startDate = new Date(currentDate);
     startDate.setMonth(startDate.getMonth() - 2);
-
-    // Define o fim como 9 meses após o atual
     const endDate = new Date(currentDate);
     endDate.setMonth(endDate.getMonth() + 9);
 
     const despesasPorMes = {};
     const receitasPorMes = {};
 
-    // Preenche os 12 meses (2 anteriores + atual + 9 futuros) com valores zero por padrão
-    for (let i = 0; i < 12; i++) { // 12 meses no total
+    for (let i = 0; i < 12; i++) {
         const date = new Date(startDate);
         date.setMonth(startDate.getMonth() + i);
         const monthYear = `${date.toLocaleString('pt-BR', { month: 'long' })} ${date.getFullYear()}`.replace(/^\w/, c => c.toUpperCase());
@@ -527,7 +570,6 @@ function openReportModal() {
         receitasPorMes[monthYear] = 0;
     }
 
-    // Calcula despesas
     despesas.forEach(item => {
         const itemDate = new Date(item.data);
         if (itemDate >= startDate && itemDate <= endDate) {
@@ -536,7 +578,6 @@ function openReportModal() {
         }
     });
 
-    // Calcula receitas
     receitas.forEach(item => {
         const itemDate = new Date(item.data);
         if (itemDate >= startDate && itemDate <= endDate) {
@@ -549,7 +590,6 @@ function openReportModal() {
         return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     };
 
-    // Gera HTML para a tabela
     let html = `
         <table class="report-table">
             <thead>
