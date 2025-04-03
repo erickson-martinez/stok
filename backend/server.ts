@@ -44,7 +44,8 @@ app.delete("/products/:id", ProductController.deleteProduct);
 app.post("/products/:id/share", ProductController.shareProduct);
 
 // Rotas de despesas
-app.get("/expenses", expenseController.getExpenses);
+app.get("/expenses/:phone", expenseController.getExpenses);
+app.get("/expensesShared/:phoneShared", expenseController.getExpensesShared);
 app.post("/expenses", expenseController.createExpense);
 app.patch("/expenses", expenseController.updateExpense);
 app.delete("/expenses", expenseController.deleteExpense);

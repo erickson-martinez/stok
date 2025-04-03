@@ -22,13 +22,33 @@ interface ExpenseRequest {
 const expenseController = {
     async getExpenses(req: Request, res: Response): Promise<void> {
         try {
-            const { phone } = req.query as { phone?: string };
+            const { phone } = req.params;
             if (!phone) {
                 res.status(400).json({ error: 'Phone é obrigatório' });
                 return;
             }
 
-            const expense = await Expense.findOne({ phone });
+            const expense = await Expense.find({ phone });
+            if (!expense) {
+                res.status(404).json({ error: 'Registro não encontrado' });
+                return;
+            }
+
+            res.json(expense);
+        } catch (error: any) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    async getExpensesShared(req: Request, res: Response): Promise<void> {
+        try {
+            const { phoneShared } = req.params;
+            if (!phoneShared) {
+                res.status(400).json({ error: 'Phone Shared é obrigatório' });
+                return;
+            }
+
+            const expense = await Expense.find({ phoneShared });
             if (!expense) {
                 res.status(404).json({ error: 'Registro não encontrado' });
                 return;
@@ -73,7 +93,7 @@ const expenseController = {
 
     async updateExpense(req: Request, res: Response): Promise<void> {
         try {
-            const { phone, receita, despesa }: ExpenseRequest = req.body;
+            const { phone, phoneShared, receita, despesa }: ExpenseRequest = req.body;
 
             if (!phone) {
                 res.status(400).json({ error: 'Phone é obrigatório' });
@@ -86,6 +106,7 @@ const expenseController = {
                 return;
             }
 
+            if (phoneShared) expense.phoneShared = phoneShared
             if (receita) expense.receita.push(...receita.map(r => ({ ...r, date: new Date(r.date) })));
             if (despesa) expense.despesa.push(...despesa.map(d => ({ ...d, date: new Date(d.date) })));
             expense.updateAt = new Date();
