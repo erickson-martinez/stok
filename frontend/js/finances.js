@@ -79,12 +79,14 @@ function loadFinances() {
         }
     });
 
+    // Carrega os dados ao iniciar a tela
+    fetchMonthData(); // Requisição inicial
     updateMonth();
     setupFinanceEvents();
 }
 
 // Variáveis globais
-let currentDate = new Date("2025-04-01"); // Define a data inicial como 01/04/2025
+let currentDate = new Date(); // Usa a data atual do sistema (ex.: 02/04/2025)
 let currentType = '';
 let editingId = null;
 const receitas = [];
@@ -101,12 +103,13 @@ function updateMonth() {
     document.getElementById('currentMonth').textContent = monthText;
     document.getElementById('receitasMonth').textContent = monthText;
     document.getElementById('despesasMonth').textContent = monthText;
-    fetchMonthData();
+    updateLists(); // Atualiza as listas com base nos dados em memória
+    calculateColors(); // Calcula as cores sem nova requisição
 }
 
 function changeMonth(delta) {
     currentDate.setMonth(currentDate.getMonth() + delta);
-    updateMonth();
+    updateMonth(); // Apenas atualiza a UI, sem requisição
 }
 
 async function fetchMonthData() {
@@ -118,8 +121,8 @@ async function fetchMonthData() {
         const data = await response.json();
         console.log('Dados recebidos da API:', data);
 
-        receitas.length = 0;
-        despesas.length = 0;
+        receitas.length = 0; // Limpa o array existente
+        despesas.length = 0; // Limpa o array existente
         if (data.receita) {
             data.receita.forEach(item => receitas.push({
                 id: item._id,
@@ -304,6 +307,7 @@ async function saveItem() {
             console.log('Resposta do POST:', await response.json());
         }
 
+        // Após salvar ou editar, atualiza os dados com uma nova requisição
         await fetchMonthData();
         closeModal();
     } catch (err) {
@@ -423,7 +427,7 @@ async function confirmDelete(id) {
         });
         if (!response.ok) throw new Error(`Erro ao deletar item: ${response.statusText}`);
         console.log('Item deletado, buscando dados atualizados');
-        await fetchMonthData();
+        await fetchMonthData(); // Atualiza os dados após deletar
         closeModal();
     } catch (err) {
         console.error('Erro ao deletar item:', err);
@@ -554,20 +558,9 @@ function openReportModal() {
             <tbody>
     `;
 
-    Object.keys(despesasPorMes).forEach((monthYear, index) => {
-        // Para os primeiros 3 meses, usa os valores fornecidos como exemplo
-        let despesa = despesasPorMes[monthYear];
-        let receita = receitasPorMes[monthYear];
-        if (index === 0) { // Abril 2025
-            despesa = 10000;
-            receita = 122000;
-        } else if (index === 1) { // Maio 2025
-            despesa = 7000;
-            receita = 120000;
-        } else if (index === 2) { // Junho 2025
-            despesa = 1000;
-            receita = 10000;
-        }
+    Object.keys(despesasPorMes).forEach(monthYear => {
+        const despesa = despesasPorMes[monthYear];
+        const receita = receitasPorMes[monthYear];
         html += `
             <tr>
                 <td>${monthYear}</td>
