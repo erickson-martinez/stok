@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciamento de Mercados</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+        integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="../css/markets.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Menu</h2>
+                <button class="close-btn" id="closeSidebar">✖</button>
+            </div>
+            <ul class="sidebar-menu" id="sidebarMenu">
+                <!-- Itens do menu serão inseridos via JavaScript -->
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <header>
+                <button class="menu-btn" id="openSidebar">☰</button>
+                <div class="user-initials" id="userInitials" title="Perfil"></div>
+            </header>
+            <!-- Profile Modal -->
+            <div class="modal" id="userModal">
+                <div class="modal-content">
+                    <p id="userFullName"></p>
+                    <div class="user-info">
+                        <span id="userPhone"></span>
+                        <button class="logout-btn" id="logout">Sair</button>
+                    </div>
+                </div>
+            </div>
+            <div class="content">
+                <div class="header">
+                    <h2>Mercados</h2>
+                    <button class="btn" id="addMarketBtn">Adicionar Mercado +</button>
+                </div>
+                <div class="lists">
+                    <div class="card" id="marketsCard">
+                        <div class="card-border">
+                            <div class="card-header">
+                                <h3>Lista de Mercados</h3>
+                            </div>
+                            <div class="card-content" id="marketList">
+                                <!-- Lista de mercados será preenchida via JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Market Modal -->
+        <div id="marketModal" class="market-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalTitle"></h3>
+                    <span class="close" onclick="closeMarketModal()">×</span>
+                </div>
+                <div id="modalBody">
+                    <div class="form-group">
+                        <label>Nome</label>
+                        <input type="text" id="marketName">
+                    </div>
+                    <div class="form-group">
+                        <label>Endereço</label>
+                        <input type="text" id="marketAddress">
+                    </div>
+                    <div class="form-group">
+                        <label>Número</label>
+                        <input type="text" id="marketNumber">
+                    </div>
+                    <div class="form-group">
+                        <label>CEP</label>
+                        <input type="text" id="marketZip">
+                    </div>
+                    <div class="form-group">
+                        <label>Latitude</label>
+                        <input type="text" id="marketLat">
+                    </div>
+                    <div class="form-group">
+                        <label>Longitude</label>
+                        <input type="text" id="marketLng">
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="marketStatus">
+                            <option value="active">Ativo</option>
+                            <option value="inactive">Inativo</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="modalButtons" class="modal-buttons"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/markets.js"></script>
+</body>
+
+</html>
