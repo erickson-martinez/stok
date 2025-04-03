@@ -115,15 +115,11 @@ function changeMonth(delta) {
 async function fetchMonthData() {
     const currentUser = JSON.parse(localStorage.getItem("currentUser"));
     const phone = currentUser.phone;
-    const phoneShared = currentUser.phoneShared || phone;
-
-    console.log('Buscando dados para:', { phone, phoneShared });
 
     try {
-        // Faz duas requisições em paralelo
         const [expensesResponse, sharedResponse] = await Promise.all([
             fetch(`${API_URL}/expenses/${phone}`),
-            fetch(`${API_URL}/expensesShared/${phoneShared}`)
+            fetch(`${API_URL}/expensesShared/${phone}`)
         ]);
 
         if (!expensesResponse.ok) throw new Error(`Erro ao carregar finanças: ${expensesResponse.statusText}`);
@@ -132,65 +128,67 @@ async function fetchMonthData() {
         const expensesData = await expensesResponse.json();
         const sharedData = await sharedResponse.json();
 
-        console.log('Dados recebidos:', { expensesData, sharedData });
-
-        // Limpa os arrays
         receitas.length = 0;
         despesas.length = 0;
 
-        // Processa despesas próprias (primeiro item do array expensesData)
-        if (expensesData.length > 0 && expensesData[0].receita) {
-            expensesData[0].receita.forEach(item => receitas.push({
-                id: item._id,
-                name: item.name,
-                valor: item.value,
-                data: item.date,
-                recorrencia: false,
-                shared: false // Itens próprios não são compartilhados
-            }));
+        if (expensesData.length > 0) {
+            const userExpenses = expensesData[0];
+
+            if (userExpenses.receita && userExpenses.receita.length > 0) {
+                userExpenses.receita.forEach(item => receitas.push({
+                    id: item._id,
+                    name: item.name,
+                    valor: item.value,
+                    data: item.date,
+                    recorrencia: false,
+                    shared: false
+                }));
+            }
+
+            if (userExpenses.despesa && userExpenses.despesa.length > 0) {
+                userExpenses.despesa.forEach(item => despesas.push({
+                    id: item._id,
+                    name: item.name,
+                    valor: item.value,
+                    data: item.date,
+                    recorrencia: false,
+                    shared: false
+                }));
+            }
         }
 
-        if (expensesData.length > 0 && expensesData[0].despesa) {
-            expensesData[0].despesa.forEach(item => despesas.push({
-                id: item._id,
-                name: item.name,
-                valor: item.value,
-                data: item.date,
-                recorrencia: false,
-                shared: false // Itens próprios não são compartilhados
-            }));
-        }
+        if (sharedData.length > 0) {
+            const sharedExpenses = sharedData[0];
 
-        // Processa despesas compartilhadas (primeiro item do array sharedData)
-        if (sharedData.length > 0 && sharedData[0].receita) {
-            sharedData[0].receita.forEach(item => receitas.push({
-                id: item._id,
-                name: item.name,
-                valor: item.value,
-                data: item.date,
-                recorrencia: false,
-                shared: true // Itens compartilhados
-            }));
-        }
+            if (sharedExpenses.receita && sharedExpenses.receita.length > 0) {
+                sharedExpenses.receita.forEach(item => receitas.push({
+                    id: item._id,
+                    name: item.name,
+                    valor: item.value,
+                    data: item.date,
+                    recorrencia: false,
+                    shared: true,
+                    sharedBy: sharedExpenses.phone
+                }));
+            }
 
-        if (sharedData.length > 0 && sharedData[0].despesa) {
-            sharedData[0].despesa.forEach(item => despesas.push({
-                id: item._id,
-                name: item.name,
-                valor: item.value,
-                data: item.date,
-                recorrencia: false,
-                shared: true // Itens compartilhados
-            }));
+            if (sharedExpenses.despesa && sharedExpenses.despesa.length > 0) {
+                sharedExpenses.despesa.forEach(item => despesas.push({
+                    id: item._id,
+                    name: item.name,
+                    valor: item.value,
+                    data: item.date,
+                    recorrencia: false,
+                    shared: true,
+                    sharedBy: sharedExpenses.phone
+                }));
+            }
         }
-
-        console.log('Receitas após processamento:', receitas);
-        console.log('Despesas após processamento:', despesas);
 
         updateLists();
         calculateColors();
     } catch (err) {
-        console.error('Erro ao buscar dados:', err);
+        alert('Erro ao carregar dados. Por favor, tente novamente.');
         updateLists();
         calculateColors();
     }
@@ -211,7 +209,6 @@ function setupFinanceEvents() {
 }
 
 function openActionModal(action, type, item = null) {
-    console.log('Abrindo modal:', action, type, item);
     currentType = type;
     editingId = item ? item.id : null;
     const modal = document.getElementById("actionModal");
@@ -336,7 +333,6 @@ async function saveItem() {
         await fetchMonthData();
         closeModal();
     } catch (err) {
-        console.error('Erro ao salvar item:', err);
     }
 }
 
@@ -390,18 +386,20 @@ function handleOptionsClick(event) {
 
 function createListItem(item, type) {
     const sharedBadge = item.shared ? `
-        <span class="shared-badge">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
-                <polyline points="16 6 12 2 8 6"></polyline>
-                <line x1="12" y1="2" x2="12" y2="15"></line>
-            </svg>
-        </span>
+      <span class="shared-badge" title="Compartilhado por: ${item.sharedBy || 'Número desconhecido'}">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="18" cy="5" r="2"></circle>
+          <circle cx="6" cy="12" r="2"></circle>
+          <circle cx="18" cy="19" r="2"></circle>
+          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+        </svg>
+      </span>
     ` : '';
 
     return `
         <div class="list-item ${item.shared ? 'shared-item' : ''}">
-            <span>${item.name} ${sharedBadge}</span>
+            <span class="item-name">${sharedBadge}${item.name}</span>
             <span class="options-trigger" data-id="${item.id}" data-type="${type}">⋯</span>
             <div id="options-${item.id}" class="options-menu">
                 ${!item.shared ? `
@@ -454,7 +452,6 @@ async function confirmDelete(id) {
         await fetchMonthData();
         closeModal();
     } catch (err) {
-        console.error('Erro ao deletar item:', err);
     }
 }
 
@@ -544,7 +541,6 @@ async function shareData() {
         closeModal();
         await fetchMonthData();
     } catch (err) {
-        console.error("Erro ao compartilhar dados:", err);
         alert("Ocorreu um erro ao compartilhar os dados. Tente novamente.");
     }
 }

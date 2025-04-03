@@ -277,24 +277,96 @@ header {
     color: #333;
 }
 
+/* List Items and Shared Badge - ÁREA CRÍTICA DE AJUSTES */
 .list-item {
-    padding: 10px;
-    border-bottom: 1px solid #eee;
     display: flex;
+    align-items: center;
     justify-content: space-between;
+    padding: 10px 12px;
+    border-bottom: 1px solid #eee;
     position: relative;
+}
+
+.item-name-wrapper {
+    display: flex;
+    align-items: center;
+    flex-grow: 1;
+    min-width: 0;
+    /* Permite que o texto faça overflow */
+}
+
+
+.shared-badge svg {
+    width: 12px;
+    height: 12px;
+    color: #3498db;
+}
+
+.shared-badge {
+    position: relative;
+    display: inline-flex;
+    cursor: help;
+}
+
+.shared-badge:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 100;
+    margin-bottom: 5px;
+}
+
+.shared-badge:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 5px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+    margin-bottom: -5px;
+    z-index: 101;
+}
+
+.item-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.shared-item {
+    border-left: 3px solid #3498db;
+    padding-left: 9px;
+}
+
+.options-trigger {
+    cursor: pointer;
+    padding: 0 8px;
+    font-size: 1.2em;
+    flex-shrink: 0;
 }
 
 .options-menu {
     display: none;
     position: absolute;
     background-color: white;
-    border: 1px solid gray;
+    border: 1px solid #ddd;
     right: 10px;
+    top: 100%;
     border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     padding: 5px 0;
     z-index: 1000;
+    min-width: 120px;
 }
 
 .options-menu button {
@@ -305,6 +377,8 @@ header {
     background: none;
     text-align: left;
     cursor: pointer;
+    font-size: 0.9em;
+    color: #333;
 }
 
 .options-menu button:hover {
@@ -329,7 +403,6 @@ header {
     padding: 20px;
     width: 90%;
     max-width: 600px;
-    /* Aumentado para acomodar a tabela */
     border-radius: 5px;
     position: relative;
 }
@@ -479,7 +552,6 @@ header {
         gap: 5px;
     }
 
-    /* Ajuste para a tabela em telas pequenas */
     .report-table th,
     .report-table td {
         padding: 5px;
