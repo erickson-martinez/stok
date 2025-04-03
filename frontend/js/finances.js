@@ -5,7 +5,9 @@ const API_URL = "https://stok-5ytv.onrender.com";
 const menuItems = [
     { name: "Financeiro", route: "./finances.html" },
     { name: "Estoque", route: "./stock.html" },
-    { name: "Trabalho", route: "./activity.html" },
+    { name: "Atividade", route: "./activity.html" },
+    { name: "Mercados", route: "./markets.html" },
+    { name: "Lista de Compras", route: "./shopping.html" }
 ];
 
 // Carrega o menu lateral dinamicamente

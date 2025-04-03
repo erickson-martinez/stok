@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Compras</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+        integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="../css/shopping.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Menu</h2>
+                <button class="close-btn" id="closeSidebar">✖</button>
+            </div>
+            <ul class="sidebar-menu" id="sidebarMenu"></ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <header>
+                <button class="menu-btn" id="openSidebar">☰</button>
+                <div class="user-initials" id="userInitials" title="Perfil"></div>
+            </header>
+
+            <!-- Profile Modal -->
+            <div class="modal" id="userModal">
+                <div class="modal-content">
+                    <p id="userFullName"></p>
+                    <div class="user-info">
+                        <span id="userPhone"></span>
+                        <button class="logout-btn" id="logout">Sair</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content">
+                <div class="header">
+                    <h2>Lista de Compras</h2>
+                    <button class="btn" id="addListBtn"><i class="fas fa-plus"></i> Cadastrar Lista</button>
+                </div>
+
+                <div class="card">
+                    <div class="card-border">
+                        <div class="card-header">
+                            <h3>Listas</h3>
+                        </div>
+                        <div class="card-content" id="shoppingList">
+                            <p>Nenhuma lista cadastrada</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- List Modal -->
+        <div id="listModal" class="modal finance-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Cadastrar Lista</h3>
+                    <span class="close" onclick="closeListModal()">×</span>
+                </div>
+                <div id="modalBody">
+                    <div class="form-group">
+                        <label>Selecione o Mercado</label>
+                        <div class="select-button-wrapper">
+                            <select id="marketSelect">
+                                <option value="">Nenhum mercado selecionado</option>
+                            </select>
+                            <button class="btn" id="saveListBtn">Salvar</button>
+                        </div>
+                    </div>
+                    <button class="btn" id="addProductBtn">Cadastrar Produto</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Modal -->
+        <div id="productModal" class="modal finance-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="productModalTitle">Cadastrar Produto</h3>
+                    <span class="close" onclick="closeProductModal()">×</span>
+                </div>
+                <div id="productModalBody">
+                    <div class="form-group">
+                        <label>Nome</label>
+                        <input type="text" id="productName">
+                    </div>
+                    <div class="form-group">
+                        <label>Tipo</label>
+                        <select id="productType">
+                            <option value="quilo">Quilo</option>
+                            <option value="unidade">Unidade</option>
+                            <option value="pacote">Pacote</option>
+                            <option value="caixa">Caixa</option>
+                            <option value="litro">Litro</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="quantityGroup">
+                        <label id="quantityLabel">Quantidade</label>
+                        <input type="number" id="productQuantity" step="0.01" min="0">
+                    </div>
+                    <div class="form-group" id="packQuantityGroup" style="display: none;">
+                        <label id="packQuantityLabel">Quantidade no Pacote/Caixa</label>
+                        <input type="number" id="packQuantity" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Valor Unitário</label>
+                        <input type="number" id="productValue" step="0.01" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Total</label>
+                        <input type="number" id="productTotal" step="0.01" disabled>
+                    </div>
+                </div>
+                <div id="productModalButtons" class="modal-buttons"></div>
+            </div>
+        </div>
+    </div>
+    <script src="../js/shopping.js"></script>
+</body>
+
+</html>
