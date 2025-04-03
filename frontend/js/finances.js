@@ -507,15 +507,19 @@ function openReportModal() {
     const modal = document.getElementById("reportModal");
     const reportSummary = document.getElementById("reportSummary");
 
+    // Define o início como 2 meses antes do atual
     const startDate = new Date(currentDate);
-    const endDate = new Date(startDate);
-    endDate.setMonth(endDate.getMonth() + 11); // Próximos 11 meses
+    startDate.setMonth(startDate.getMonth() - 2);
+
+    // Define o fim como 9 meses após o atual
+    const endDate = new Date(currentDate);
+    endDate.setMonth(endDate.getMonth() + 9);
 
     const despesasPorMes = {};
     const receitasPorMes = {};
 
-    // Preenche os próximos 11 meses com valores zero por padrão
-    for (let i = 0; i <= 11; i++) {
+    // Preenche os 12 meses (2 anteriores + atual + 9 futuros) com valores zero por padrão
+    for (let i = 0; i < 12; i++) { // 12 meses no total
         const date = new Date(startDate);
         date.setMonth(startDate.getMonth() + i);
         const monthYear = `${date.toLocaleString('pt-BR', { month: 'long' })} ${date.getFullYear()}`.replace(/^\w/, c => c.toUpperCase());
