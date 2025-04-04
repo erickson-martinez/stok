@@ -59,24 +59,44 @@
             </div>
         </div>
 
-        <!-- List Modal -->
+        <!-- Add List Modal -->
         <div id="listModal" class="modal finance-modal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>Cadastrar Lista</h3>
+                    <h3 id="listModalTitle">Cadastrar Lista</h3>
                     <span class="close" onclick="closeListModal()">×</span>
                 </div>
                 <div id="modalBody">
                     <div class="form-group">
                         <label>Selecione o Mercado</label>
                         <div class="select-button-wrapper">
-                            <select id="marketSelect">
+                            <select id="marketSelectAdd">
                                 <option value="">Nenhum mercado selecionado</option>
                             </select>
                             <button class="btn" id="saveListBtn">Salvar</button>
                         </div>
                     </div>
                     <button class="btn" id="addProductBtn">Cadastrar Produto</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="listModalEdit" class="modal finance-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="listModalTitle">Editar Lista</h2>
+                        <span class="close" onclick="closeListModalEdit()">×</span>
+                </div>
+                <div id="modalBody">
+                    <div class="form-group">
+                        <label>Selecione o Mercado</label>
+                        <div class="select-button-wrapper">
+                            <select id="marketSelectEdit">
+                                <option value="">Nenhum mercado selecionado</option>
+                            </select>
+                            <button class="btn" id="saveEditListBtn">Salvar</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -122,6 +142,21 @@
                     </div>
                 </div>
                 <div id="productModalButtons" class="modal-buttons"></div>
+            </div>
+        </div>
+
+        <!-- List Options Modal -->
+        <div id="listOptionsModal" class="modal finance-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Opções da Lista</h3>
+                    <span class="close" onclick="closeListOptionsModal()">×</span>
+                </div>
+                <div class="modal-body">
+                    <button class="btn modal-option" onclick="openEditListModal()">Editar</button>
+                    <button class="btn modal-option" onclick="completeList()">Concluir</button>
+                    <button class="btn modal-option delete-btn" onclick="deleteList()">Deletar</button>
+                </div>
             </div>
         </div>
     </div>
