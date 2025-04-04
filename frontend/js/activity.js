@@ -1,5 +1,4 @@
 const API_URL = "https://stok-5ytv.onrender.com";
-//const API_URL = "http://192.168.1.67:3000";
 
 // Configuração do menu
 const menuItems = [
@@ -14,6 +13,7 @@ const menuItems = [
 const timerDisplay = document.getElementById('timer');
 const startPauseBtn = document.getElementById('startPauseBtn');
 const resetBtn = document.getElementById('resetBtn');
+const finalizeBtn = document.getElementById('finalizeBtn'); // Novo elemento
 const progressBar = document.getElementById('progressBar');
 const progressText = document.getElementById('progressText');
 const dailyLog = document.getElementById('dailyLog');
@@ -408,8 +408,56 @@ function toggleTimer() {
     }
 }
 
+// Função para verificar se é após 18:00 em Brasília
+function isAfterSixPMBrasilia() {
+    const now = new Date();
+    const brasiliaTime = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+    return brasiliaTime.getHours() >= 18;
+}
+
+// Função para gerenciar o botão "Finalizar"
+function setupFinalizeButton() {
+    if (!finalizeBtn) return;
+
+    if (isAfterSixPMBrasilia() && elapsedTime > 0 && elapsedTime < MAX_MILLISECONDS) {
+        finalizeBtn.style.display = 'inline-block';
+    } else {
+        finalizeBtn.style.display = 'none';
+    }
+}
+
+async function finalizeTimer() {
+    if (elapsedTime >= MAX_MILLISECONDS) {
+        alert('Você já completou as 8 horas diárias!');
+        return;
+    }
+
+    const finalTime = new Date();
+    try {
+        await saveRecord('final', getISOTime(finalTime));
+        currentRecords.final.push(finalTime);
+        clearInterval(timerInterval);
+        isRunning = false;
+
+        if (startPauseBtn) {
+            startPauseBtn.textContent = 'Iniciar';
+            startPauseBtn.disabled = true;
+        }
+        if (resetBtn) resetBtn.style.display = 'none';
+        if (finalizeBtn) finalizeBtn.style.display = 'none';
+
+        updateDisplay();
+        updateLogDisplay();
+        alert('Jornada finalizada com sucesso!');
+    } catch (error) {
+        console.error('Erro ao finalizar jornada:', error);
+        alert('Erro ao finalizar jornada. Tente novamente.');
+    }
+}
+
 function updateTimer() {
     updateDisplay();
+    setupFinalizeButton();
 
     if (elapsedTime >= MAX_MILLISECONDS) {
         clearInterval(timerInterval);
@@ -418,6 +466,8 @@ function updateTimer() {
             startPauseBtn.textContent = 'Iniciar';
             startPauseBtn.disabled = true;
         }
+        if (resetBtn) resetBtn.style.display = 'none';
+        if (finalizeBtn) finalizeBtn.style.display = 'none';
         if (alarmSound) alarmSound.play();
 
         const finalEntry = getISOTime(new Date());
@@ -471,18 +521,19 @@ async function initializeTimer() {
             startPauseBtn.style.display = 'inline-block';
         }
         if (resetBtn) resetBtn.style.display = 'none';
+        if (finalizeBtn) finalizeBtn.style.display = 'none';
         timerInterval = setInterval(updateTimer, 1000);
-    }
-    else if (hasTodayRecords) {
+    } else if (hasTodayRecords) {
         if (startPauseBtn) startPauseBtn.style.display = 'none';
         if (resetBtn) resetBtn.style.display = 'inline-block';
-    }
-    else {
+        setupFinalizeButton();
+    } else {
         if (startPauseBtn) {
             startPauseBtn.textContent = 'Iniciar';
             startPauseBtn.style.display = 'inline-block';
         }
         if (resetBtn) resetBtn.style.display = 'none';
+        if (finalizeBtn) finalizeBtn.style.display = 'none';
     }
 
     updateLogDisplay();
@@ -491,6 +542,7 @@ async function initializeTimer() {
 function setupTimerEvents() {
     if (startPauseBtn) startPauseBtn.addEventListener('click', toggleTimer);
     if (resetBtn) resetBtn.addEventListener('click', resetTimer);
+    if (finalizeBtn) finalizeBtn.addEventListener('click', finalizeTimer);
     if (saveActivityBtn) saveActivityBtn.addEventListener('click', saveActivity);
 }
 
