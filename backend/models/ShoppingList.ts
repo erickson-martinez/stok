@@ -15,6 +15,7 @@ export interface IShoppingList extends Document {
     marketId?: mongoose.Types.ObjectId | null;
     phone: string;
     products: IProduct[];
+    completed: boolean;
     createdAt?: Date;
     updatedAt?: Date;
 }
@@ -68,7 +69,11 @@ const shoppingListSchema: Schema = new Schema({
         required: true,
         index: true
     },
-    products: [productSchema]
+    products: [productSchema],
+    completed: {
+        type: Boolean,
+        default: false
+    }
 }, {
     timestamps: true
 });

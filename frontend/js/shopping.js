@@ -1,5 +1,5 @@
-const API_URL = "https://stok-5ytv.onrender.com";
-//const API_URL = "http://192.168.1.67:3000";
+//const API_URL = "https://stok-5ytv.onrender.com";
+const API_URL = "http://192.168.1.67:3000";
 const menuItems = [
     { name: "Financeiro", route: "./finances.html" },
     { name: "Estoque", route: "./stock.html" },
@@ -104,13 +104,16 @@ async function fetchShoppingLists() {
 }
 
 function updateMarketSelect() {
-    const select = document.getElementById("marketSelect");
-    if (!select) return;
+    const addSelect = document.getElementById("marketSelectAdd");
+    const editSelect = document.getElementById("marketSelectEdit");
 
-    select.innerHTML = "<option value=''>Nenhum mercado selecionado</option>" +
+    const options = "<option value=''>Nenhum mercado selecionado</option>" +
         markets.filter(m => m.status === "active").map(m =>
             `<option value="${m._id}">${m.name}</option>`
         ).join("");
+
+    if (addSelect) addSelect.innerHTML = options;
+    if (editSelect) editSelect.innerHTML = options;
 }
 
 function updateShoppingList() {
@@ -119,65 +122,81 @@ function updateShoppingList() {
 
     shoppingList.innerHTML = shoppingLists.length ? shoppingLists.map(list => {
         const total = list.products.reduce((sum, p) => sum + (p.total || 0), 0);
+        const marketName = list.marketId ? markets.find(m => m._id === list.marketId)?.name || "Sem mercado" : "Sem mercado";
+        const listName = `${marketName} - ${new Date(list.createdAt).toLocaleDateString("pt-BR")}`;
 
         return `
-            <div class="accordion">
-                <div class="accordion-header">
-                    <span>${list.name || new Date(list.createdAt).toLocaleDateString("pt-BR")}</span>
-                    <span>${total > 0 ? total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : ""}</span>
-                    <div class="header-actions">
-                        <button class="add-product-btn" 
-                                title="Adicionar produto a lista"
-                                onclick="openProductModal('add', '${list._id}')">
-                            <i class="fas fa-plus"></i>
-                        </button>
-                        <span class="accordion-toggle">▼</span>
-                    </div>
-                </div>
-                <div class="accordion-content">
-                    ${list.products.length ? list.products.map(product => `
-                        <div class="list-item">
-                            <span class="item-name">${product.name} (${product.quantity} ${product.type}${product.packQuantity ? `, ${product.packQuantity} un` : ""})</span>
-                            <span>${product.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
-                            <span class="options-trigger" data-id="${product._id}" data-list="${list._id}">⋯</span>
-                            <div id="options-${product._id}" class="options-menu">
-                                <button onclick="openProductModal('edit', '${list._id}', '${product._id}')">Editar</button>
-                                <button onclick="openProductModal('view', '${list._id}', '${product._id}')">Visualizar</button>
-                                <button onclick="openProductModal('delete', '${list._id}', '${product._id}')">Deletar</button>
+            <div class="list-container" data-list-id="${list._id}">
+                <div class="list-header" onclick="toggleAccordion('${list._id}')">
+                    <span>${listName}</span>
+                    <div class="value-container">
+                        <span class="item-value">${total > 0 ? total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "R$ 0,00"}</span>
+                        <div class="header-actions">
+                            ${list.completed ? '' : `
+                                <button class="add-product-btn" 
+                                        title="Adicionar produto a lista"
+                                        onclick="openProductModal('add', '${list._id}'); event.stopPropagation();">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            `}
+                            <span class="accordion-toggle"><i class="fas fa-chevron-down"></i></span>
+                            <div class="options-wrapper">
+                                <span class="options-trigger" data-id="${list._id}" onclick="event.stopPropagation(); showOptions(event, '${list._id}')">⋯</span>
+                                <div id="options-${list._id}" class="options-menu">
+                                    ${list.completed ? '' : `<button onclick="event.stopPropagation(); openEditListModal('${list._id}')">Editar</button>
+                                    <button onclick="event.stopPropagation(); completeList('${list._id}')">Concluir</button>`}
+                                    <button onclick="event.stopPropagation(); deleteList('${list._id}')">Deletar</button>
+                                </div>
                             </div>
                         </div>
-                    `).join("") : "<p>Nenhum produto cadastrado</p>"}
+                    </div>
+                </div>
+                <div class="accordion" id="accordion-${list._id}">
+                    <div class="accordion-content">
+                        ${list.products.length ? list.products.map(product => `
+                            <div class="list-item">
+                                <span class="item-name">${product.name} (${product.quantity} ${product.type}${product.packQuantity ? `, ${product.packQuantity} un` : ""})</span>
+                                <span class="item-value">${product.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                                ${list.completed ? '' : `
+                                    <div class="options-wrapper">
+                                        <span class="options-trigger" data-id="${product._id}" data-list="${list._id}" onclick="event.stopPropagation(); showOptions(event, '${product._id}')">⋯</span>
+                                        <div id="options-${product._id}" class="options-menu">
+                                            <button onclick="event.stopPropagation(); openProductModal('edit', '${list._id}', '${product._id}')">Editar</button>
+                                            <button onclick="event.stopPropagation(); openProductModal('view', '${list._id}', '${product._id}')">Visualizar</button>
+                                            <button onclick="event.stopPropagation(); openProductModal('delete', '${list._id}', '${product._id}')">Deletar</button>
+                                        </div>
+                                    </div>
+                                `}
+                            </div>
+                        `).join("") : "<p>Nenhum produto cadastrado</p>"}
+                    </div>
                 </div>
             </div>
         `;
     }).join("") : "<p>Nenhuma lista cadastrada</p>";
 
-    setupAccordion();
     shoppingList.removeEventListener("click", handleOptionsClick);
     shoppingList.addEventListener("click", handleOptionsClick);
 }
 
-function setupAccordion() {
-    document.querySelectorAll(".accordion-toggle").forEach(toggle => {
-        toggle.addEventListener("click", (e) => {
-            e.stopPropagation(); // Impede a propagação do evento
-            const header = toggle.closest(".accordion-header");
-            const content = header?.nextElementSibling;
+function toggleAccordion(listId) {
+    const content = document.getElementById(`accordion-${listId}`).querySelector(".accordion-content");
+    const toggle = document.querySelector(`#accordion-${listId}`).previousElementSibling.querySelector(".accordion-toggle");
 
-            if (content) {
-                const isHidden = content.style.display !== "block";
-                // Esconde todos os outros conteúdos primeiro
-                document.querySelectorAll(".accordion-content").forEach(c => {
-                    c.style.display = "none";
-                    c.previousElementSibling.querySelector(".accordion-toggle").textContent = "▼";
-                });
-
-                // Mostra/esconde o conteúdo clicado
-                content.style.display = isHidden ? "block" : "none";
-                toggle.textContent = isHidden ? "▲" : "▼";
-            }
+    if (content.style.display === "block") {
+        content.style.display = "none";
+        toggle.innerHTML = '<i class="fas fa-chevron-down"></i>';
+        toggle.classList.remove("open");
+    } else {
+        document.querySelectorAll(".accordion-content").forEach(c => c.style.display = "none");
+        document.querySelectorAll(".accordion-toggle").forEach(t => {
+            t.innerHTML = '<i class="fas fa-chevron-down"></i>';
+            t.classList.remove("open");
         });
-    });
+        content.style.display = "block";
+        toggle.innerHTML = '<i class="fas fa-chevron-up"></i>';
+        toggle.classList.add("open");
+    }
 }
 
 function handleOptionsClick(event) {
@@ -189,15 +208,26 @@ function handleOptionsClick(event) {
 }
 
 function showOptions(event, id) {
+    event.stopPropagation(); // Impede que o clique no options-trigger acione o toggleAccordion
+    console.log(`showOptions called with id: ${id}`); // Log para depuração
     const options = document.getElementById(`options-${id}`);
-    if (!options) return;
+    if (!options) {
+        console.error(`Options menu with id options-${id} not found`);
+        return;
+    }
 
     const isVisible = options.style.display === "block";
+    console.log(`Current visibility of options-${id}: ${isVisible ? "visible" : "hidden"}`); // Log para depuração
+
+    // Fecha todos os outros menus abertos
     document.querySelectorAll(".options-menu").forEach(menu => {
         menu.style.display = "none";
     });
+
+    // Alterna a visibilidade do menu atual
     options.style.display = isVisible ? "none" : "block";
 
+    // Adiciona um listener para fechar o menu ao clicar fora
     document.addEventListener("click", function closeMenu(e) {
         if (!options.contains(e.target) && e.target !== event.target) {
             options.style.display = "none";
@@ -211,8 +241,18 @@ function openListModal() {
     if (modal) modal.style.display = "block";
 }
 
+function openListModalEdit() {
+    const modal = document.getElementById("listModalEdit");
+    if (modal) modal.style.display = "block";
+}
+
 function closeListModal() {
     const modal = document.getElementById("listModal");
+    if (modal) modal.style.display = "none";
+}
+
+function closeListModalEdit() {
+    const modal = document.getElementById("listModalEdit");
     if (modal) modal.style.display = "none";
 }
 
@@ -228,7 +268,8 @@ async function saveList() {
         name: market ? market.name : new Date().toLocaleDateString("pt-BR"),
         marketId: marketId || undefined,
         phone,
-        products: []
+        products: [],
+        completed: false
     };
 
     try {
@@ -248,7 +289,119 @@ async function saveList() {
     }
 }
 
+function openListOptionsModal(listId) {
+    currentListId = listId;
+    const modal = document.getElementById("listOptionsModal");
+    if (modal) modal.style.display = "block";
+}
+
+function closeListOptionsModal() {
+    const modal = document.getElementById("listOptionsModal");
+    if (modal) modal.style.display = "none";
+}
+
+async function openEditListModal(listId) {
+    currentListId = listId;
+    const list = shoppingLists.find(l => l._id === currentListId);
+    if (!list) return;
+
+    // Certifique-se que os mercados estão carregados
+    if (markets.length === 0) {
+        await fetchMarkets();
+    }
+
+    // Preenche o modal com os dados da lista existente
+    const editSelect = document.getElementById("marketSelectEdit");
+    if (editSelect) {
+        editSelect.value = list.marketId || "";
+    }
+
+    const modal = document.getElementById("listModalEdit");
+    if (modal) modal.style.display = "block";
+
+    // Altera o botão para chamar updateList em vez de saveList
+    document.getElementById("saveEditListBtn").onclick = updateList;
+}
+
+async function updateList() {
+    const storedUser = localStorage.getItem("currentUser");
+    if (!storedUser || !currentListId) return;
+
+    const phone = JSON.parse(storedUser).phone;
+    const marketId = document.getElementById("marketSelectEdit").value; // Note a mudança de ID aqui
+    const market = markets.find(m => m._id === marketId);
+
+    const updatedList = {
+        marketId: marketId || undefined,
+        name: market ? market.name : new Date().toLocaleDateString("pt-BR"),
+        phone
+    };
+
+    try {
+        const response = await fetch(`${API_URL}/shopping-lists/${currentListId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updatedList)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || "Erro ao atualizar lista");
+        }
+
+        await fetchShoppingLists();
+        closeListModalEdit();
+    } catch (error) {
+        console.error("Update list error:", error);
+        alert(`Erro ao atualizar lista: ${error.message}`);
+    }
+}
+
+async function completeList(listId) {
+    currentListId = listId; // Define o currentListId para uso na função
+    const storedUser = localStorage.getItem("currentUser");
+    if (!storedUser) return;
+
+    const phone = JSON.parse(storedUser).phone;
+    try {
+        const response = await fetch(`${API_URL}/shopping-lists/${currentListId}/complete`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone, completed: true })
+        });
+        if (!response.ok) throw new Error(await response.text());
+        await fetchShoppingLists();
+    } catch (error) {
+        console.error("Complete list error:", error);
+    }
+}
+
+async function deleteList(listId) {
+    currentListId = listId; // Define o currentListId para uso na função
+    const storedUser = localStorage.getItem("currentUser");
+    if (!storedUser) return;
+
+    const phone = JSON.parse(storedUser).phone;
+    try {
+        const response = await fetch(`${API_URL}/shopping-lists/${currentListId}`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone })
+        });
+        if (!response.ok) throw new Error(await response.text());
+        await fetchShoppingLists();
+    } catch (error) {
+        console.error("Delete list error:", error);
+    }
+}
+
 async function openProductModal(action, listId, productId = null) {
+    const list = shoppingLists.find(l => l._id === listId);
+    if (list.completed) {
+        alert("Esta lista está concluída e não pode ser editada.");
+        return;
+    }
+
     currentListId = listId;
     editingProductId = productId;
     const modal = document.getElementById("productModal");
@@ -258,7 +411,7 @@ async function openProductModal(action, listId, productId = null) {
     if (!modal || !title || !buttons) return;
 
     const product = productId ?
-        shoppingLists.find(l => l._id === listId)?.products.find(p => p._id === productId) :
+        list.products.find(p => p._id === productId) :
         null;
 
     title.textContent = action === "edit" ? "Editar Produto" :
@@ -342,15 +495,12 @@ async function setupProductAutocomplete() {
             const products = await response.json();
 
             if (!products || products.length === 0) {
-                // Exibe a opção "Criar: ${searchTerm}" quando não há resultados
                 productSuggestions.innerHTML = `
                     <div class="suggestion-item create-option" 
                          data-name="${searchTerm}">
                         Criar: ${searchTerm}
                     </div>
                 `;
-
-                // Adiciona evento ao item "Criar"
                 document.querySelector(".create-option").addEventListener("click", function () {
                     productNameInput.value = this.getAttribute("data-name");
                     productSuggestions.innerHTML = "";
@@ -360,7 +510,6 @@ async function setupProductAutocomplete() {
                 return;
             }
 
-            // Exibe os produtos encontrados
             productSuggestions.innerHTML = products.map(p => `
                 <div class="suggestion-item" 
                      data-name="${p.productName}"
@@ -371,7 +520,6 @@ async function setupProductAutocomplete() {
                 </div>
             `).join("");
 
-            // Adiciona eventos aos itens de sugestão
             document.querySelectorAll(".suggestion-item").forEach(item => {
                 item.addEventListener("click", function () {
                     productNameInput.value = this.getAttribute("data-name");
@@ -389,8 +537,6 @@ async function setupProductAutocomplete() {
         }
     });
 
-
-    // Fecha sugestões ao clicar fora
     document.addEventListener("click", function (e) {
         if (!productNameInput.contains(e.target) && !productSuggestions.contains(e.target)) {
             productSuggestions.innerHTML = "";
@@ -441,28 +587,19 @@ async function saveProduct() {
         total: parseFloat(document.getElementById("productTotal").value)
     };
 
-    if (product.name.length === 0) {
-        alert(product.name + "O nome do produto é obrigatório!");
+    if (!product.name) {
+        alert("O nome do produto é obrigatório!");
         return;
     }
 
     try {
         const response = await fetch(`${API_URL}/shopping-lists/${currentListId}/products`, {
             method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                phone,
-                product: product
-            })
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone, product })
         });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(errorText || "Erro ao salvar produto");
-        }
-
+        if (!response.ok) throw new Error(await response.text());
         await fetchShoppingLists();
         closeProductModal();
     } catch (error) {
@@ -479,14 +616,8 @@ async function deleteProduct(listId, productId) {
     try {
         const response = await fetch(`${API_URL}/shopping-lists/${listId}/products`, {
             method: "DELETE",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${localStorage.getItem("token") || ''}`
-            },
-            body: JSON.stringify({
-                phone,
-                productId
-            })
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone, productId })
         });
 
         if (!response.ok) throw new Error(await response.text());
@@ -505,7 +636,15 @@ window.saveProduct = saveProduct;
 window.deleteProduct = deleteProduct;
 window.openListModal = openListModal;
 window.closeListModal = closeListModal;
+window.closeListModalEdit = closeListModalEdit;
 window.saveList = saveList;
+window.openListOptionsModal = openListOptionsModal;
+window.closeListOptionsModal = closeListOptionsModal;
+window.openEditListModal = openEditListModal;
+window.completeList = completeList;
+window.deleteList = deleteList;
+window.toggleAccordion = toggleAccordion;
+window.showOptions = showOptions;
 
 document.addEventListener("DOMContentLoaded", () => {
     checkAuthAndLoadUser();

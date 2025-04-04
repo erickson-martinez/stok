@@ -31,14 +31,21 @@ function getInitials(name) {
 
 // Função para carregar a tela de estoque
 function loadStock() {
+    // Verificar se os elementos da sidebar existem
     const userInitialsDiv = document.getElementById("userInitials");
+    const openSidebarButton = document.getElementById("openSidebar");
+    const closeSidebarButton = document.getElementById("closeSidebar");
+    const sidebar = document.getElementById("sidebar");
+
+    if (!userInitialsDiv || !openSidebarButton || !closeSidebarButton || !sidebar) {
+        console.error("Elementos da sidebar não encontrados!");
+        return;
+    }
+
     const userFullName = document.getElementById("userFullName");
     const userPhone = document.getElementById("userPhone");
     const logoutButton = document.getElementById("logout");
     const userModal = document.getElementById("userModal");
-    const openSidebarButton = document.getElementById("openSidebar");
-    const closeSidebarButton = document.getElementById("closeSidebar");
-    const sidebar = document.getElementById("sidebar");
     const loggedUserName = document.getElementById("loggedUserName");
     const currentUser = localStorage.getItem("currentUser");
 
@@ -49,47 +56,49 @@ function loadStock() {
     }
 
     const user = JSON.parse(currentUser);
-    userInitialsDiv.textContent = getInitials(user.name);
-    userFullName.textContent = user.name;
-    userPhone.textContent = user.phone;
-    loggedUserName.textContent = user.name;
+    if (userInitialsDiv) userInitialsDiv.textContent = getInitials(user.name);
+    if (userFullName) userFullName.textContent = user.name;
+    if (userPhone) userPhone.textContent = user.phone;
+    if (loggedUserName) loggedUserName.textContent = user.name;
 
+    // Carrega o menu
     loadSidebarMenu();
 
-    // Abrir/fechar modal de perfil
-    userInitialsDiv.addEventListener("click", (e) => {
-        e.stopPropagation();
-        userModal.classList.toggle("active");
-    });
+    // Configura eventos da sidebar apenas se os elementos existirem
+    if (userInitialsDiv && userModal) {
+        userInitialsDiv.addEventListener("click", (e) => {
+            e.stopPropagation();
+            userModal.classList.toggle("active");
+        });
+    }
 
-    // Fechar modal ao clicar fora
+    if (logoutButton) {
+        logoutButton.addEventListener("click", () => {
+            localStorage.removeItem("currentUser");
+            window.location.href = "../login.html";
+        });
+    }
+
+    if (openSidebarButton && sidebar) {
+        openSidebarButton.addEventListener("click", (e) => {
+            e.stopPropagation();
+            sidebar.classList.add("active");
+        });
+    }
+
+    if (closeSidebarButton && sidebar) {
+        closeSidebarButton.addEventListener("click", (e) => {
+            e.stopPropagation();
+            sidebar.classList.remove("active");
+        });
+    }
+
+    // Fechar modais ao clicar fora
     document.addEventListener("click", (event) => {
-        if (!userModal.contains(event.target)) {
+        if (userModal && !userModal.contains(event.target)) {
             userModal.classList.remove("active");
         }
-    });
-
-    // Logout: apaga currentUser e redireciona para login
-    logoutButton.addEventListener("click", () => {
-        localStorage.removeItem("currentUser");
-        window.location.href = "../login.html";
-    });
-
-    // Abrir sidebar
-    openSidebarButton.addEventListener("click", (e) => {
-        e.stopPropagation();
-        sidebar.classList.add("active");
-    });
-
-    // Fechar sidebar
-    closeSidebarButton.addEventListener("click", (e) => {
-        e.stopPropagation();
-        sidebar.classList.remove("active");
-    });
-
-    // Fechar sidebar ao clicar fora
-    document.addEventListener("click", (event) => {
-        if (!sidebar.contains(event.target)) {
+        if (sidebar && !sidebar.contains(event.target)) {
             sidebar.classList.remove("active");
         }
     });
