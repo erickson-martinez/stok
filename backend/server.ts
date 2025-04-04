@@ -6,6 +6,9 @@ import UserController from "./controllers/userController.ts";
 import ProductController from "./controllers/productController.ts";
 import expenseController from "./controllers/expenseController";
 import activityController from './controllers/activityController';
+import marketController from './controllers/marketController';
+import shoppingListController from './controllers/shoppingListController.ts';
+import productPriceController from './controllers/productPriceController';
 
 dotenv.config();
 const app: Express = express();
@@ -51,9 +54,31 @@ app.patch("/expenses", expenseController.updateExpense);
 app.delete("/expenses", expenseController.deleteExpense);
 
 // Rotas das atividades
-app.get('/activity/:phone', activityController.getActivities);
-app.post('/activity', activityController.createOrUpdateActivity);
-app.delete('/activity', activityController.deleteActivity);
+app.get("/activity/:phone", activityController.getActivities);
+app.post("/activity", activityController.createOrUpdateActivity);
+app.delete("/activity", activityController.deleteActivity);
+
+// Rotas de Mercado
+app.get("/markets/:name", marketController.getMarkets);
+app.get("/markets", marketController.getMarketsAll);
+app.post("/markets", marketController.saveMarket);
+app.delete("/markets", marketController.deleteMarket);
+
+app.get('/shopping-lists/:phone', shoppingListController.getShoppingLists);
+app.post('/shopping-lists', shoppingListController.createShoppingList);
+app.put('/shopping-lists/:listId/products', shoppingListController.saveProduct);
+app.delete('/shopping-lists/:listId/products', shoppingListController.deleteProduct);
+
+app.post("/product/", productPriceController.saveProductPrice);
+
+// Obter preços atuais de um produto em todos os mercados
+app.get("/product/:productName/:days", productPriceController.getRecentProductPrices);
+
+// Obter preço atual de um produto em um mercado específico
+app.get("/product/:productName/:marketId", productPriceController.getMarketProductPrice);
+
+// Comparar preços entre mercados para vários produtos
+app.post("/product/compare", productPriceController.comparePrices);
 
 const PORT: number = Number(process.env.PORT) || 3000;
 app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));

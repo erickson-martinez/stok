@@ -30,6 +30,7 @@
                 <button class="menu-btn" id="openSidebar">☰</button>
                 <div class="user-initials" id="userInitials" title="Perfil"></div>
             </header>
+
             <!-- Profile Modal -->
             <div class="modal" id="userModal">
                 <div class="modal-content">
@@ -40,20 +41,20 @@
                     </div>
                 </div>
             </div>
+
             <div class="content">
                 <div class="header">
                     <h2>Mercados</h2>
-                    <button class="btn" id="addMarketBtn">Adicionar Mercado +</button>
+                    <button class="btn" id="addMarketBtn"><i class="fas fa-plus"></i> Adicionar Mercado</button>
                 </div>
-                <div class="lists">
-                    <div class="card" id="marketsCard">
-                        <div class="card-border">
-                            <div class="card-header">
-                                <h3>Lista de Mercados</h3>
-                            </div>
-                            <div class="card-content" id="marketList">
-                                <!-- Lista de mercados será preenchida via JavaScript -->
-                            </div>
+
+                <div class="card">
+                    <div class="card-border">
+                        <div class="card-header">
+                            <h3>Lista de Mercados</h3>
+                        </div>
+                        <div class="card-content" id="marketList">
+                            <p>Nenhum mercado cadastrado</p>
                         </div>
                     </div>
                 </div>
@@ -64,7 +65,7 @@
         <div id="marketModal" class="market-modal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3 id="modalTitle"></h3>
+                    <h3 id="modalTitle">Cadastrar Mercado</h3>
                     <span class="close" onclick="closeMarketModal()">×</span>
                 </div>
                 <div id="modalBody">
@@ -100,7 +101,10 @@
                         </select>
                     </div>
                 </div>
-                <div id="modalButtons" class="modal-buttons"></div>
+                <div id="modalButtons" class="modal-buttons">
+                    <button onclick="closeMarketModal()">Cancelar</button>
+                    <button id="saveMarketBtn">Salvar</button>
+                </div>
             </div>
         </div>
     </div>

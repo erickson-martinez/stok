@@ -57,13 +57,14 @@ function loadStock() {
     loadSidebarMenu();
 
     // Abrir/fechar modal de perfil
-    userInitialsDiv.addEventListener("click", () => {
+    userInitialsDiv.addEventListener("click", (e) => {
+        e.stopPropagation();
         userModal.classList.toggle("active");
     });
 
     // Fechar modal ao clicar fora
     document.addEventListener("click", (event) => {
-        if (!userModal.contains(event.target) && !userInitialsDiv.contains(event.target)) {
+        if (!userModal.contains(event.target)) {
             userModal.classList.remove("active");
         }
     });
@@ -75,18 +76,20 @@ function loadStock() {
     });
 
     // Abrir sidebar
-    openSidebarButton.addEventListener("click", () => {
+    openSidebarButton.addEventListener("click", (e) => {
+        e.stopPropagation();
         sidebar.classList.add("active");
     });
 
     // Fechar sidebar
-    closeSidebarButton.addEventListener("click", () => {
+    closeSidebarButton.addEventListener("click", (e) => {
+        e.stopPropagation();
         sidebar.classList.remove("active");
     });
 
     // Fechar sidebar ao clicar fora
     document.addEventListener("click", (event) => {
-        if (!sidebar.contains(event.target) && !openSidebarButton.contains(event.target)) {
+        if (!sidebar.contains(event.target)) {
             sidebar.classList.remove("active");
         }
     });
@@ -113,6 +116,11 @@ async function loadProducts() {
         const dayOfMonth = today.getDate();
         const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
 
+        if (products.length === 0) {
+            productList.innerHTML = "<p>Nenhum produto cadastrado</p>";
+            return;
+        }
+
         products.forEach(product => {
             const details = document.createElement("details");
             const summary = document.createElement("summary");
@@ -121,6 +129,7 @@ async function loadProducts() {
 
             const editIcon = document.createElement("span");
             editIcon.classList.add("edit-icon");
+            editIcon.innerHTML = "✏️";
             editIcon.addEventListener("click", (e) => {
                 e.stopPropagation();
                 openEditModal(product);
@@ -128,6 +137,7 @@ async function loadProducts() {
 
             const deleteIcon = document.createElement("span");
             deleteIcon.classList.add("delete-icon");
+            deleteIcon.innerHTML = "🗑️";
             deleteIcon.addEventListener("click", (e) => {
                 e.stopPropagation();
                 openConfirmModal(`Deseja excluir ${product.name}?`, async () => {
@@ -144,6 +154,7 @@ async function loadProducts() {
 
             const shareIcon = document.createElement("span");
             shareIcon.classList.add("share-icon");
+            shareIcon.innerHTML = "↪️";
             shareIcon.addEventListener("click", (e) => {
                 e.stopPropagation();
                 openShareModal(product);
@@ -167,6 +178,7 @@ async function loadProducts() {
             summary.appendChild(iconsContainer);
 
             const table = document.createElement("table");
+            table.classList.add("stock-table");
             const thead = document.createElement("thead");
             const tbody = document.createElement("tbody");
             const headerRow = document.createElement("tr");
@@ -208,72 +220,56 @@ async function loadProducts() {
             productList.appendChild(details);
         });
     } catch (error) {
-        openFeedbackModal("Falha ao carregar a lista de produtos");
+        productList.innerHTML = "<p>Erro ao carregar produtos</p>";
+        console.error("Erro ao carregar produtos:", error);
     }
 }
 
 // Configurar eventos dos modais
 function setupStockEvents() {
-    const addModal = document.getElementById("productModal");
-    const openModalBtn = document.getElementById("openModalBtn");
-    const closeModalBtn = document.getElementById("closeModalBtn");
-    const editModal = document.getElementById("editModal");
-    const closeEditModalBtn = document.getElementById("closeEditModalBtn");
-    const confirmModal = document.getElementById("confirmModal");
-    const closeConfirmModalBtn = document.getElementById("closeConfirmModalBtn");
-    const confirmMessage = document.getElementById("confirmMessage");
+    const addProductBtn = document.getElementById("addProductBtn");
+    const saveProductBtn = document.getElementById("saveProductBtn");
+    const updateProductBtn = document.getElementById("updateProductBtn");
     const confirmActionBtn = document.getElementById("confirmActionBtn");
-    const cancelConfirmBtn = document.getElementById("cancelConfirmBtn");
-    const feedbackModal = document.getElementById("feedbackModal");
-    const closeFeedbackModalBtn = document.getElementById("closeFeedbackModalBtn");
-    const feedbackMessage = document.getElementById("feedbackMessage");
-    const closeFeedbackBtn = document.getElementById("closeFeedbackBtn");
-    const shareModal = document.getElementById("shareModal");
-    const closeShareModalBtn = document.getElementById("closeShareModalBtn");
 
-    openModalBtn.addEventListener("click", () => addModal.style.display = "block");
-    closeModalBtn.addEventListener("click", () => addModal.style.display = "none");
-    closeEditModalBtn.addEventListener("click", () => editModal.style.display = "none");
-    closeConfirmModalBtn.addEventListener("click", () => confirmModal.style.display = "none");
-    cancelConfirmBtn.addEventListener("click", () => confirmModal.style.display = "none");
-    closeFeedbackModalBtn.addEventListener("click", () => feedbackModal.style.display = "none");
-    closeFeedbackBtn.addEventListener("click", () => feedbackModal.style.display = "none");
-    closeShareModalBtn.addEventListener("click", () => shareModal.style.display = "none");
+    // Adicionar produto
+    addProductBtn.addEventListener("click", () => {
+        document.getElementById("productModal").classList.add("active");
+    });
 
-    document.getElementById("productForm").addEventListener("submit", async (e) => {
+    // Salvar novo produto
+    saveProductBtn.addEventListener("click", async (e) => {
         e.preventDefault();
         const currentUser = JSON.parse(localStorage.getItem("currentUser"));
         const product = {
-            name: document.getElementById("name").value,
-            quantity: parseInt(document.getElementById("quantity").value),
-            brand: document.getElementById("brand").value,
-            unitType: document.getElementById("unitType").value,
-            unitQuantity: document.getElementById("unitQuantity").value,
-            idealQuantity: parseInt(document.getElementById("idealQuantity").value),
+            name: document.getElementById("productName").value,
+            quantity: parseInt(document.getElementById("productQuantity").value),
+            brand: document.getElementById("productBrand").value,
+            unitType: document.getElementById("productUnitType").value,
+            unitQuantity: document.getElementById("productUnitQuantity").value,
+            idealQuantity: parseInt(document.getElementById("productIdealQuantity").value),
             ownerPhone: currentUser.phone,
         };
 
-        addModal.style.display = "none";
-        openConfirmModal("Deseja confirmar o cadastro deste produto?", async () => {
-            try {
-                const response = await fetch(`${API_URL}/products`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(product),
-                });
-                if (!response.ok) throw new Error("Erro ao adicionar produto");
-                document.getElementById("productForm").reset();
-                loadProducts();
-                openFeedbackModal("Produto adicionado com sucesso!");
-            } catch (error) {
-                openFeedbackModal("Falha ao adicionar produto");
-            }
-        });
+        try {
+            const response = await fetch(`${API_URL}/products`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(product),
+            });
+            if (!response.ok) throw new Error("Erro ao adicionar produto");
+            closeProductModal();
+            loadProducts();
+            openFeedbackModal("Produto adicionado com sucesso!");
+        } catch (error) {
+            openFeedbackModal("Falha ao adicionar produto");
+        }
     });
 
-    document.getElementById("editForm").addEventListener("submit", async (e) => {
+    // Atualizar produto
+    updateProductBtn.addEventListener("click", async (e) => {
         e.preventDefault();
-        const productId = editModal.dataset.productId;
+        const productId = document.getElementById("editModal").dataset.productId;
         const updatedProduct = {
             quantity: parseInt(document.getElementById("editQuantity").value),
             brand: document.getElementById("editBrand").value,
@@ -282,65 +278,46 @@ function setupStockEvents() {
             idealQuantity: parseInt(document.getElementById("editIdealQuantity").value),
         };
 
-        openConfirmModal("Deseja confirmar a edição deste produto?", async () => {
-            try {
-                const response = await fetch(`${API_URL}/products/${productId}`, {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(updatedProduct),
-                });
-                if (!response.ok) throw new Error("Erro ao atualizar produto");
-                editModal.style.display = "none";
-                loadProducts();
-                openFeedbackModal("Produto atualizado com sucesso!");
-            } catch (error) {
-                openFeedbackModal("Falha ao atualizar produto");
-            }
-        });
-    });
-
-    document.getElementById("shareForm").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const sharePhone = document.getElementById("sharePhone").value.trim();
-        const productId = shareModal.dataset.productId;
-
-        openConfirmModal(`Deseja compartilhar a lista com ${sharePhone}?`, async () => {
-            try {
-                const response = await fetch(`${API_URL}/products/${productId}/share`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ sharedWithPhone: sharePhone }),
-                });
-                if (!response.ok) throw new Error("Erro ao compartilhar lista");
-                shareModal.style.display = "none";
-                document.getElementById("shareForm").reset();
-                openFeedbackModal("Lista compartilhada com sucesso!");
-            } catch (error) {
-                openFeedbackModal(`Falha ao compartilhar lista: ${error.message}`);
-            }
-        });
+        try {
+            const response = await fetch(`${API_URL}/products/${productId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(updatedProduct),
+            });
+            if (!response.ok) throw new Error("Erro ao atualizar produto");
+            closeEditModal();
+            loadProducts();
+            openFeedbackModal("Produto atualizado com sucesso!");
+        } catch (error) {
+            openFeedbackModal("Falha ao atualizar produto");
+        }
     });
 }
 
-// Funções auxiliares para abrir modais
+// Funções auxiliares para modais
 function openConfirmModal(message, onConfirm) {
     const confirmModal = document.getElementById("confirmModal");
     const confirmMessage = document.getElementById("confirmMessage");
     const confirmActionBtn = document.getElementById("confirmActionBtn");
 
     confirmMessage.textContent = message;
-    confirmModal.style.display = "block";
-    confirmActionBtn.onclick = () => {
+    confirmModal.classList.add("active");
+
+    // Remove event listeners anteriores para evitar duplicação
+    const newConfirmBtn = confirmActionBtn.cloneNode(true);
+    confirmActionBtn.parentNode.replaceChild(newConfirmBtn, confirmActionBtn);
+
+    newConfirmBtn.addEventListener("click", () => {
         onConfirm();
-        confirmModal.style.display = "none";
-    };
+        confirmModal.classList.remove("active");
+    });
 }
 
 function openFeedbackModal(message) {
     const feedbackModal = document.getElementById("feedbackModal");
     const feedbackMessage = document.getElementById("feedbackMessage");
     feedbackMessage.textContent = message;
-    feedbackModal.style.display = "block";
+    feedbackModal.classList.add("active");
 }
 
 function openEditModal(product) {
@@ -352,16 +329,48 @@ function openEditModal(product) {
     document.getElementById("editUnitType").value = product.unitType;
     document.getElementById("editUnitQuantity").value = product.unitQuantity;
     document.getElementById("editIdealQuantity").value = product.idealQuantity;
-    editModal.style.display = "block";
+    editModal.classList.add("active");
 }
 
 function openShareModal(product) {
     const shareModal = document.getElementById("shareModal");
     shareModal.dataset.productId = product._id;
-    shareModal.style.display = "block";
+    shareModal.classList.add("active");
 }
 
-// Inicialização
-if (document.getElementById("userInitials")) {
-    loadStock();
+function closeProductModal() {
+    document.getElementById("productModal").classList.remove("active");
+    document.getElementById("productForm").reset();
 }
+
+function closeEditModal() {
+    document.getElementById("editModal").classList.remove("active");
+}
+
+function closeConfirmModal() {
+    document.getElementById("confirmModal").classList.remove("active");
+}
+
+// Fechar modais ao clicar fora
+document.addEventListener("click", (event) => {
+    const modals = document.querySelectorAll(".modal");
+    modals.forEach(modal => {
+        if (!modal.contains(event.target) && !event.target.matches("[data-target]")) {
+            modal.classList.remove("active");
+        }
+    });
+});
+
+// Fechar modais com botão close
+document.querySelectorAll(".close").forEach(btn => {
+    btn.addEventListener("click", function () {
+        this.closest(".modal").classList.remove("active");
+    });
+});
+
+// Inicialização
+document.addEventListener("DOMContentLoaded", () => {
+    if (document.getElementById("userInitials")) {
+        loadStock();
+    }
+});
