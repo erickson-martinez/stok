@@ -1,3 +1,4 @@
+// shoppingListController.ts
 import { Request, Response } from 'express';
 import ShoppingList, { IShoppingList, IProduct } from '../models/ShoppingList';
 import Market from '../models/Market';
@@ -25,8 +26,13 @@ interface ICompleteListRequest {
     completed: boolean;
 }
 
+interface IShareListRequest {
+    ownerPhone: string;
+    sharedWithPhone: string;
+}
+
 const shoppingController = {
-    // Listar listas de compras por usuário
+    // Listar listas de compras por usuário (proprietário)
     async getShoppingLists(req: Request<{ phone: string }>, res: Response): Promise<void> {
         try {
             const { phone } = req.params;
@@ -34,10 +40,29 @@ const shoppingController = {
             res.status(200).json(lists);
         } catch (error: unknown) {
             const err = error as Error;
-            res.status(500).json({
-                message: 'Erro ao listar listas de compras',
-                error: err.message
-            });
+            res.status(500).json({ message: 'Erro ao listar listas de compras', error: err.message });
+        }
+    },
+
+    // Listar listas compartilhadas com o usuário
+    async getSharedShoppingLists(req: Request<{ phone: string }>, res: Response): Promise<void> {
+        try {
+            const { phone } = req.params;
+            if (!phone) {
+                res.status(400).json({ message: 'Telefone é obrigatório' });
+                return;
+            }
+
+            const lists = await ShoppingList.find({ phoneShared: phone });
+            if (!lists || lists.length === 0) {
+                res.status(404).json({ message: 'Nenhuma lista compartilhada encontrada' });
+                return;
+            }
+
+            res.status(200).json(lists);
+        } catch (error: unknown) {
+            const err = error as Error;
+            res.status(500).json({ message: 'Erro ao listar listas compartilhadas', error: err.message });
         }
     },
 
@@ -70,18 +95,41 @@ const shoppingController = {
             res.status(201).json(shoppingList);
         } catch (error: unknown) {
             const err = error as Error;
-            res.status(400).json({
-                message: 'Erro ao criar lista de compras',
-                error: err.message
-            });
+            res.status(400).json({ message: 'Erro ao criar lista de compras', error: err.message });
+        }
+    },
+
+    // Compartilhar uma lista específica
+    async shareShoppingList(req: Request<{ listId: string }, {}, IShareListRequest>, res: Response): Promise<void> {
+        try {
+            const { listId } = req.params;
+            const { ownerPhone, sharedWithPhone } = req.body;
+
+            if (!ownerPhone || !sharedWithPhone) {
+                res.status(400).json({ message: 'Telefones do proprietário e destinatário são obrigatórios' });
+                return;
+            }
+
+            const shoppingList = await ShoppingList.findOne({ _id: listId, phone: ownerPhone });
+            if (!shoppingList) {
+                res.status(404).json({ message: 'Lista não encontrada ou não pertence ao usuário' });
+                return;
+            }
+
+            shoppingList.phoneShared = sharedWithPhone;
+            shoppingList.updatedAt = new Date();
+
+            await shoppingList.save();
+            res.status(200).json({ message: 'Lista compartilhada com sucesso', data: shoppingList });
+        } catch (error: unknown) {
+            const err = error as Error;
+            res.status(500).json({ message: 'Erro ao compartilhar lista', error: err.message });
         }
     },
 
     // Adicionar ou atualizar produto em uma lista
-    async saveProduct(
-        req: Request<{ listId: string }, {}, ISaveProductRequest>,
-        res: Response
-    ): Promise<void> {
+    // Adicionar ou atualizar produto em uma lista
+    async saveProduct(req: Request<{ listId: string }, {}, ISaveProductRequest>, res: Response): Promise<void> {
         try {
             const { listId } = req.params;
             const { phone, product } = req.body;
@@ -91,9 +139,17 @@ const shoppingController = {
                 return;
             }
 
-            const shoppingList = await ShoppingList.findOne({ _id: listId, phone });
+            // Busca a lista verificando se o usuário é o proprietário OU está na lista de compartilhados
+            const shoppingList = await ShoppingList.findOne({
+                _id: listId,
+                $or: [
+                    { phone: phone },         // Usuário é o proprietário
+                    { phoneShared: phone }    // Usuário é um compartilhado
+                ]
+            });
+
             if (!shoppingList) {
-                res.status(404).json({ message: 'Lista não encontrada' });
+                res.status(404).json({ message: 'Lista não encontrada ou acesso negado' });
                 return;
             }
 
@@ -103,39 +159,23 @@ const shoppingController = {
             }
 
             if (product._id) {
-                // Atualizar produto existente
-                const productIndex = shoppingList.products.findIndex(p =>
-                    p._id?.toString() === (product._id?.toString() ?? '')
-                );
+                const productIndex = shoppingList.products.findIndex(p => p._id?.toString() === product._id?.toString());
                 if (productIndex === -1) {
                     res.status(404).json({ message: 'Produto não encontrado na lista' });
                     return;
                 }
                 shoppingList.products[productIndex] = product;
             } else {
-                // Adicionar novo produto
-                const newProduct: IProduct = {
-                    ...product,
-                    _id: new mongoose.Types.ObjectId().toString()
-                };
+                const newProduct: IProduct = { ...product, _id: new mongoose.Types.ObjectId().toString() };
                 shoppingList.products.push(newProduct);
             }
 
             const updatedList = await shoppingList.save();
 
-            // Sincronizar com ProductPrice
             if (shoppingList.marketId && product.name && product.value) {
                 await ProductPrice.findOneAndUpdate(
-                    {
-                        productName: product.name.toLowerCase(),
-                        marketId: shoppingList.marketId
-                    },
-                    {
-                        currentPrice: product.value,
-                        type: product.type,
-                        lastUpdated: new Date(),
-                        updatedBy: phone
-                    },
+                    { productName: product.name.toLowerCase(), marketId: shoppingList.marketId },
+                    { currentPrice: product.value, type: product.type, lastUpdated: new Date(), updatedBy: phone },
                     { upsert: true, new: true }
                 );
             }
@@ -143,18 +183,12 @@ const shoppingController = {
             res.status(200).json(updatedList);
         } catch (error: unknown) {
             const err = error as Error;
-            res.status(400).json({
-                message: 'Erro ao salvar produto',
-                error: err.message
-            });
+            res.status(400).json({ message: 'Erro ao salvar produto', error: err.message });
         }
     },
 
     // Deletar produto de uma lista
-    async deleteProduct(
-        req: Request<{ listId: string }, {}, IDeleteProductRequest>,
-        res: Response
-    ): Promise<void> {
+    async deleteProduct(req: Request<{ listId: string }, {}, IDeleteProductRequest>, res: Response): Promise<void> {
         try {
             const { listId } = req.params;
             const { phone, productId } = req.body;
@@ -175,9 +209,7 @@ const shoppingController = {
                 return;
             }
 
-            const productIndex = shoppingList.products.findIndex(p =>
-                (p._id?.toString() ?? '') === productId
-            );
+            const productIndex = shoppingList.products.findIndex(p => p._id?.toString() === productId);
             if (productIndex === -1) {
                 res.status(404).json({ message: 'Produto não encontrado na lista' });
                 return;
@@ -186,44 +218,35 @@ const shoppingController = {
             shoppingList.products.splice(productIndex, 1);
             const updatedList = await shoppingList.save();
 
-            res.status(200).json({
-                message: 'Produto deletado com sucesso',
-                updatedList
-            });
+            res.status(200).json({ message: 'Produto deletado com sucesso', updatedList });
         } catch (error: unknown) {
             const err = error as Error;
-            res.status(500).json({
-                message: 'Erro ao deletar produto',
-                error: err.message
-            });
+            res.status(500).json({ message: 'Erro ao deletar produto', error: err.message });
         }
     },
 
+    // Atualizar uma lista
     async updateList(req: Request<{ listId: string }, {}, IUpdateListRequest>, res: Response): Promise<void> {
         const { listId } = req.params;
         const { phone, marketId, name } = req.body;
 
-        // Validação básica dos parâmetros
         if (!mongoose.Types.ObjectId.isValid(listId)) {
             res.status(400).json({ message: 'ID da lista inválido' });
             return;
         }
 
         try {
-            // Verifica se a lista existe e pertence ao usuário
             const shoppingList = await ShoppingList.findOne({ _id: listId, phone });
             if (!shoppingList) {
                 res.status(404).json({ message: 'Lista não encontrada ou não pertence ao usuário' });
                 return;
             }
 
-            // Verifica se a lista está concluída
             if (shoppingList.completed) {
                 res.status(403).json({ message: 'Lista concluída não pode ser editada' });
                 return;
             }
 
-            // Atualiza o mercado se marketId foi fornecido
             if (marketId) {
                 if (!mongoose.Types.ObjectId.isValid(marketId)) {
                     res.status(400).json({ message: 'ID do mercado inválido' });
@@ -239,33 +262,16 @@ const shoppingController = {
                 shoppingList.marketId = new mongoose.Types.ObjectId(marketId);
                 shoppingList.name = name || market.name;
             } else {
-                // Remove a associação com mercado se não foi fornecido
                 shoppingList.marketId = null;
                 shoppingList.name = name || `Lista ${new Date().toLocaleDateString('pt-BR')}`;
             }
 
-            // Salva as alterações
             const updatedList = await shoppingList.save();
 
-            res.status(200).json({
-                message: 'Lista atualizada com sucesso',
-                data: updatedList
-            });
-
+            res.status(200).json({ message: 'Lista atualizada com sucesso', data: updatedList });
         } catch (error: unknown) {
-            console.error('Erro ao atualizar lista:', error);
-
-            if (error instanceof mongoose.Error.ValidationError) {
-                res.status(400).json({
-                    message: 'Erro de validação',
-                    error: error.message
-                });
-            } else {
-                res.status(500).json({
-                    message: 'Erro interno ao atualizar lista',
-                    error: error instanceof Error ? error.message : 'Erro desconhecido'
-                });
-            }
+            const err = error as Error;
+            res.status(500).json({ message: 'Erro interno ao atualizar lista', error: err.message });
         }
     },
 
@@ -286,10 +292,7 @@ const shoppingController = {
             res.status(200).json(updatedList);
         } catch (error: unknown) {
             const err = error as Error;
-            res.status(400).json({
-                message: 'Erro ao concluir lista',
-                error: err.message
-            });
+            res.status(400).json({ message: 'Erro ao concluir lista', error: err.message });
         }
     },
 
@@ -308,12 +311,9 @@ const shoppingController = {
             res.status(200).json({ message: 'Lista deletada com sucesso' });
         } catch (error: unknown) {
             const err = error as Error;
-            res.status(500).json({
-                message: 'Erro ao deletar lista',
-                error: err.message
-            });
+            res.status(500).json({ message: 'Erro ao deletar lista', error: err.message });
         }
     }
-}
+};
 
 export default shoppingController;

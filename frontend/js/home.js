@@ -1,6 +1,5 @@
-// Definindo a constante API_URL
-const API_URL = "https://stok-5ytv.onrender.com";
-//const API_URL = "http://192.168.1.67:3000";
+//const API_URL = "https://stok-5ytv.onrender.com";
+const API_URL = "http://192.168.1.67:3000";
 
 // Configuração do menu em JSON
 const menuItems = [

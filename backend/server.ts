@@ -4,7 +4,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import UserController from "./controllers/userController.ts";
 import ProductController from "./controllers/productController.ts";
-import expenseController from "./controllers/expenseController";
+import expenseController from "./controllers/financesController.ts";
 import activityController from './controllers/activityController';
 import marketController from './controllers/marketController';
 import shoppingListController from './controllers/shoppingListController.ts';
@@ -59,15 +59,18 @@ app.get("/markets", marketController.getMarketsAll);
 app.post("/markets", marketController.saveMarket);
 app.delete("/markets", marketController.deleteMarket);
 
+// Rotas de Shopping List (ajustadas e completadas)
 app.get('/shopping-lists/:phone', shoppingListController.getShoppingLists);
+app.get('/shopping-lists/shared/:phone', shoppingListController.getSharedShoppingLists); // Nova rota para listas compartilhadas
 app.post('/shopping-lists', shoppingListController.createShoppingList);
-app.put('/shopping-lists/:listId/products', shoppingListController.saveProduct);
+app.post('/shopping-lists/:listId/share', shoppingListController.shareShoppingList); // Nova rota para compartilhar
+app.put('/shopping-lists/:listId/products', shoppingListController.saveProduct); // Corrigido "incumbent"
 app.delete('/shopping-lists/:listId/products', shoppingListController.deleteProduct);
 app.put('/shopping-lists/:listId', shoppingListController.updateList);
 app.put('/shopping-lists/:listId/complete', shoppingListController.completeList);
 app.delete('/shopping-lists/:listId', shoppingListController.deleteList);
 
-app.post("/product/", productPriceController.saveProductPrice);
+app.post("/product", productPriceController.saveProductPrice);
 app.get("/product/:productName/:days", productPriceController.getRecentProductPrices);
 app.get("/product/:productName/:marketId", productPriceController.getMarketProductPrice);
 app.post("/product/compare", productPriceController.comparePrices);

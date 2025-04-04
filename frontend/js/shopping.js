@@ -8,6 +8,7 @@ const menuItems = [
     { name: "Lista de Compras", route: "./shopping.html" }
 ];
 
+const daysFindPrice = 1; // Dias para buscar o preço do produto
 let markets = [];
 let shoppingLists = [];
 let currentListId = null;
@@ -48,6 +49,18 @@ function checkAuthAndLoadUser() {
     setupUserEvents();
 }
 
+document.getElementById('marketSelectAdd').addEventListener('change', function () {
+    const marketId = this.value;
+    const market = markets.find(m => m._id === marketId);
+    const preview = document.getElementById('listNamePreview');
+
+    if (market) {
+        preview.textContent = `${market.name} - ${new Date().toLocaleDateString('pt-BR')}`;
+    } else {
+        preview.textContent = `Lista de compras - ${new Date().toLocaleDateString('pt-BR')}`;
+    }
+});
+
 function setupUserEvents() {
     const userInitialsDiv = document.getElementById("userInitials");
     const userModal = document.getElementById("userModal");
@@ -80,11 +93,17 @@ function setupUserEvents() {
 async function fetchMarkets() {
     try {
         const response = await fetch(`${API_URL}/markets`);
-        if (!response.ok) throw new Error("Erro ao carregar mercados");
+        if (!response.ok) {
+            throw new Error(`Erro ao carregar mercados: ${response.status} ${response.statusText}`);
+        }
         markets = await response.json();
         updateMarketSelect();
+        updateMarketSelectEdit();
+        return markets;
     } catch (error) {
-        console.error("Fetch markets error:", error);
+        console.error("Fetch markets error:", error.message);
+        alert("Não foi possível conectar ao servidor. Verifique se ele está ativo.");
+        throw error;
     }
 }
 
@@ -92,11 +111,23 @@ async function fetchShoppingLists() {
     const storedUser = localStorage.getItem("currentUser");
     if (!storedUser) return;
 
+    if (markets.length === 0) {
+        await fetchMarkets();
+    }
+
     const phone = JSON.parse(storedUser).phone;
     try {
-        const response = await fetch(`${API_URL}/shopping-lists/${phone}`);
-        if (!response.ok) throw new Error("Erro ao carregar listas");
-        shoppingLists = await response.json();
+        // Busca listas próprias
+        const ownResponse = await fetch(`${API_URL}/shopping-lists/${phone}`);
+        if (!ownResponse.ok) throw new Error("Erro ao carregar listas próprias");
+        const ownLists = await ownResponse.json();
+
+        // Busca listas compartilhadas
+        const sharedResponse = await fetch(`${API_URL}/shopping-lists/shared/${phone}`);
+        const sharedLists = sharedResponse.ok ? await sharedResponse.json() : [];
+
+        // Combina as listas
+        shoppingLists = [...ownLists, ...sharedLists.map(list => ({ ...list, isShared: true }))];
         updateShoppingList();
     } catch (error) {
         console.error("Fetch shopping lists error:", error);
@@ -105,25 +136,106 @@ async function fetchShoppingLists() {
 
 function updateMarketSelect() {
     const addSelect = document.getElementById("marketSelectAdd");
-    const editSelect = document.getElementById("marketSelectEdit");
-
     const options = "<option value=''>Nenhum mercado selecionado</option>" +
         markets.filter(m => m.status === "active").map(m =>
             `<option value="${m._id}">${m.name}</option>`
         ).join("");
-
     if (addSelect) addSelect.innerHTML = options;
+}
+
+function updateMarketSelectEdit() {
+    const editSelect = document.getElementById("marketSelectEdit");
+    const options = "<option value=''>Nenhum mercado selecionado</option>" +
+        markets.filter(m => m.status === "active").map(m =>
+            `<option value="${m._id}">${m.name}</option>`
+        ).join("");
     if (editSelect) editSelect.innerHTML = options;
+}
+
+function shareList(listId) {
+    currentListId = listId;
+    const modal = document.getElementById("shareListModal");
+    if (modal) {
+        document.getElementById("sharePhoneInput").value = ""; // Limpa o campo
+        modal.style.display = "block";
+    }
+}
+
+function closeShareModal() {
+    const modal = document.getElementById("shareListModal");
+    if (modal) modal.style.display = "none";
+}
+
+async function confirmShareList() {
+    const phoneToShare = document.getElementById("sharePhoneInput").value.trim();
+    if (!phoneToShare) {
+        alert("Por favor, digite um número de telefone válido");
+        return;
+    }
+
+    const storedUser = localStorage.getItem("currentUser");
+    if (!storedUser) return;
+
+    try {
+        const response = await fetch(`${API_URL}/shopping-lists/${currentListId}/share`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                ownerPhone: JSON.parse(storedUser).phone,
+                sharedWithPhone: phoneToShare
+            })
+        });
+
+        if (!response.ok) throw new Error(await response.text());
+
+        alert("Lista compartilhada com sucesso!");
+        closeShareModal();
+        await fetchShoppingLists(); // Atualiza a lista após compartilhar
+    } catch (error) {
+        console.error("Share list error:", error);
+        alert(`Erro ao compartilhar lista: ${error.message}`);
+    }
 }
 
 function updateShoppingList() {
     const shoppingList = document.getElementById("shoppingList");
-    if (!shoppingList) return;
+    if (!shoppingList || markets.length === 0) {
+        console.log("Aguardando carregamento dos mercados...");
+        return;
+    }
 
-    shoppingList.innerHTML = shoppingLists.length ? shoppingLists.map(list => {
+    if (!shoppingLists || shoppingLists.length === 0) {
+        shoppingList.innerHTML = "<p>Nenhuma lista cadastrada</p>";
+        return;
+    }
+
+    shoppingList.innerHTML = shoppingLists.map(list => {
         const total = list.products.reduce((sum, p) => sum + (p.total || 0), 0);
-        const marketName = list.marketId ? markets.find(m => m._id === list.marketId)?.name || "Sem mercado" : "Sem mercado";
-        const listName = `${marketName} - ${new Date(list.createdAt).toLocaleDateString("pt-BR")}`;
+        let marketName = "Sem mercado";
+        if (list.marketId) {
+            const market = markets.find(m => m._id === list.marketId);
+            marketName = market ? market.name : "Mercado não encontrado";
+        }
+        const createdAt = list.createdAt ? new Date(list.createdAt).toLocaleDateString("pt-BR") : "Data desconhecida";
+        const listName = `${marketName} - ${createdAt}${list.isShared ? ' (Compartilhada)' : ''}`;
+
+        const productsHTML = list.products.length ?
+            list.products.map(product => `
+                <div class="list-item">
+                    <span class="item-name">${product.name} (${product.quantity} ${product.type}${product.packQuantity ? `, ${product.packQuantity} un` : ""})</span>
+                    <span class="item-value">${(product.total || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                    ${list.completed ? '' : `
+                        <div class="options-wrapper">
+                            <span class="options-trigger" data-id="${product._id}" data-list="${list._id}" onclick="event.stopPropagation(); showOptions(event, '${product._id}')">⋯</span>
+                            <div id="options-${product._id}" class="options-menu">
+                                <button onclick="event.stopPropagation(); openProductModal('edit', '${list._id}', '${product._id}')">Editar</button>
+                                <button onclick="event.stopPropagation(); openProductModal('view', '${list._id}', '${product._id}')">Visualizar</button>
+                                <button onclick="event.stopPropagation(); openProductModal('delete', '${list._id}', '${product._id}')">Deletar</button>
+                            </div>
+                        </div>
+                    `}
+                </div>
+            `).join("") : "<p>Nenhum produto cadastrado</p>";
 
         return `
             <div class="list-container" data-list-id="${list._id}">
@@ -143,9 +255,16 @@ function updateShoppingList() {
                             <div class="options-wrapper">
                                 <span class="options-trigger" data-id="${list._id}" onclick="event.stopPropagation(); showOptions(event, '${list._id}')">⋯</span>
                                 <div id="options-${list._id}" class="options-menu">
-                                    ${list.completed ? '' : `<button onclick="event.stopPropagation(); openEditListModal('${list._id}')">Editar</button>
-                                    <button onclick="event.stopPropagation(); completeList('${list._id}')">Concluir</button>`}
-                                    <button onclick="event.stopPropagation(); deleteList('${list._id}')">Deletar</button>
+                                    ${list.completed ? '' : `
+                                        <button onclick="event.stopPropagation(); openEditListModal('${list._id}')">Editar</button>
+                                        <button onclick="event.stopPropagation(); completeList('${list._id}')">Concluir</button>
+                                    `}
+                                    ${list.isShared ? '' : `
+                                        <button onclick="event.stopPropagation(); shareList('${list._id}')">Compartilhar</button>
+                                    `}
+                                    ${list.isShared ? '' : `
+                                        <button onclick="event.stopPropagation(); deleteList('${list._id}')">Deletar</button>
+                                    `}
                                 </div>
                             </div>
                         </div>
@@ -153,27 +272,12 @@ function updateShoppingList() {
                 </div>
                 <div class="accordion" id="accordion-${list._id}">
                     <div class="accordion-content">
-                        ${list.products.length ? list.products.map(product => `
-                            <div class="list-item">
-                                <span class="item-name">${product.name} (${product.quantity} ${product.type}${product.packQuantity ? `, ${product.packQuantity} un` : ""})</span>
-                                <span class="item-value">${product.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
-                                ${list.completed ? '' : `
-                                    <div class="options-wrapper">
-                                        <span class="options-trigger" data-id="${product._id}" data-list="${list._id}" onclick="event.stopPropagation(); showOptions(event, '${product._id}')">⋯</span>
-                                        <div id="options-${product._id}" class="options-menu">
-                                            <button onclick="event.stopPropagation(); openProductModal('edit', '${list._id}', '${product._id}')">Editar</button>
-                                            <button onclick="event.stopPropagation(); openProductModal('view', '${list._id}', '${product._id}')">Visualizar</button>
-                                            <button onclick="event.stopPropagation(); openProductModal('delete', '${list._id}', '${product._id}')">Deletar</button>
-                                        </div>
-                                    </div>
-                                `}
-                            </div>
-                        `).join("") : "<p>Nenhum produto cadastrado</p>"}
+                        ${productsHTML}
                     </div>
                 </div>
             </div>
         `;
-    }).join("") : "<p>Nenhuma lista cadastrada</p>";
+    }).join("");
 
     shoppingList.removeEventListener("click", handleOptionsClick);
     shoppingList.addEventListener("click", handleOptionsClick);
@@ -209,7 +313,6 @@ function handleOptionsClick(event) {
 
 function showOptions(event, id) {
     event.stopPropagation(); // Impede que o clique no options-trigger acione o toggleAccordion
-    console.log(`showOptions called with id: ${id}`); // Log para depuração
     const options = document.getElementById(`options-${id}`);
     if (!options) {
         console.error(`Options menu with id options-${id} not found`);
@@ -217,7 +320,6 @@ function showOptions(event, id) {
     }
 
     const isVisible = options.style.display === "block";
-    console.log(`Current visibility of options-${id}: ${isVisible ? "visible" : "hidden"}`); // Log para depuração
 
     // Fecha todos os outros menus abertos
     document.querySelectorAll(".options-menu").forEach(menu => {
@@ -261,7 +363,13 @@ async function saveList() {
     if (!storedUser) return;
 
     const phone = JSON.parse(storedUser).phone;
-    const marketId = document.getElementById("marketSelect").value;
+    const marketSelect = document.getElementById("marketSelectAdd"); // Changed from "marketSelect" to "marketSelectAdd"
+    if (!marketSelect) {
+        console.error("Market select element not found");
+        return;
+    }
+
+    const marketId = marketSelect.value;
     const market = markets.find(m => m._id === marketId);
 
     const list = {
@@ -442,8 +550,8 @@ async function openProductModal(action, listId, productId = null) {
     buttons.innerHTML = "";
     if (action === "add" || action === "edit") {
         buttons.innerHTML = `
-            <button onclick="closeProductModal()">Cancelar</button>
-            <button onclick="saveProduct()">Salvar</button>
+            <button class="btn-secundary" onclick="closeProductModal()">Cancelar</button>
+            <button class="btn" onclick="saveProduct()">Salvar</button>
         `;
     } else if (action === "view") {
         buttons.innerHTML = `<button onclick="closeProductModal()">Fechar</button>`;
@@ -489,7 +597,7 @@ async function setupProductAutocomplete() {
         }
 
         try {
-            const response = await fetch(`${API_URL}/product/${searchTerm}/5`);
+            const response = await fetch(`${API_URL}/product/${searchTerm}/${daysFindPrice}`);
             if (!response.ok) throw new Error("Erro na busca");
 
             const products = await response.json();
@@ -516,7 +624,7 @@ async function setupProductAutocomplete() {
                      data-price="${p.currentPrice}"
                      data-type="${p.type}"
                      data-market="${p.marketId?.name || ''}">
-                    ${p.productName} - ${p.marketId?.name || ''} - R$ ${p.currentPrice?.toFixed(2) || '0.00'}
+                    ${p.productName} - R$ ${p.currentPrice?.toFixed(2) || '0.00'} - ${p.marketId?.name || ''}
                 </div>
             `).join("");
 
@@ -596,14 +704,22 @@ async function saveProduct() {
         const response = await fetch(`${API_URL}/shopping-lists/${currentListId}/products`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ phone, product })
+            body: JSON.stringify({
+                phone,              // Telefone do usuário atual (proprietário ou compartilhado)
+                listId: currentListId, // Inclui o ID da lista explicitamente
+                product             // Dados do produto
+            })
         });
 
-        if (!response.ok) throw new Error(await response.text());
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || "Erro ao salvar produto");
+        }
+
         await fetchShoppingLists();
         closeProductModal();
     } catch (error) {
-        console.error("Save product error:", error);
+        console.error("Save product error:", error.message);
         alert(`Erro ao salvar produto: ${error.message}`);
     }
 }
@@ -646,10 +762,17 @@ window.deleteList = deleteList;
 window.toggleAccordion = toggleAccordion;
 window.showOptions = showOptions;
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
     checkAuthAndLoadUser();
-    fetchMarkets();
-    fetchShoppingLists();
+
+    try {
+        // Primeiro carrega os mercados
+        await fetchMarkets();
+        // Depois carrega as listas de compras
+        await fetchShoppingLists();
+    } catch (error) {
+        console.error("Erro ao carregar dados:", error);
+    }
 
     document.getElementById("addListBtn")?.addEventListener("click", openListModal);
     document.getElementById("saveListBtn")?.addEventListener("click", saveList);

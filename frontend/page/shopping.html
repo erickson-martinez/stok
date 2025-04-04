@@ -60,23 +60,34 @@
         </div>
 
         <!-- Add List Modal -->
-        <div id="listModal" class="modal finance-modal">
+        <div class="modal finance-modal" id="listModal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3 id="listModalTitle">Cadastrar Lista</h3>
+                    <h2>Criar nova lista de compras</h2>
+                    <p class="modal-subtitle">Selecione mercado para vincular ou deixe sem mercado</p>
                     <span class="close" onclick="closeListModal()">×</span>
                 </div>
                 <div id="modalBody">
                     <div class="form-group">
-                        <label>Selecione o Mercado</label>
                         <div class="select-button-wrapper">
                             <select id="marketSelectAdd">
-                                <option value="">Nenhum mercado selecionado</option>
+                                <option value="">Sem mercado (lista genérica)</option>
                             </select>
-                            <button class="btn" id="saveListBtn">Salvar</button>
+                            <button class="btn" id="saveListBtn" onclick="saveListBtn()">Criar lista</button>
                         </div>
                     </div>
-                    <button class="btn" id="addProductBtn">Cadastrar Produto</button>
+
+                </div>
+
+                <div class="list-name-preview">
+                    <span id="listNamePreview"></span>
+                </div>
+
+                <div class="modal-buttons">
+                    <button class="btn-secondary" onclick="closeListModal()">Cancelar</button>
+
+                    <button class="text-button" id="addProductBtn" onclick="addProductBtn()">Cadastrar apenas lista com
+                        produtos</button>
                 </div>
             </div>
         </div>
@@ -87,16 +98,34 @@
                     <h3 id="listModalTitle">Editar Lista</h2>
                         <span class="close" onclick="closeListModalEdit()">×</span>
                 </div>
-                <div id="modalBody">
-                    <div class="form-group">
-                        <label>Selecione o Mercado</label>
-                        <div class="select-button-wrapper">
-                            <select id="marketSelectEdit">
-                                <option value="">Nenhum mercado selecionado</option>
-                            </select>
-                            <button class="btn" id="saveEditListBtn">Salvar</button>
-                        </div>
+                <div class="form-group">
+                    <label>Selecione o Mercado</label>
+                    <div class="select-button-wrapper">
+                        <select id="marketSelectEdit">
+                            <option value="">Nenhum mercado selecionado</option>
+                        </select>
+                        <button class="btn" id="saveEditListBtn">Salvar</button>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Share List Modal -->
+        <div id="shareListModal" class="modal finance-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Compartilhar Lista</h3>
+                    <span class="close" onclick="closeShareModal()">×</span>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Telefone do usuário para compartilhar</label>
+                        <input type="text" id="sharePhoneInput" placeholder="Digite o telefone com DDD">
+                    </div>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn-secondary" onclick="closeShareModal()">Cancelar</button>
+                    <button class="btn" onclick="confirmShareList()">Compartilhar</button>
                 </div>
             </div>
         </div>
@@ -111,7 +140,8 @@
                 <div id="productModalBody">
                     <div class="form-group product-input-group">
                         <label>Nome</label>
-                        <input type="text" id="productName" placeholder="Digite para buscar produtos existentes">
+                        <input type="text" id="productName" autocomplete="off"
+                            placeholder="Digite para buscar produtos existentes">
                         <div id="productSuggestions" class="product-suggestions"></div>
                     </div>
                     <div class="form-group">
