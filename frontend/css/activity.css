@@ -13,6 +13,36 @@ body {
     height: 100%;
 }
 
+.timer-controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin: 10px 0;
+}
+
+.btn {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+}
+
+.btn:hover {
+    background-color: #45a049;
+}
+
+#finalizeBtn {
+    background-color: #2196F3;
+    /* Cor diferente para destacar */
+}
+
+#finalizeBtn:hover {
+    background-color: #1976D2;
+}
+
 /* Sidebar - Mantido igual ao finance.css */
 .sidebar {
     width: 250px;

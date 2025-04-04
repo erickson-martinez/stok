@@ -1,6 +1,15 @@
 const API_URL = "https://stok-5ytv.onrender.com";
 //const API_URL = "http://192.168.1.67:3000";
 
+async function fetchApi() {
+    try {
+        const response = await fetch(`${API_URL}`);
+        if (!response.ok) throw new Error("Erro ao carregar API");
+    } catch (error) {
+        console.error("Fetch Api error:", error);
+    }
+}
+
 // Função para fazer login
 document.getElementById("loginForm").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -90,3 +99,8 @@ async function registerUser() {
         console.error("Erro ao processar resposta (cadastro):", err);
     }
 }
+
+
+document.addEventListener("DOMContentLoaded", () => {
+    fetchApi();
+});
