@@ -1,4 +1,6 @@
 const API_URL = "https://stok-5ytv.onrender.com";
+//const API_URL = "http://192.168.1.67:3000";
+
 const menuItems = [
     { name: "Financeiro", route: "./finances.html" },
     { name: "Estoque", route: "./stock.html" },
@@ -12,6 +14,8 @@ let editingId = null;
 
 function loadSidebarMenu() {
     const sidebarMenu = document.getElementById("sidebarMenu");
+    if (!sidebarMenu) return;
+
     sidebarMenu.innerHTML = "";
     menuItems.forEach(item => {
         const li = document.createElement("li");
@@ -51,6 +55,8 @@ function setupUserEvents() {
     const closeSidebarButton = document.getElementById("closeSidebar");
     const sidebar = document.getElementById("sidebar");
 
+    if (!userInitialsDiv || !userModal || !logoutButton || !openSidebarButton || !closeSidebarButton || !sidebar) return;
+
     userInitialsDiv.addEventListener("click", () => userModal.classList.toggle("active"));
     document.addEventListener("click", (event) => {
         if (!userModal.contains(event.target) && !userInitialsDiv.contains(event.target)) {
@@ -71,19 +77,20 @@ function setupUserEvents() {
 }
 
 async function fetchMarkets() {
-    const phone = JSON.parse(localStorage.getItem("currentUser")).phone;
     try {
-        const response = await fetch(`${API_URL}/markets/${phone}`);
+        const response = await fetch(`${API_URL}/markets`);
         if (!response.ok) throw new Error("Erro ao carregar mercados");
         markets = await response.json();
         updateMarketList();
     } catch (error) {
-        console.error(error);
+        console.error("Fetch markets error:", error);
     }
 }
 
 function updateMarketList() {
     const marketList = document.getElementById("marketList");
+    if (!marketList) return;
+
     marketList.innerHTML = markets.length ? markets.map(market => `
         <div class="list-item">
             <span class="item-name">${market.name}</span>
@@ -104,14 +111,18 @@ function handleOptionsClick(event) {
     const trigger = event.target.closest(".options-trigger");
     if (trigger) {
         const id = trigger.getAttribute("data-id");
-        showOptions(event, id);
+        if (id) showOptions(event, id);
     }
 }
 
 function showOptions(event, id) {
     const options = document.getElementById(`options-${id}`);
+    if (!options) return;
+
     const isVisible = options.style.display === "block";
-    document.querySelectorAll(".options-menu").forEach(menu => menu.style.display = "none");
+    document.querySelectorAll(".options-menu").forEach(menu => {
+        menu.style.display = "none";
+    });
     options.style.display = isVisible ? "none" : "block";
 
     document.addEventListener("click", function closeMenu(e) {
@@ -127,21 +138,30 @@ function openMarketModal(action, id = null) {
     const modal = document.getElementById("marketModal");
     const modalTitle = document.getElementById("modalTitle");
     const modalButtons = document.getElementById("modalButtons");
+
+    if (!modal || !modalTitle || !modalButtons) return;
+
     const market = id ? markets.find(m => m._id === id) : null;
 
-    modalTitle.textContent = action === "edit" ? "Editar Mercado" : action === "view" ? "Visualizar Mercado" : action === "delete" ? "Deletar Mercado" : "Cadastrar Mercado";
+    modalTitle.textContent = action === "edit" ? "Editar Mercado" :
+        action === "view" ? "Visualizar Mercado" :
+            action === "delete" ? "Deletar Mercado" :
+                "Cadastrar Mercado";
+
     const isEditable = action === "edit" || action === "add";
 
     document.getElementById("marketName").value = market?.name || "";
     document.getElementById("marketAddress").value = market?.address || "";
     document.getElementById("marketNumber").value = market?.number || "";
     document.getElementById("marketZip").value = market?.zip || "";
-    document.getElementById("marketLat").value = market?.latitude || "";
-    document.getElementById("marketLng").value = market?.longitude || "";
+    document.getElementById("marketLat").value = market?.latitude?.toString() || "";
+    document.getElementById("marketLng").value = market?.longitude?.toString() || "";
     document.getElementById("marketStatus").value = market?.status || "active";
 
     const inputs = document.querySelectorAll("#modalBody input, #modalBody select");
-    inputs.forEach(input => input.disabled = !isEditable);
+    inputs.forEach(input => {
+        input.disabled = !isEditable;
+    });
 
     modalButtons.innerHTML = "";
     if (action === "add" || action === "edit") {
@@ -151,7 +171,7 @@ function openMarketModal(action, id = null) {
         `;
     } else if (action === "view") {
         modalButtons.innerHTML = `<button onclick="closeMarketModal()">Fechar</button>`;
-    } else if (action === "delete") {
+    } else if (action === "delete" && id) {
         modalButtons.innerHTML = `
             <button onclick="closeMarketModal()">Cancelar</button>
             <button onclick="deleteMarket('${id}')">Confirmar</button>
@@ -162,54 +182,67 @@ function openMarketModal(action, id = null) {
 }
 
 function closeMarketModal() {
-    document.getElementById("marketModal").style.display = "none";
+    const modal = document.getElementById("marketModal");
+    if (modal) modal.style.display = "none";
 }
 
 async function saveMarket() {
-    const phone = JSON.parse(localStorage.getItem("currentUser")).phone;
+    const storedUser = localStorage.getItem("currentUser");
+    if (!storedUser) return;
+
+    const phone = JSON.parse(storedUser).phone;
     const market = {
         _id: editingId || undefined,
         name: document.getElementById("marketName").value,
         address: document.getElementById("marketAddress").value,
         number: document.getElementById("marketNumber").value,
         zip: document.getElementById("marketZip").value,
-        latitude: parseFloat(document.getElementById("marketLat").value),
-        longitude: parseFloat(document.getElementById("marketLng").value),
+        latitude: parseFloat(document.getElementById("marketLat").value) || undefined,
+        longitude: parseFloat(document.getElementById("marketLng").value) || undefined,
         status: document.getElementById("marketStatus").value,
         phone
     };
 
     try {
-        const method = editingId ? "PATCH" : "POST";
+        const method = editingId ? "PUT" : "POST";
         const response = await fetch(`${API_URL}/markets`, {
             method,
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(market)
         });
-        if (!response.ok) throw new Error("Erro ao salvar mercado");
+        if (!response.ok) throw new Error(await response.text());
         await fetchMarkets();
         closeMarketModal();
     } catch (error) {
-        console.error(error);
+        console.error("Save market error:", error);
     }
 }
 
 async function deleteMarket(id) {
-    const phone = JSON.parse(localStorage.getItem("currentUser")).phone;
+    const storedUser = localStorage.getItem("currentUser");
+    if (!storedUser) return;
+
+    const phone = JSON.parse(storedUser).phone;
     try {
-        const response = await fetch(`${API_URL}/markets?phone=${phone}&id=${id}`, {
+        const response = await fetch(`${API_URL}/markets?id=${id}&phone=${phone}`, {
             method: "DELETE"
         });
-        if (!response.ok) throw new Error("Erro ao deletar mercado");
+        if (!response.ok) throw new Error(await response.text());
         await fetchMarkets();
         closeMarketModal();
     } catch (error) {
-        console.error(error);
+        console.error("Delete market error:", error);
     }
 }
+
+// Atribui as funções ao escopo global para acesso via HTML
+window.openMarketModal = openMarketModal;
+window.closeMarketModal = closeMarketModal;
+window.saveMarket = saveMarket;
+window.deleteMarket = deleteMarket;
 
 document.addEventListener("DOMContentLoaded", () => {
     checkAuthAndLoadUser();
     fetchMarkets();
-    document.getElementById("addMarketBtn").addEventListener("click", () => openMarketModal("add"));
+    document.getElementById("addMarketBtn")?.addEventListener("click", () => openMarketModal("add"));
 });

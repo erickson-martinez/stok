@@ -89,9 +89,10 @@
                     <span class="close" onclick="closeProductModal()">×</span>
                 </div>
                 <div id="productModalBody">
-                    <div class="form-group">
+                    <div class="form-group product-input-group">
                         <label>Nome</label>
-                        <input type="text" id="productName">
+                        <input type="text" id="productName" placeholder="Digite para buscar produtos existentes">
+                        <div id="productSuggestions" class="product-suggestions"></div>
                     </div>
                     <div class="form-group">
                         <label>Tipo</label>
