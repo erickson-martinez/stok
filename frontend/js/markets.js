@@ -192,7 +192,6 @@ async function saveMarket() {
 
     const phone = JSON.parse(storedUser).phone;
     const market = {
-        _id: editingId || undefined,
         name: document.getElementById("marketName").value,
         address: document.getElementById("marketAddress").value,
         number: document.getElementById("marketNumber").value,
@@ -204,8 +203,9 @@ async function saveMarket() {
     };
 
     try {
-        const method = editingId ? "PUT" : "POST";
-        const response = await fetch(`${API_URL}/markets`, {
+        const method = editingId ? "PATCH" : "POST";
+        const url = editingId ? `${API_URL}/markets/${editingId}` : `${API_URL}/markets`;
+        const response = await fetch(url, {
             method,
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(market)
@@ -215,6 +215,7 @@ async function saveMarket() {
         closeMarketModal();
     } catch (error) {
         console.error("Save market error:", error);
+        alert(`Erro ao salvar mercado: ${error.message}`);
     }
 }
 

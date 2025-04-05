@@ -119,18 +119,30 @@ async function fetchShoppingLists() {
     try {
         // Busca listas próprias
         const ownResponse = await fetch(`${API_URL}/shopping-lists/${phone}`);
-        if (!ownResponse.ok) throw new Error("Erro ao carregar listas próprias");
+        if (!ownResponse.ok) {
+            throw new Error(`Erro ao carregar listas próprias: ${ownResponse.status}`);
+        }
         const ownLists = await ownResponse.json();
 
-        // Busca listas compartilhadas
-        const sharedResponse = await fetch(`${API_URL}/shopping-lists/shared/${phone}`);
-        const sharedLists = sharedResponse.ok ? await sharedResponse.json() : [];
+        // Busca listas compartilhadas (trata 404 como lista vazia)
+        let sharedLists = [];
+        try {
+            const sharedResponse = await fetch(`${API_URL}/shopping-lists/shared/${phone}`);
+            if (sharedResponse.ok) {
+                sharedLists = await sharedResponse.json();
+            } else if (sharedResponse.status !== 404) {
+                throw new Error(`Erro ao carregar listas compartilhadas: ${sharedResponse.status}`);
+            }
+        } catch (sharedError) {
+            console.error("Erro ao buscar listas compartilhadas:", sharedError);
+        }
 
         // Combina as listas
         shoppingLists = [...ownLists, ...sharedLists.map(list => ({ ...list, isShared: true }))];
         updateShoppingList();
     } catch (error) {
         console.error("Fetch shopping lists error:", error);
+        alert("Erro ao carregar listas de compras. Por favor, recarregue a página.");
     }
 }
 
@@ -359,41 +371,57 @@ function closeListModalEdit() {
 }
 
 async function saveList() {
-    const storedUser = localStorage.getItem("currentUser");
-    if (!storedUser) return;
-
-    const phone = JSON.parse(storedUser).phone;
-    const marketSelect = document.getElementById("marketSelectAdd"); // Changed from "marketSelect" to "marketSelectAdd"
-    if (!marketSelect) {
-        console.error("Market select element not found");
-        return;
-    }
-
-    const marketId = marketSelect.value;
-    const market = markets.find(m => m._id === marketId);
-
-    const list = {
-        name: market ? market.name : new Date().toLocaleDateString("pt-BR"),
-        marketId: marketId || undefined,
-        phone,
-        products: [],
-        completed: false
-    };
-
     try {
+        const storedUser = localStorage.getItem("currentUser");
+        if (!storedUser) {
+            alert("Usuário não autenticado. Faça login novamente.");
+            window.location.href = "../login.html";
+            return;
+        }
+
+        const phone = JSON.parse(storedUser).phone;
+        const marketSelect = document.getElementById("marketSelectAdd");
+        if (!marketSelect) {
+            throw new Error("Elemento de seleção de mercado não encontrado");
+        }
+
+        const marketId = marketSelect.value;
+        const market = markets.find(m => m._id === marketId);
+
+        const list = {
+            name: market ? market.name : new Date().toLocaleDateString("pt-BR"),
+            marketId: marketId || undefined,
+            phone,
+            products: [],
+            completed: false
+        };
+
         const response = await fetch(`${API_URL}/shopping-lists`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(list)
         });
-        if (!response.ok) throw new Error(await response.text());
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || "Erro ao salvar lista");
+        }
+
         const newList = await response.json();
         currentListId = newList._id;
+
+        // Atualiza a lista de compras
         await fetchShoppingLists();
+
+        // Fecha o modal
         closeListModal();
+
+        // Abre o modal de produto para adicionar o primeiro item
         openProductModal("add", currentListId);
+
     } catch (error) {
-        console.error("Save list error:", error);
+        console.error("Erro ao salvar lista:", error);
+        alert(`Erro ao salvar lista: ${error.message}`);
     }
 }
 
@@ -601,6 +629,8 @@ async function setupProductAutocomplete() {
             if (!response.ok) throw new Error("Erro na busca");
 
             const products = await response.json();
+            const currentList = shoppingLists.find(l => l._id === currentListId);
+            const selectedMarketId = currentList?.marketId || null;
 
             if (!products || products.length === 0) {
                 productSuggestions.innerHTML = `
@@ -618,18 +648,30 @@ async function setupProductAutocomplete() {
                 return;
             }
 
-            productSuggestions.innerHTML = products.map(p => `
-                <div class="suggestion-item" 
-                     data-name="${p.productName}"
-                     data-price="${p.currentPrice}"
-                     data-type="${p.type}"
-                     data-market="${p.marketId?.name || ''}">
-                    ${p.productName} - R$ ${p.currentPrice?.toFixed(2) || '0.00'} - ${p.marketId?.name || ''}
-                </div>
-            `).join("");
+            productSuggestions.innerHTML = products.map(p => {
+                const isDisabled = selectedMarketId && p.marketId?._id !== selectedMarketId;
+                const tooltipText = isDisabled || !selectedMarketId ?
+                    'title="Valor apenas para comparação"' : '';
+
+                return `
+                    <div class="suggestion-item ${isDisabled ? 'disabled' : ''}" 
+                         data-name="${p.productName}"
+                         data-price="${p.currentPrice}"
+                         data-type="${p.type}"
+                         data-market="${p.marketId?._id || ''}"
+                         data-disabled="${isDisabled}"
+                         ${tooltipText}>
+                        ${p.productName} - R$ ${p.currentPrice?.toFixed(2) || '0.00'} - ${p.marketId?.name || ''}
+                    </div>
+                `;
+            }).join("");
 
             document.querySelectorAll(".suggestion-item").forEach(item => {
-                item.addEventListener("click", function () {
+                item.addEventListener("click", function (e) {
+                    if (this.getAttribute("data-disabled") === "true") {
+                        e.preventDefault();
+                        return; // Impede a seleção de itens bloqueados
+                    }
                     productNameInput.value = this.getAttribute("data-name");
                     productValueInput.value = this.getAttribute("data-price");
                     productTypeSelect.value = this.getAttribute("data-type");
@@ -766,18 +808,29 @@ document.addEventListener("DOMContentLoaded", async () => {
     checkAuthAndLoadUser();
 
     try {
-        // Primeiro carrega os mercados
         await fetchMarkets();
-        // Depois carrega as listas de compras
         await fetchShoppingLists();
     } catch (error) {
         console.error("Erro ao carregar dados:", error);
+        alert("Erro ao carregar dados. Por favor, recarregue a página.");
     }
 
+    // Adiciona os event listeners
     document.getElementById("addListBtn")?.addEventListener("click", openListModal);
-    document.getElementById("saveListBtn")?.addEventListener("click", saveList);
+
+    // Adiciona o listener para o botão de salvar lista
+    const saveListBtn = document.getElementById("saveListBtn");
+    if (saveListBtn) {
+        saveListBtn.addEventListener("click", saveList);
+    } else {
+        console.error("Botão saveListBtn não encontrado no HTML");
+    }
+
     document.getElementById("addProductBtn")?.addEventListener("click", () => {
-        if (!currentListId) saveList();
-        else openProductModal("add", currentListId);
+        if (!currentListId) {
+            openListModal();
+        } else {
+            openProductModal("add", currentListId);
+        }
     });
 });

@@ -58,6 +58,8 @@ app.get("/markets/:name", marketController.getMarkets);
 app.get("/markets", marketController.getMarketsAll);
 app.post("/markets", marketController.saveMarket);
 app.delete("/markets", marketController.deleteMarket);
+// Nova rota PATCH
+app.patch("/markets/:id", marketController.updateMarket);
 
 // Rotas de Shopping List (ajustadas e completadas)
 app.get('/shopping-lists/:phone', shoppingListController.getShoppingLists);

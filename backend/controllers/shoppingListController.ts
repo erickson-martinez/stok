@@ -55,7 +55,7 @@ const shoppingController = {
 
             const lists = await ShoppingList.find({ phoneShared: phone });
             if (!lists || lists.length === 0) {
-                res.status(404).json({ message: 'Nenhuma lista compartilhada encontrada' });
+                res.status(200).json([]);
                 return;
             }
 
@@ -127,8 +127,6 @@ const shoppingController = {
         }
     },
 
-    // Adicionar ou atualizar produto em uma lista
-    // Adicionar ou atualizar produto em uma lista
     async saveProduct(req: Request<{ listId: string }, {}, ISaveProductRequest>, res: Response): Promise<void> {
         try {
             const { listId } = req.params;

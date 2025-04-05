@@ -665,6 +665,24 @@ header {
     position: relative;
 }
 
+.suggestion-item {
+    padding: 8px;
+    cursor: pointer;
+    background-color: #fff;
+    border-bottom: 1px solid #ddd;
+}
+
+.suggestion-item:hover {
+    background-color: #f0f0f0;
+}
+
+.suggestion-item.disabled {
+    color: #888;
+    cursor: not-allowed;
+    background-color: #f8f8f8;
+}
+
+
 .header-actions {
     display: flex;
     align-items: center;
