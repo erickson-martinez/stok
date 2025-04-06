@@ -5,7 +5,8 @@ const menuItems = [
     { name: "Estoque", route: "./stock.html" },
     { name: "Atividade", route: "./activity.html" },
     { name: "Mercados", route: "./markets.html" },
-    { name: "Lista de Compras", route: "./shopping.html" }
+    { name: "Lista de Compras", route: "./shopping.html" },
+    { name: "Livros", route: "./book.html" }
 ];
 
 const daysFindPrice = 1; // Dias para buscar o preço do produto

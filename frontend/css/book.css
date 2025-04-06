@@ -1,5 +1,7 @@
-@import url('./menu.css');
+/* Reutiliza os estilos de activity.css com ajustes */
+@import url('./activity.css');
 
+/* General Layout Consistency with finances.css */
 body {
     font-family: Arial, sans-serif;
     margin: 0;
@@ -179,14 +181,14 @@ header {
     text-decoration: underline;
 }
 
-/* Screen Content */
+/* Content Area */
 .content {
     background: white;
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     width: 100%;
-    max-width: 1200px;
+    max-width: 800px;
     margin: 0 auto;
 }
 
@@ -195,13 +197,10 @@ header {
     align-items: center;
     justify-content: space-between;
     margin-bottom: 20px;
-    gap: 10px;
 }
 
 .header h2 {
     margin: 0;
-    flex-grow: 1;
-    text-align: center;
 }
 
 .btn {
@@ -210,41 +209,25 @@ header {
     border-radius: 5px;
     cursor: pointer;
     font-size: 1em;
+    background-color: #007bff;
+    color: rgb(13, 12, 12);
 }
 
-.btn-icon {
-    padding: 10px;
-    background: none;
+.btn-secundary {
+    padding: 10px 20px;
     border: none;
+    border-radius: 5px;
     cursor: pointer;
-    font-size: 1.2em;
+    font-size: 1em;
+    background-color: #e6e8ea;
+    color: rgb(13, 12, 12);
 }
 
-.btn-receita {
-    background-color: #e6ffe6;
-    color: #333;
+.btn:hover {
+    background-color: #0056b3;
 }
 
-.btn-despesa {
-    background-color: #ffe6e6;
-    color: #333;
-}
-
-.lists-button {
-    display: flex;
-    justify-content: space-between;
-    gap: 20px;
-    width: 100%;
-    margin-bottom: 20px;
-}
-
-.lists {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    width: 100%;
-}
-
+/* Card Styling */
 .card {
     width: 100%;
     background-color: #fff;
@@ -252,7 +235,7 @@ header {
 }
 
 .card-border {
-    border: 2px solid #ddd;
+    border-left: 5px solid #2196F3;
     border-radius: 5px;
 }
 
@@ -268,93 +251,110 @@ header {
 .card-header h3 {
     margin: 0;
     font-size: 1.2em;
+}
+
+/* List Item Container */
+.list-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 10px;
+    background-color: #f9f9f9;
+    margin-bottom: 5px;
+    border-radius: 5px;
+}
+
+.list-header {
+    flex-grow: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+
+.value-container {
     display: flex;
     align-items: center;
-    gap: 10px;
 }
 
-.header-value {
-    font-size: 1em;
-    font-weight: bold;
-    color: #333;
+.list-header span {
+    margin-right: 10px;
 }
 
-/* List Items and Shared Badge - ÁREA CRÍTICA DE AJUSTES */
+.list-options-trigger {
+    cursor: pointer;
+    padding: 0 8px;
+    font-size: 1.2em;
+}
+
+/* Accordion */
+.accordion {
+    margin-bottom: 10px;
+}
+
+.accordion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background-color: #f5f5f5;
+    cursor: pointer;
+}
+
+.accordion-toggle {
+    font-size: 1.2em;
+    color: #555;
+}
+
+.accordion-toggle i {
+    transition: transform 0.3s ease;
+}
+
+.accordion-toggle.open i {
+    transform: rotate(180deg);
+}
+
+.accordion-content {
+    display: none;
+    padding: 0;
+    background-color: #fff;
+    border: 1px solid #eee;
+    border-top: none;
+}
+
+/* List Items */
 .list-item {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     padding: 10px 12px;
     border-bottom: 1px solid #eee;
     position: relative;
 }
 
-.item-name-wrapper {
-    display: flex;
-    align-items: center;
-    flex-grow: 1;
-    min-width: 0;
-    /* Permite que o texto faça overflow */
-}
-
-
-.shared-badge svg {
-    width: 12px;
-    height: 12px;
-    color: #3498db;
-}
-
-.shared-badge {
-    position: relative;
-    display: inline-flex;
-    cursor: help;
-}
-
-.shared-badge:hover::after {
-    content: attr(title);
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #333;
-    color: white;
-    padding: 5px 10px;
-    border-radius: 4px;
-    font-size: 12px;
-    white-space: nowrap;
-    z-index: 100;
-    margin-bottom: 5px;
-}
-
-.shared-badge:hover::before {
-    content: '';
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border-width: 5px;
-    border-style: solid;
-    border-color: #333 transparent transparent transparent;
-    margin-bottom: -5px;
-    z-index: 101;
-}
-
 .item-name {
+    flex: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    margin-right: 15px;
 }
 
-.shared-item {
-    border-left: 3px solid #3498db;
-    padding-left: 9px;
+.item-value {
+    text-align: right;
+    margin-right: 10px;
+}
+
+.options-wrapper {
+    position: relative;
+    display: inline-block;
 }
 
 .options-trigger {
     cursor: pointer;
+    font-size: 20px;
+    line-height: 1;
     padding: 0 8px;
-    font-size: 1.2em;
-    flex-shrink: 0;
+    display: inline-block;
 }
 
 .options-menu {
@@ -362,8 +362,8 @@ header {
     position: absolute;
     background-color: white;
     border: 1px solid #ddd;
-    right: 10px;
-    top: 100%;
+    right: 0;
+    top: calc(100% + 5px);
     border-radius: 5px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     padding: 5px 0;
@@ -387,7 +387,7 @@ header {
     background-color: #f5f5f5;
 }
 
-/* Finance Modal */
+/* Modal ajustado */
 .finance-modal {
     display: none;
     position: fixed;
@@ -397,16 +397,44 @@ header {
     height: 100%;
     background-color: rgba(0, 0, 0, 0.5);
     z-index: 1000;
+    overflow-y: auto;
+    padding: 20px 0;
+    box-sizing: border-box;
 }
 
 .finance-modal .modal-content {
     background: white;
-    margin: 10% auto;
+    margin: 20px auto;
     padding: 20px;
     width: 90%;
-    max-width: 600px;
+    max-width: 500px;
     border-radius: 5px;
     position: relative;
+    top: 0;
+    transform: none;
+}
+
+.modal-body {
+    padding: 10px 0;
+}
+
+.modal-option {
+    display: block;
+    width: 100%;
+    margin-bottom: 10px;
+    background-color: #007bff;
+}
+
+.modal-option.delete-btn {
+    background-color: #dc3545;
+}
+
+.modal-option:hover {
+    background-color: #0056b3;
+}
+
+.modal-option.delete-btn:hover {
+    background-color: #c82333;
 }
 
 .modal-header {
@@ -414,16 +442,6 @@ header {
     border-bottom: 1px solid #ddd;
     text-align: center;
     position: relative;
-}
-
-.modal-header.receita {
-    background-color: #e6ffe6;
-    color: #333;
-}
-
-.modal-header.despesa {
-    background-color: #ffe6e6;
-    color: #333;
 }
 
 .modal-header .close {
@@ -444,7 +462,8 @@ header {
     color: #555;
 }
 
-.form-group input {
+.form-group input,
+.form-group select {
     width: 100%;
     padding: 8px;
     border: 1px solid #ddd;
@@ -452,112 +471,23 @@ header {
     box-sizing: border-box;
 }
 
-.modal-buttons {
-    display: flex;
-    justify-content: space-between;
-    padding-top: 10px;
-}
-
-.modal-buttons button {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    background-color: #007bff;
-    color: white;
-}
-
-.modal-buttons button:first-child {
-    background-color: #ccc;
-    color: #333;
-}
-
-.modal-buttons button:hover {
-    background-color: #0056b3;
-}
-
-.modal-buttons button:first-child:hover {
-    background-color: #999;
-}
-
-/* Estilos para a tabela de relatório */
-#reportSummary {
-    padding: 10px;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.report-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.report-table th,
-.report-table td {
-    padding: 8px;
-    text-align: left;
-    border-bottom: 1px solid #ddd;
-}
-
-.report-table th {
-    background-color: #f5f5f5;
-    font-weight: bold;
-    color: #333;
-}
-
-.report-table td {
-    font-size: 1.1em;
-}
-
 /* Responsiveness */
 @media (max-width: 600px) {
-    .sidebar {
-        left: -250px;
+    .finance-modal .modal-content {
+        margin: 10px auto;
+        width: 95%;
     }
 
-    .sidebar.active {
-        left: 0;
+    .list-item {
+        flex-wrap: wrap;
     }
 
-    .menu-btn {
-        display: block;
+    .item-value {
+        flex: 0 0 60px;
     }
 
-    .close-btn {
-        display: block;
-    }
-
-    .modal {
-        right: 10px;
-        top: 50px;
-    }
-
-    .main-content {
-        width: 100%;
-    }
-
-    .user-initials {
-        right: 10px;
-    }
-
-    .content {
-        max-width: 90%;
-    }
-
-    .lists {
-        flex-direction: column;
-    }
-
-    .card-header h3 {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 5px;
-    }
-
-    .report-table th,
-    .report-table td {
-        padding: 5px;
-        font-size: 0.9em;
+    .options-trigger {
+        flex: 0 0 20px;
     }
 }
 
@@ -577,14 +507,5 @@ header {
 
     .main-content {
         padding-top: 20px;
-    }
-
-    .lists {
-        flex-direction: row;
-        justify-content: space-between;
-    }
-
-    .card {
-        width: 48%;
     }
 }

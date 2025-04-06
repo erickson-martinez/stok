@@ -1,4 +1,5 @@
 /* activity.css - Estilos consistentes com finance.css */
+@import url('./menu.css');
 
 body {
     font-family: Arial, sans-serif;
