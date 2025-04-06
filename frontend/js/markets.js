@@ -1,12 +1,14 @@
-//const API_URL = "https://stok-5ytv.onrender.com";
-const API_URL = "http://192.168.1.67:3000";
+const API_URL = "https://stok-5ytv.onrender.com";
+//const API_URL = "http://192.168.1.67:3000";
 
 const menuItems = [
     { name: "Financeiro", route: "./finances.html" },
     { name: "Estoque", route: "./stock.html" },
     { name: "Atividade", route: "./activity.html" },
     { name: "Mercados", route: "./markets.html" },
-    { name: "Lista de Compras", route: "./shopping.html" }
+    { name: "Lista de Compras", route: "./shopping.html" },
+    { name: "Livros", route: "./book.html" }
+
 ];
 
 let markets = [];
