@@ -1,147 +1,149 @@
 import { Request, Response } from 'express';
-import Books from '../models/Book';
+import Books, { IBooks } from '../models/Books';
 
-const BooksController = {
+class BookController {
     // Obter todos os livros de um usuário
-    async getBooksByUser(req: Request, res: Response): Promise<void> {
+    async getBooks(req: Request, res: Response): Promise<void> {
         try {
-            const { phone } = req.params;
-
-            if (!phone) {
-                res.status(400).json({ error: 'Phone do usuário é obrigatório' });
-                return;
-            }
-
-            const user = await Books.findOne({ phone });
-
-            if (!user) {
+            const { idUser } = req.params;
+            const userBooks = await Books.findOne({ idUser });
+            if (!userBooks) {
                 res.status(404).json({ error: 'Usuário não encontrado' });
                 return;
             }
 
-            user.books.sort((a, b) => a.name.localeCompare(b.name));
+            // Ordenar os livros por nome (ordem alfabética, crescente)
+            userBooks.books.sort((a, b) => a.name.localeCompare(b.name));
 
-            res.json({
-                phone: user.phone,
-                books: user.books
-            });
-        } catch (error: any) {
-            res.status(500).json({ error: error.message });
-        }
-    },
-
-    // Obter um livro específico por ID
-    async getBookById(req: Request, res: Response): Promise<void> {
-        try {
-            const { id } = req.params;
-
-            const user = await Books.findOne({ 'books._id': id });
-            if (!user) {
-                res.status(404).json({ error: 'Livro não encontrado' });
-                return;
-            }
-
-            const book = user.books.find(book => book._id?.toString() === id);
-            res.json(book);
-        } catch (error: any) {
-            res.status(500).json({ error: error.message });
-        }
-    },
-
-    // Adicionar um novo livro ao usuário
-    async addBook(req: Request, res: Response): Promise<void> {
-        try {
-            const { phone } = req.params;
-            const bookData = req.body;
-
-            if (!phone) {
-                res.status(400).json({ error: 'Phone do usuário é obrigatório' });
-                return;
-            }
-
-            const user = await Books.findOneAndUpdate(
-                { phone },
-                { $push: { books: bookData } },
-                { new: true, upsert: true }
-            );
-
-            res.status(201).json({
-                phone: user.phone,
-                book: user.books[user.books.length - 1] // Retorna o último livro adicionado
-            });
-        } catch (error: any) {
-            res.status(500).json({ error: error.message });
-        }
-    },
-
-    // Atualizar um livro específico
-    async updateBook(req: Request, res: Response): Promise<void> {
-        try {
-            const { id } = req.params; // Changed from bookId to id to match route
-            const updates = req.body;
-
-            const user = await Books.findOneAndUpdate(
-                { 'books._id': id },
-                { $set: { 'books.$': updates } },
-                { new: true }
-            );
-
-            if (!user) {
-                res.status(404).json({ error: 'Usuário ou livro não encontrado' });
-                return;
-            }
-
-            const updatedBook = user.books.find(book => book._id?.toString() === id);
-            res.json(updatedBook);
-        } catch (error: any) {
-            res.status(500).json({ error: error.message });
-        }
-    },
-
-    // Remover um livro
-    async removeBook(req: Request, res: Response): Promise<void> {
-        try {
-            const { id } = req.params; // Changed from bookId to id to match route
-
-            const user = await Books.findOneAndUpdate(
-                { 'books._id': id },
-                { $pull: { books: { _id: id } } },
-                { new: true }
-            );
-
-            if (!user) {
-                res.status(404).json({ error: 'Usuário ou livro não encontrado' });
-                return;
-            }
-
-            res.json({ message: 'Livro removido com sucesso' });
-        } catch (error: any) {
-            res.status(500).json({ error: error.message });
-        }
-    },
-
-    // Transferir um livro
-    async transferBook(req: Request, res: Response): Promise<void> {
-        try {
-            const { id } = req.params;
-
-            const user = await Books.findOneAndUpdate(
-                { 'books._id': id },
-                { $set: { 'books.$.isTransferred': true } },
-                { new: true }
-            );
-
-            if (!user) {
-                res.status(404).json({ error: 'Livro não encontrado' });
-                return;
-            }
-
-            const transferredBook = user.books.find(book => book._id?.toString() === id);
-            res.json({ message: 'Livro transferido com sucesso', book: transferredBook });
+            res.status(200).json(userBooks);
         } catch (error: any) {
             res.status(500).json({ error: error.message });
         }
     }
-};
 
-export default BooksController;
+    // Obter um livro específico por ID
+    async getBookById(req: Request, res: Response): Promise<void> {
+        try {
+            const { idUser, id } = req.params;
+            console.log(idUser)
+            const userBooks = await Books.findOne({ idUser });
+            if (!userBooks) {
+                res.status(404).json({ idUser });
+                return;
+            }
+            const book = userBooks.books.find(book => book && book._id && book._id.toString() === id);
+            if (!book) {
+                res.status(404).json({ error: 'Livro não encontrado' });
+                return;
+            }
+            res.status(200).json(book);
+        } catch (error: any) {
+            res.status(500).json({ error: error.message });
+        }
+    }
+
+    // Criar um novo livro
+    async createBook(req: Request, res: Response): Promise<void> {
+        try {
+            const { idUser } = req.params;
+            const newBook = req.body;
+
+            let userBooks = await Books.findOne({ idUser });
+            if (!userBooks) {
+                userBooks = new Books({ idUser, books: [] });
+            }
+
+            userBooks.books.push(newBook);
+            await userBooks.save();
+            res.status(201).json(userBooks.books[userBooks.books.length - 1]);
+        } catch (error: any) {
+            res.status(500).json({ error: error.message });
+        }
+    }
+
+    // Atualizar um livro existente
+    async updateBook(req: Request, res: Response): Promise<void> {
+        try {
+            const { idUser, id } = req.params;
+            const updatedBook = req.body;
+
+            const userBooks = await Books.findOne({ idUser });
+            if (!userBooks) {
+                res.status(404).json({ error: 'Usuário não encontrado' });
+                return;
+            }
+
+            const book = userBooks.books.find(book => book && book._id && book._id.toString() === id);
+            if (!book) {
+                res.status(404).json({ error: 'Livro não encontrado' });
+                return;
+            }
+
+            Object.assign(book, updatedBook);
+            await userBooks.save();
+            res.status(200).json(book);
+        } catch (error: any) {
+            res.status(500).json({ error: error.message });
+        }
+    }
+
+    // Deletar um livro
+    async deleteBook(req: Request, res: Response): Promise<void> {
+        try {
+            const { idUser, id } = req.params;
+
+            const userBooks = await Books.findOne({ idUser });
+            if (!userBooks) {
+                res.status(404).json({ error: 'Usuário não encontrado' });
+                return;
+            }
+
+            const bookIndex = userBooks.books.findIndex(book => book?._id?.toString() === id);
+            if (bookIndex === -1) {
+                res.status(404).json({ error: 'Livro não encontrado' });
+                return;
+            }
+
+            userBooks.books.splice(bookIndex, 1);
+            await userBooks.save();
+            res.status(204).json();
+        } catch (error: any) {
+            res.status(500).json({ error: error.message });
+        }
+    }
+
+    // Transferir um livro (empréstimo, venda, doação)
+    async transferBook(req: Request, res: Response): Promise<void> {
+        try {
+            const { idUser, id } = req.params;
+            const { action, newidUser } = req.body;
+
+            const userBooks = await Books.findOne({ idUser });
+            if (!userBooks) {
+                res.status(404).json({ error: 'Usuário não encontrado' });
+                return;
+            }
+
+            const book = userBooks.books.find(book => book && book._id && book._id.toString() === id);
+            if (!book) {
+                res.status(404).json({ error: 'Livro não encontrado' });
+                return;
+            }
+
+            if (action === 'loan') {
+                book.isTransferred = true;
+                userBooks.idUser = newidUser;
+            } else if (action === 'sell' || action === 'donate') {
+                book.isTransferred = true;
+                userBooks.idUser = newidUser;
+            }
+
+            await userBooks.save();
+            res.status(200).json(book);
+        } catch (error: any) {
+            res.status(500).json({ error: error.message });
+        }
+    }
+}
+
+export default new BookController();

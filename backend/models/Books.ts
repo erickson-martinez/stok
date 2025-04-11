@@ -7,6 +7,7 @@ interface IBook {
     description?: string;
     year: number;
     author: string;
+    phone: string;
     category?: string;
     condition: 'Novo' | 'Usado';
     status: 'Novo' | 'Boa' | 'Péssima';
@@ -20,7 +21,7 @@ interface IBook {
 
 // Interface principal do usuário com livros
 export interface IBooks extends Document {
-    phone: string;
+    idUser: string;
     books: IBook[];
     createdAt: Date;
     updatedAt: Date;
@@ -31,6 +32,7 @@ const BookSchema: Schema = new Schema({
     name: { type: String, required: true },
     description: { type: String },
     year: { type: Number, required: true },
+    phone: { type: String },
     author: { type: String, required: true },
     category: { type: String },
     condition: { type: String, enum: ['Novo', 'Usado'], required: true },
@@ -45,22 +47,19 @@ const BookSchema: Schema = new Schema({
 
 // Schema principal do usuário
 const BooksSchema: Schema = new Schema({
-    phone: {
+    idUser: {
         type: String,
         required: true,
-        unique: true,
-        validate: {
-            validator: (v: string) => /^\d+$/.test(v),
-            message: 'Phone deve conter apenas números'
-        }
+        unique: true, // Isso já cria o índice
     },
     books: [BookSchema] // Array de subdocumentos Book
 }, {
     timestamps: true // Adiciona createdAt e updatedAt para o usuário
 });
 
-// Adicionando índice para busca mais rápida
-BooksSchema.index({ phone: 1 });
-BooksSchema.index({ 'books.name': 'text', 'books.author': 'text' }); // Índice de texto para busca
+// Mantém o índice de texto para busca
+BooksSchema.index({ 'books.name': 'text', 'books.author': 'text' });
+
+// Removido: BooksSchema.index({ phone: 1 }); // Já é criado por unique: true
 
 export default mongoose.model<IBooks>('Books', BooksSchema);

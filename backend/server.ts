@@ -4,7 +4,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import UserController from "./controllers/userController.ts";
 import ProductController from "./controllers/productController.ts";
-import expenseController from "./controllers/financesController.ts";
+import expenseController from "./controllers/expenseController.ts";
 import activityController from './controllers/activityController';
 import marketController from './controllers/marketController';
 import shoppingListController from './controllers/shoppingListController.ts';
@@ -45,8 +45,8 @@ app.put("/products/:id", ProductController.updateProduct);
 app.delete("/products/:id", ProductController.deleteProduct);
 app.post("/products/:id/share", ProductController.shareProduct);
 
-app.get("/expenses/:phone", expenseController.getExpenses);
-app.get("/expensesShared/:phoneShared", expenseController.getExpensesShared);
+app.get("/expenses/:idUser", expenseController.getExpenses);
+app.get("/expensesShared/:idUserShared", expenseController.getExpensesShared);
 app.post("/expenses", expenseController.createExpense);
 app.patch("/expenses", expenseController.updateExpense);
 app.delete("/expenses", expenseController.deleteExpense);
@@ -78,11 +78,11 @@ app.get("/product/:productName/:days", productPriceController.getRecentProductPr
 app.get("/product/:productName/:marketId", productPriceController.getMarketProductPrice);
 app.post("/product/compare", productPriceController.comparePrices);
 
-app.get('/books/:phone', bookController.getBooksByUser);
+app.get('/books/:idUser', bookController.getBooks);
 app.get('/books/:id', bookController.getBookById);
-app.post('/books/:phone', bookController.addBook);
+app.post('/books/:idUser', bookController.createBook);
 app.put('/books/:id', bookController.updateBook);
-app.delete('/books/:id', bookController.removeBook);
+app.delete('/books/:id', bookController.deleteBook);
 app.post('/books/:id/transfer', bookController.transferBook);
 
 const PORT: number = Number(process.env.PORT) || 3000;

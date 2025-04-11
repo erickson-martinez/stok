@@ -1,7 +1,7 @@
-const API_URL = "https://stok-5ytv.onrender.com";
-//const API_URL = "http://192.168.1.67:3000";
 
-// Configuração do menu em JSON
+//const API_URL = "https://stok-5ytv.onrender.com";
+const API_URL = "http://192.168.1.67:3000";
+
 const menuItems = [
     { name: "Financeiro", route: "./finances.html" },
     { name: "Estoque", route: "./stock.html" },
@@ -9,10 +9,8 @@ const menuItems = [
     { name: "Mercados", route: "./markets.html" },
     { name: "Lista de Compras", route: "./shopping.html" },
     { name: "Livros", route: "./book.html" }
-
 ];
 
-// Carrega o menu lateral dinamicamente
 function loadSidebarMenu() {
     const sidebarMenu = document.getElementById("sidebarMenu");
     sidebarMenu.innerHTML = "";
@@ -26,12 +24,10 @@ function loadSidebarMenu() {
     });
 }
 
-// Obtém as iniciais do nome
 function getInitials(name) {
     return name.split(" ").map(word => word[0]).join("").toUpperCase().slice(0, 2);
 }
 
-// Carrega a tela de finanças
 function loadFinances() {
     const userInitialsDiv = document.getElementById("userInitials");
     const userFullName = document.getElementById("userFullName");
@@ -55,10 +51,7 @@ function loadFinances() {
 
     loadSidebarMenu();
 
-    userInitialsDiv.addEventListener("click", () => {
-        userModal.classList.toggle("active");
-    });
-
+    userInitialsDiv.addEventListener("click", () => userModal.classList.toggle("active"));
     document.addEventListener("click", (event) => {
         if (!userModal.contains(event.target) && !userInitialsDiv.contains(event.target)) {
             userModal.classList.remove("active");
@@ -70,14 +63,8 @@ function loadFinances() {
         window.location.href = "../login.html";
     });
 
-    openSidebarButton.addEventListener("click", () => {
-        sidebar.classList.add("active");
-    });
-
-    closeSidebarButton.addEventListener("click", () => {
-        sidebar.classList.remove("active");
-    });
-
+    openSidebarButton.addEventListener("click", () => sidebar.classList.add("active"));
+    closeSidebarButton.addEventListener("click", () => sidebar.classList.remove("active"));
     document.addEventListener("click", (event) => {
         if (!sidebar.contains(event.target) && !openSidebarButton.contains(event.target)) {
             sidebar.classList.remove("active");
@@ -86,27 +73,24 @@ function loadFinances() {
 
     fetchMonthData();
     updateMonth();
-    setupFinanceEvents();
 }
 
-// Variáveis globais
 let currentDate = new Date();
 let currentType = '';
 let editingId = null;
+let idExpense = null;
+let totalReceitas
+let totalDespesas
 const receitas = [];
 const despesas = [];
 
 function formatMonth(date) {
-    const month = date.toLocaleString('pt-BR', { month: 'long' }).replace(/^\w/, c => c.toUpperCase());
-    const year = date.getFullYear();
-    return `${month} ${year}`;
+    return date.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c);
 }
 
 function updateMonth() {
     const monthText = formatMonth(currentDate);
-    document.getElementById('currentMonth').textContent = monthText;
-    document.getElementById('receitasMonth').textContent = monthText;
-    document.getElementById('despesasMonth').textContent = monthText;
+    document.getElementById('currentMonth').textContent = `Controle ${monthText}`;
     updateLists();
     calculateColors();
 }
@@ -118,12 +102,12 @@ function changeMonth(delta) {
 
 async function fetchMonthData() {
     const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-    const phone = currentUser.phone;
+    const idUser = currentUser.idUser;
 
     try {
         const [expensesResponse, sharedResponse] = await Promise.all([
-            fetch(`${API_URL}/expenses/${phone}`),
-            fetch(`${API_URL}/expensesShared/${phone}`)
+            fetch(`${API_URL}/expenses/${idUser}`),
+            fetch(`${API_URL}/expensesShared/${idUser}`)
         ]);
 
         if (!expensesResponse.ok) throw new Error(`Erro ao carregar finanças: ${expensesResponse.statusText}`);
@@ -131,251 +115,247 @@ async function fetchMonthData() {
 
         const expensesData = await expensesResponse.json();
         const sharedData = await sharedResponse.json();
-
         receitas.length = 0;
         despesas.length = 0;
 
-        if (expensesData.length > 0) {
-            const userExpenses = expensesData[0];
 
-            if (userExpenses.receita && userExpenses.receita.length > 0) {
-                userExpenses.receita.forEach(item => receitas.push({
-                    id: item._id,
-                    name: item.name,
-                    valor: item.value,
-                    data: item.date,
-                    recorrencia: false,
-                    shared: false
-                }));
+        const processItems = (data, isShared = false, sharedBy = null) => {
+
+            if (data.receitas.length > 0) {
+                data.receitas.forEach(item => {
+                    receitas.push({
+                        id: item._id,
+                        name: item.name,
+                        total: item.total,
+                        whenPay: item.whenPay,
+                        paid: item.paid,
+                        values: item.values || [{ name: item.name, value: item.total }],
+                        shared: isShared,
+                        sharedBy: sharedBy
+                    })
+                });
             }
 
-            if (userExpenses.despesa && userExpenses.despesa.length > 0) {
-                userExpenses.despesa.forEach(item => despesas.push({
+            if (data.despesas.length > 0) {
+                data.despesas.forEach(item => despesas.push({
                     id: item._id,
                     name: item.name,
-                    valor: item.value,
-                    data: item.date,
-                    recorrencia: false,
-                    shared: false
-                }));
-            }
-        }
-
-        if (sharedData.length > 0) {
-            const sharedExpenses = sharedData[0];
-
-            if (sharedExpenses.receita && sharedExpenses.receita.length > 0) {
-                sharedExpenses.receita.forEach(item => receitas.push({
-                    id: item._id,
-                    name: item.name,
-                    valor: item.value,
-                    data: item.date,
-                    recorrencia: false,
-                    shared: true,
-                    sharedBy: sharedExpenses.phone
-                }));
-            }
-
-            if (sharedExpenses.despesa && sharedExpenses.despesa.length > 0) {
-                sharedExpenses.despesa.forEach(item => despesas.push({
-                    id: item._id,
-                    name: item.name,
-                    valor: item.value,
-                    data: item.date,
-                    recorrencia: false,
-                    shared: true,
-                    sharedBy: sharedExpenses.phone
+                    total: item.total,
+                    whenPay: item.whenPay,
+                    paid: item.paid,
+                    values: item.values || [{ name: item.name, value: item.total }],
+                    shared: isShared,
+                    sharedBy: sharedBy
                 }));
             }
         }
 
+
+        idExpense = expensesData?._id || null;
+        if (expensesData.receitas?.length > 0 || expensesData.despesas?.length > 0) {
+            processItems(expensesData);
+        }
+
+        if (sharedData[0].receitas?.length > 0 || sharedData[0].despesas?.length > 0) {
+            processItems(sharedData[0], true, sharedData[0]?.idUser);
+        }
+        console.log(expensesData.receitas);
+        console.log(sharedData);
         updateLists();
         calculateColors();
     } catch (err) {
+        console.error(err);
         alert('Erro ao carregar dados. Por favor, tente novamente.');
-        updateLists();
-        calculateColors();
     }
 }
 
-function setupFinanceEvents() {
-    const actionModal = document.getElementById("actionModal");
-    const reportModal = document.getElementById("reportModal");
+function toggleAccordion(type) {
+    const content = document.getElementById(`accordion-${type}`).querySelector(".accordion-content");
+    const toggle = document.querySelector(`#accordion-${type}`).previousElementSibling.querySelector(".accordion-toggle");
 
-    document.addEventListener("click", (event) => {
-        if (event.target === actionModal) {
-            actionModal.style.display = "none";
-        }
-        if (event.target === reportModal) {
-            reportModal.style.display = "none";
-        }
-    });
+    if (content.style.display === "block") {
+        content.style.display = "none";
+        toggle.innerHTML = '<i class="fas fa-chevron-down"></i>';
+        toggle.classList.remove("open");
+    } else {
+        content.style.display = "block";
+        toggle.innerHTML = '<i class="fas fa-chevron-up"></i>';
+        toggle.classList.add("open");
+    }
 }
 
 function openActionModal(action, type, item = null) {
     currentType = type;
-    editingId = item ? item.id : null;
+    editingId = item?.id || null;
     const modal = document.getElementById("actionModal");
     const modalTitle = document.getElementById("modalTitle");
-    const modalHeader = document.querySelector("#actionModal .modal-header");
     const modalButtons = document.getElementById("modalButtons");
-
     const titlePrefix = type === "receita" ? "Receita" : "Despesa";
-    modalHeader.className = `modal-header ${type || 'share'}`;
-    if (action === "edit") {
-        modalTitle.textContent = item ? `Editar ${titlePrefix}` : `Nova ${titlePrefix}`;
-    } else if (action === "view") {
-        modalTitle.textContent = `Visualizar ${titlePrefix}`;
-    } else if (action === "delete") {
-        modalTitle.textContent = `Deletar ${titlePrefix}`;
-    } else if (action === "share") {
-        modalTitle.textContent = "Compartilhar";
-    }
 
-    if (action === "share") {
-        document.getElementById("modalBody").innerHTML = `
-            <div class="form-group">
-                <label>Telefone</label>
-                <input type="tel" id="sharePhone" placeholder="Digite o número de telefone">
-            </div>
-        `;
-        modalButtons.innerHTML = `
-            <button onclick="closeModal()">Cancelar</button>
-            <button onclick="shareData()">Compartilhar</button>
-        `;
-        modal.style.display = "block";
-        return;
-    }
+    modalTitle.textContent = action === "add" ? `Nova ${titlePrefix}` :
+        action === "edit" ? `Editar ${titlePrefix}` :
+            action === "view" ? `Visualizar ${titlePrefix}` :
+                `Deletar ${titlePrefix}`;
 
     const nome = document.getElementById("modalNome");
     const valor = document.getElementById("modalValor");
     const data = document.getElementById("modalData");
-    const recorrencia = document.getElementById("modalRecorrencia");
-    const recorrenciaMeses = document.getElementById("modalRecorrenciaMeses");
-    const qtdMeses = document.getElementById("modalQtdMeses");
+    const paid = document.getElementById("modalPaid");
 
     if (item) {
         nome.value = item.name;
-        valor.value = item.valor;
-        data.value = item.data.split("T")[0];
-        recorrencia.checked = item.recorrencia;
-        recorrenciaMeses.style.display = item.recorrencia ? "block" : "none";
-        qtdMeses.value = item.qtdrecorrencia ? item.qtdrecorrencia.split("-")[1] : "";
+        valor.value = item.total;
+        data.value = new Date(item.whenPay.split('/').reverse().join('-')).toISOString().split("T")[0];
+        paid.checked = item.paid;
     } else {
         nome.value = "";
         valor.value = "";
-        data.value = currentDate.toISOString().split("T")[0];
-        recorrencia.checked = false;
-        recorrenciaMeses.style.display = "none";
-        qtdMeses.value = "";
+        data.value = new Date().toISOString().split("T")[0]; // Data atual
+        paid.checked = false;
     }
 
-    const isEditable = action === "edit" && !item?.shared;
-    nome.disabled = !isEditable;
-    valor.disabled = !isEditable;
-    data.disabled = !isEditable;
-    recorrencia.disabled = !isEditable;
-    qtdMeses.disabled = !isEditable;
+    const isEditable = (action === "add" || action === "edit") && !item?.shared;
+    [nome, valor, data, paid].forEach(input => input.disabled = !isEditable);
 
     modalButtons.innerHTML = "";
-    if (action === "edit") {
+    if (action === "add" || action === "edit") {
         modalButtons.innerHTML = `
-            <button onclick="closeModal()">Cancelar</button>
-            <button onclick="saveItem()" ${isEditable ? '' : 'disabled'}>Salvar</button>
+            <button class="btn-secundary" onclick="closeModal()">Cancelar</button>
+            <button class="btn" onclick="saveItem()" ${isEditable ? '' : 'disabled'}>Salvar</button>
         `;
-        recorrencia.onchange = (e) => {
-            recorrenciaMeses.style.display = e.target.checked ? "block" : "none";
-        };
     } else if (action === "view") {
-        modalButtons.innerHTML = `
-            <button onclick="closeModal()">Sair</button>
-        `;
+        modalButtons.innerHTML = `<button class="btn" onclick="closeModal()">Fechar</button>`;
     } else if (action === "delete") {
         modalButtons.innerHTML = `
-            <button onclick="closeModal()">Cancelar</button>
-            <button onclick="confirmDelete('${item.id}')" ${item?.shared ? 'disabled' : ''}>Confirmar</button>
+            <button class="btn-secundary" onclick="closeModal()">Cancelar</button>
+            <button class="btn" onclick="confirmDelete('${item.id}')" ${item?.shared ? 'disabled' : ''}>Confirmar</button>
         `;
     }
 
     modal.style.display = "block";
 }
 
+function renderInternalItems(values) {
+    const internalItemsList = document.getElementById("internalItemsList");
+    internalItemsList.innerHTML = values.length ? values.map((v, index) => `
+        <div class="internal-item">
+            <input type="text" value="${v.name}" data-index="${index}" class="internal-name">
+            <input type="number" value="${v.value}" step="0.01" data-index="${index}" class="internal-value">
+            <button class="btn delete-internal" onclick="removeInternalItem(${index})">✖</button>
+        </div>
+    `).join("") : "<p>Nenhum item interno cadastrado</p>";
+}
+
+function addInternalItem() {
+    const internalItemsList = document.getElementById("internalItemsList");
+    const items = Array.from(internalItemsList.querySelectorAll(".internal-item"));
+    const newItem = document.createElement("div");
+    newItem.className = "internal-item";
+    newItem.innerHTML = `
+        <input type="text" placeholder="Nome" data-index="${items.length}" class="internal-name">
+        <input type="number" placeholder="Valor" step="0.01" data-index="${items.length}" class="internal-value">
+        <button class="btn delete-internal" onclick="removeInternalItem(${items.length})">✖</button>
+    `;
+    internalItemsList.appendChild(newItem);
+    if (items.length === 1 && internalItemsList.querySelector("p")) {
+        internalItemsList.innerHTML = "";
+        internalItemsList.appendChild(newItem);
+    }
+}
+
+function removeInternalItem(index) {
+    const internalItemsList = document.getElementById("internalItemsList");
+    const items = internalItemsList.querySelectorAll(".internal-item");
+    if (items[index]) items[index].remove();
+    if (!internalItemsList.querySelector(".internal-item")) {
+        internalItemsList.innerHTML = "<p>Nenhum item interno cadastrado</p>";
+    }
+}
+
 function closeModal() {
     document.getElementById("actionModal").style.display = "none";
+    document.getElementById("shareModal").style.display = "none";
 }
 
 async function saveItem() {
-    const phone = JSON.parse(localStorage.getItem("currentUser")).phone;
+    const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+    const idUser = currentUser.idUser;
+    const idUserShared = currentUser.idUserShared || null;
+    const nome = document.getElementById("modalNome").value;
+    const valor = parseFloat(document.getElementById("modalValor").value) || 0;
+    const data = document.getElementById("modalData").value; // YYYY-MM-DD
+    const paid = document.getElementById("modalPaid").checked;
+
+    const [year, month, day] = data.split("-");
+    const whenPay = `${year}/${month}/${day}`;
+
     const item = {
         _id: editingId || undefined,
-        name: document.getElementById("modalNome").value,
-        value: parseFloat(document.getElementById("modalValor").value),
-        date: document.getElementById("modalData").value || currentDate.toISOString().split("T")[0],
+        name: nome,
+        total: valor,
+        whenPay: whenPay,
+        paid: paid,
+        values: [{ name: nome, value: valor }]
     };
 
-    const payload = {
-        phone,
-        [currentType]: [item]
-    };
+    let payload
+
+    if (editingId) {
+        const targetArray = currentType === "receita" ? receitas : despesas;
+        const index = targetArray.findIndex(i => i.id === editingId);
+        if (index !== -1) {
+            targetArray[index] = { ...targetArray[index], ...item };
+        }
+    } else {
+        if (currentType === "receita") {
+            payload = { idUser, receitas: [item] };
+        } else {
+            payload = { idUser, despesas: [item] };
+        }
+    }
 
     try {
-        if (editingId) {
-            const response = await fetch(`${API_URL}/expenses`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-            });
-            if (!response.ok) throw new Error(`Erro ao atualizar item: ${response.statusText}`);
-        } else {
-            const response = await fetch(`${API_URL}/expenses`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-            });
-            if (!response.ok) throw new Error(`Erro ao criar item: ${response.statusText}`);
+        const method = idExpense != null ? "PATCH" : "POST";
+        const response = await fetch(`${API_URL}/expenses`, {
+            method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Erro ao salvar item: ${response.statusText} - ${errorText}`);
         }
         await fetchMonthData();
         closeModal();
     } catch (err) {
+        console.error(err);
+        alert(err.message);
     }
 }
 
-function updateLists(filteredReceitas = receitas, filteredDespesas = despesas) {
+function updateLists() {
     const currentYear = currentDate.getFullYear();
     const currentMonth = currentDate.getMonth() + 1;
 
-    const receitasFiltradas = filteredReceitas.filter(item => {
-        const itemDate = new Date(item.data);
-        return itemDate.getFullYear() === currentYear && (itemDate.getMonth() + 1) === currentMonth;
+    const filterByMonth = (items) => items.filter(item => {
+        return parseInt(item.whenPay.split("-")[0]) === currentYear && parseInt(item.whenPay.split("-")[1]) === currentMonth;
     });
 
-    const despesasFiltradas = filteredDespesas.filter(item => {
-        const itemDate = new Date(item.data);
-        return itemDate.getFullYear() === currentYear && (itemDate.getMonth() + 1) === currentMonth;
-    });
+    const receitasFiltradas = filterByMonth(receitas);
+    const despesasFiltradas = filterByMonth(despesas);
 
-    const receitasCard = document.getElementById("receitasCard");
-    const despesasCard = document.getElementById("despesasCard");
+    totalReceitas = receitasFiltradas.reduce((sum, r) => sum + r.total, 0);
+    totalDespesas = despesasFiltradas.reduce((sum, d) => sum + d.total, 0);
+    document.getElementById("receitasList").innerHTML = receitasFiltradas.length ?
+        receitasFiltradas.map(item => createListItem(item, "receita", totalReceitas)).join("") :
+        "<p>Nenhuma receita cadastrada</p>";
 
-    if (receitasFiltradas.length > 0) {
-        document.getElementById("receitasList").innerHTML = receitasFiltradas.map(item => createListItem(item, "receita")).join("");
-        receitasCard.style.display = "block";
-    } else {
-        document.getElementById("receitasList").innerHTML = "<p>Sem receitas para este mês</p>";
-        receitasCard.style.display = "block";
-    }
+    document.getElementById("despesasList").innerHTML = despesasFiltradas.length ?
+        despesasFiltradas.map(item => createListItem(item, "despesa", totalDespesas)).join("") :
+        "<p>Nenhuma despesa cadastrada</p>";
 
-    if (despesasFiltradas.length > 0) {
-        document.getElementById("despesasList").innerHTML = despesasFiltradas.map(item => createListItem(item, "despesa")).join("");
-        despesasCard.style.display = "block";
-    } else {
-        document.getElementById("despesasList").innerHTML = "<p>Sem despesas para este mês</p>";
-        despesasCard.style.display = "block";
-    }
-
-    document.getElementById("receitasList").removeEventListener("click", handleOptionsClick);
     document.getElementById("receitasList").addEventListener("click", handleOptionsClick);
-    document.getElementById("despesasList").removeEventListener("click", handleOptionsClick);
     document.getElementById("despesasList").addEventListener("click", handleOptionsClick);
 }
 
@@ -383,58 +363,75 @@ function handleOptionsClick(event) {
     const trigger = event.target.closest(".options-trigger");
     if (trigger) {
         const id = trigger.getAttribute("data-id");
-        const type = trigger.getAttribute("data-type");
-        showOptions(event, id, type);
+        showOptions(event, id);
     }
 }
 
-function createListItem(item, type) {
+function createListItem(item, type, total) {
+
     const sharedBadge = item.shared ? `
-      <span class="shared-badge" title="Compartilhado por: ${item.sharedBy || 'Número desconhecido'}">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="18" cy="5" r="2"></circle>
-          <circle cx="6" cy="12" r="2"></circle>
-          <circle cx="18" cy="19" r="2"></circle>
-          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-        </svg>
-      </span>
-    ` : '';
+        <span class="shared-badge" title="Compartilhado por: ${item.sharedBy || 'Número desconhecido'}">
+            <i class="fas fa-share-alt"></i>
+        </span>` : '';
+
+    const internalItemsHTML = item.values?.length ? `
+        <div class="accordion-content">
+            ${item.values.map(v => `
+                <div class="list-item internal-item">
+                    <span class="item-name">${v.name}</span>
+                    <span class="item-value">${v.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                    <span class="options-trigger" data-id="${item.id}-${v.name}" data-type="${type}" data-internal="true">⋯</span>
+                </div>
+            `).join("")}
+        </div>` : "";
 
     return `
-        <div class="list-item ${item.shared ? 'shared-item' : ''}">
-            <span class="item-name">${sharedBadge}${item.name}</span>
-            <span class="options-trigger" data-id="${item.id}" data-type="${type}">⋯</span>
-            <div id="options-${item.id}" class="options-menu">
-                ${!item.shared ? `
-                    <button onclick="openActionModal('edit', '${type}', getItemById('${item.id}', '${type}'))">Editar</button>
-                    <button onclick="openActionModal('view', '${type}', getItemById('${item.id}', '${type}'))">Visualizar</button>
-                    <button onclick="openActionModal('delete', '${type}', getItemById('${item.id}', '${type}'))">Deletar</button>
-                ` : `
-                    <button onclick="openActionModal('view', '${type}', getItemById('${item.id}', '${type}'))">Visualizar</button>
-                `}
+        <div class="list-container" data-id="${item.id}">
+            <div class="list-header" onclick="toggleAccordion('${item.id}')">
+                <span class="item-name">${sharedBadge} ${item.name}</span>
+                <div class="value-container">
+                    <span class="item-value">${item.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                    <span class="accordion-toggle"><i class="fas fa-chevron-down"></i></span>
+                    <span class="options-trigger" data-id="${item.id}" data-type="${type}">⋯</span>
+                </div>
+            </div>
+            <div class="accordion" id="accordion-${item.id}">
+                ${internalItemsHTML}
             </div>
         </div>
     `;
 }
 
-function getItemById(id, type) {
-    const list = type === "receita" ? receitas : despesas;
-    return list.find(i => i.id === id);
-}
-
-function showOptions(event, id, type) {
+function showOptions(event, id) {
+    event.stopPropagation();
     const options = document.getElementById(`options-${id}`);
-    if (!options) return;
+    if (!options) {
+        const item = getItemById(id.split("-")[0]);
+        const isInternal = id.includes("-");
+        const type = isInternal ? event.target.getAttribute("data-type") : currentType;
+        const modalOptions = document.createElement("div");
+        modalOptions.id = `options-${id}`;
+        modalOptions.className = "options-menu";
+        modalOptions.innerHTML = isInternal ? `
+            <button onclick="openActionModal('view', '${type}', getInternalItem('${id}'))">Visualizar</button>
+            ${item.shared ? '' : `
+                <button onclick="openActionModal('edit', '${type}', getInternalItem('${id}'))">Editar</button>
+                <button onclick="openActionModal('delete', '${type}', getInternalItem('${id}'))">Deletar</button>
+            `}
+        ` : `
+            <button onclick="openActionModal('add', '${type}', null)">+ ${type === 'receita' ? 'Receita' : 'Despesa'}</button>
+            <button onclick="openActionModal('view', '${type}', getItemById('${id}'))">Visualizar</button>
+            ${item.shared ? '' : `
+                <button onclick="openActionModal('edit', '${type}', getItemById('${id}'))">Editar</button>
+                <button onclick="openActionModal('delete', '${type}', getItemById('${id}'))">Deletar</button>
+            `}
+        `;
+        event.target.parentElement.appendChild(modalOptions);
+    }
 
     const isVisible = options.style.display === "block";
     document.querySelectorAll(".options-menu").forEach(menu => menu.style.display = "none");
-
-    if (!isVisible) {
-        options.style.display = "block";
-    } else {
-        options.style.display = "none";
-    }
+    options.style.display = isVisible ? "none" : "block";
 
     document.addEventListener("click", function closeMenu(e) {
         if (!options.contains(e.target) && e.target !== event.target) {
@@ -443,19 +440,31 @@ function showOptions(event, id, type) {
         }
     }, { once: true });
 
-    currentType = type;
+    currentType = event.target.getAttribute("data-type");
+}
+
+function getItemById(id) {
+    return (currentType === "receita" ? receitas : despesas).find(i => i.id === id);
+}
+
+function getInternalItem(id) {
+    const [itemId, internalName] = id.split("-");
+    const item = getItemById(itemId);
+    return item.values.find(v => v.name === internalName);
 }
 
 async function confirmDelete(id) {
-    const phone = JSON.parse(localStorage.getItem("currentUser")).phone;
+    const idUser = JSON.parse(localStorage.getItem("currentUser")).idUser;
     try {
-        const response = await fetch(`${API_URL}/expenses?phone=${phone}&type=${currentType}&id=${id}`, {
+        const response = await fetch(`${API_URL}/expenses?idUser=${idUser}&type=${currentType}&id=${id.split("-")[0]}`, {
             method: "DELETE",
         });
         if (!response.ok) throw new Error(`Erro ao deletar item: ${response.statusText}`);
         await fetchMonthData();
         closeModal();
     } catch (err) {
+        console.error(err);
+        alert("Erro ao deletar item.");
     }
 }
 
@@ -463,93 +472,62 @@ function calculateColors() {
     const currentYear = currentDate.getFullYear();
     const currentMonth = currentDate.getMonth() + 1;
 
-    const receitasFiltradas = receitas.filter(item => {
-        const itemDate = new Date(item.data);
-        return itemDate.getFullYear() === currentYear && (itemDate.getMonth() + 1) === currentMonth;
+    const filterByMonth = (items) => items.filter(item => {
+        return parseInt(item.whenPay.split("/")[0]) === currentYear && parseInt(item.whenPay.split("/")[1]) === currentMonth;
     });
 
-    const despesasFiltradas = despesas.filter(item => {
-        const itemDate = new Date(item.data);
-        return itemDate.getFullYear() === currentYear && (itemDate.getMonth() + 1) === currentMonth;
-    });
-
-    const totalReceitas = receitasFiltradas.reduce((sum, r) => sum + r.valor, 0);
-    const totalDespesas = despesasFiltradas.reduce((sum, d) => sum + d.valor, 0);
     const saldoRestante = totalReceitas - totalDespesas;
     const percentage = totalReceitas > 0 ? (totalDespesas / totalReceitas) * 100 : 0;
 
-    let colorDespesa, colorReceita;
-    if (percentage > 95) {
-        colorDespesa = "#ff3333";
-        colorReceita = "#ff3333";
-    } else if (percentage > 75) {
-        colorDespesa = "#ff9999";
-        colorReceita = "#ffff99";
-    } else if (percentage > 50) {
-        colorDespesa = "#ffcc99";
-        colorReceita = "#ffff99";
-    } else {
-        colorDespesa = "#ff9999";
-        colorReceita = "#9cff99";
-    }
+    let colorDespesa = percentage > 95 ? "#ff3333" : percentage > 75 ? "#ff9999" : percentage > 50 ? "#ffcc99" : "#ff9999";
+    let colorReceita = percentage > 95 ? "#ff3333" : percentage > 75 ? "#ffff99" : percentage > 50 ? "#ffff99" : "#9cff99";
 
     document.getElementById("border-receitas-card").style.borderColor = colorReceita;
     document.getElementById("border-despesas-card").style.borderColor = colorDespesa;
 
-    const formatCurrency = (value) => {
-        return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    };
-
+    const formatCurrency = (value) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     document.getElementById("totalDespesas").textContent = formatCurrency(totalDespesas);
     document.getElementById("saldoRestante").textContent = formatCurrency(saldoRestante);
     document.getElementById("saldoRestante").style.color = saldoRestante >= 0 ? "#2ecc71" : "#e74c3c";
 }
 
 function openShareModal() {
-    openActionModal("share", null);
+    document.getElementById("shareModal").style.display = "block";
 }
 
 async function shareData() {
-    const sharePhone = document.getElementById("sharePhone").value;
+    const shareidUser = document.getElementById("shareidUser").value;
     const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-    const currentPhone = currentUser.phone;
+    const currentidUser = currentUser.idUser;
 
-    if (!sharePhone) {
+    if (!shareidUser) {
         alert("Por favor, insira um número de telefone para compartilhar.");
         return;
     }
 
-    if (sharePhone === currentPhone) {
+    if (shareidUser === currentidUser) {
         alert("Você não pode compartilhar com o mesmo telefone.");
         return;
     }
 
-    const payload = {
-        phone: currentPhone,
-        phoneShared: sharePhone
-    };
-
+    const payload = { idUser: currentidUser, idUserShared: shareidUser };
     try {
         const response = await fetch(`${API_URL}/expenses`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
         });
-
         if (!response.ok) throw new Error(`Erro ao compartilhar dados: ${response.statusText}`);
-
-        currentUser.phoneShared = sharePhone;
+        currentUser.idUserShared = shareidUser;
         localStorage.setItem("currentUser", JSON.stringify(currentUser));
-
-        alert(`Dados compartilhados com sucesso para ${sharePhone}!`);
+        alert(`Dados compartilhados com sucesso para ${shareidUser}!`);
         closeModal();
         await fetchMonthData();
     } catch (err) {
-        alert("Ocorreu um erro ao compartilhar os dados. Tente novamente.");
+        alert("Erro ao compartilhar os dados.");
     }
 }
 
-// Funções para o modal de relatório
 function openReportModal() {
     const modal = document.getElementById("reportModal");
     const reportSummary = document.getElementById("reportSummary");
@@ -565,31 +543,33 @@ function openReportModal() {
     for (let i = 0; i < 12; i++) {
         const date = new Date(startDate);
         date.setMonth(startDate.getMonth() + i);
-        const monthYear = `${date.toLocaleString('pt-BR', { month: 'long' })} ${date.getFullYear()}`.replace(/^\w/, c => c.toUpperCase());
+        const monthYear = formatMonth(date);
         despesasPorMes[monthYear] = 0;
         receitasPorMes[monthYear] = 0;
     }
 
+    const parseDate = (dateStr) => {
+        const [day, month, year] = dateStr.split('/');
+        return new Date(`${year}-${month}-${day}`);
+    };
+
     despesas.forEach(item => {
-        const itemDate = new Date(item.data);
+        const itemDate = parseDate(item.whenPay);
         if (itemDate >= startDate && itemDate <= endDate) {
-            const monthYear = `${itemDate.toLocaleString('pt-BR', { month: 'long' })} ${itemDate.getFullYear()}`.replace(/^\w/, c => c.toUpperCase());
-            despesasPorMes[monthYear] += item.valor;
+            const monthYear = formatMonth(itemDate);
+            despesasPorMes[monthYear] += item.total;
         }
     });
 
     receitas.forEach(item => {
-        const itemDate = new Date(item.data);
+        const itemDate = parseDate(item.whenPay);
         if (itemDate >= startDate && itemDate <= endDate) {
-            const monthYear = `${itemDate.toLocaleString('pt-BR', { month: 'long' })} ${itemDate.getFullYear()}`.replace(/^\w/, c => c.toUpperCase());
-            receitasPorMes[monthYear] += item.valor;
+            const monthYear = formatMonth(itemDate);
+            receitasPorMes[monthYear] += item.total;
         }
     });
 
-    const formatCurrency = (value) => {
-        return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    };
-
+    const formatCurrency = (value) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     let html = `
         <table class="report-table">
             <thead>
@@ -601,23 +581,16 @@ function openReportModal() {
             </thead>
             <tbody>
     `;
-
     Object.keys(despesasPorMes).forEach(monthYear => {
-        const despesa = despesasPorMes[monthYear];
-        const receita = receitasPorMes[monthYear];
         html += `
             <tr>
                 <td>${monthYear}</td>
-                <td>${formatCurrency(despesa)}</td>
-                <td>${formatCurrency(receita)}</td>
+                <td>${formatCurrency(despesasPorMes[monthYear])}</td>
+                <td>${formatCurrency(receitasPorMes[monthYear])}</td>
             </tr>
         `;
     });
-
-    html += `
-            </tbody>
-        </table>
-    `;
+    html += "</tbody></table>";
 
     reportSummary.innerHTML = html;
     modal.style.display = "block";
@@ -627,7 +600,18 @@ function closeReportModal() {
     document.getElementById("reportModal").style.display = "none";
 }
 
-// Inicialização
 if (document.getElementById("userInitials")) {
     loadFinances();
 }
+
+window.toggleAccordion = toggleAccordion;
+window.openActionModal = openActionModal;
+window.closeModal = closeModal;
+window.saveItem = saveItem;
+window.confirmDelete = confirmDelete;
+window.openShareModal = openShareModal;
+window.shareData = shareData;
+window.openReportModal = openReportModal;
+window.closeReportModal = closeReportModal;
+window.addInternalItem = addInternalItem;
+window.removeInternalItem = removeInternalItem;

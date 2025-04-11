@@ -1,4 +1,4 @@
-@import url('./menu.css');
+@import url('./activity.css');
 
 body {
     font-family: Arial, sans-serif;
@@ -179,29 +179,79 @@ header {
     text-decoration: underline;
 }
 
-/* Screen Content */
+.warning-item {
+    border-left: 3px solid #FFA500;
+    position: relative;
+}
+
+.warning-banner {
+    background-color: #FFF3CD;
+    color: #856404;
+    padding: 3px 8px;
+    font-size: 0.8em;
+    border-radius: 3px;
+    margin-bottom: 5px;
+}
+
+#receitasList,
+#despesasList {
+    border: 1px solid red !important;
+    min-height: 50px;
+}
+
+/* Content Area */
 .content {
     background: white;
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     width: 100%;
-    max-width: 1200px;
+    max-width: 800px;
     margin: 0 auto;
 }
 
+/* Header */
 .header {
     display: flex;
+    flex-direction: column;
+    /* Empilha o h2 e o header-actions verticalmente */
     align-items: center;
-    justify-content: space-between;
     margin-bottom: 20px;
-    gap: 10px;
+
 }
 
 .header h2 {
-    margin: 0;
-    flex-grow: 1;
-    text-align: center;
+    margin: 0 0 10px 0;
+    /* Espaço abaixo do título */
+}
+
+/* Header Actions */
+.header-actions {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+    width: 100%;
+}
+
+/* Month Selector */
+.month-selector {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    justify-content: center;
+    /* Centraliza os botões de ação */
+    align-items: center;
+    gap: 10px;
+    /* Espaço entre os botões */
 }
 
 .btn {
@@ -210,41 +260,42 @@ header {
     border-radius: 5px;
     cursor: pointer;
     font-size: 1em;
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-secundary {
+    background-color: #e6e8ea;
+    color: #333;
 }
 
 .btn-icon {
     padding: 10px;
     background: none;
     border: none;
-    cursor: pointer;
-    font-size: 1.2em;
+    color: #007bff;
 }
 
-.btn-receita {
-    background-color: #e6ffe6;
-    color: #333;
+.btn:hover {
+    background-color: #0056b3;
 }
 
-.btn-despesa {
-    background-color: #ffe6e6;
-    color: #333;
+.btn-secundary:hover {
+    background-color: #d1d3d5;
+}
+
+.btn-icon:hover {
+    color: #0056b3;
 }
 
 .lists-button {
     display: flex;
     justify-content: space-between;
-    gap: 20px;
-    width: 100%;
+    gap: 10px;
     margin-bottom: 20px;
 }
 
-.lists {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    width: 100%;
-}
-
+/* Card Styling */
 .card {
     width: 100%;
     background-color: #fff;
@@ -252,7 +303,7 @@ header {
 }
 
 .card-border {
-    border: 2px solid #ddd;
+    border-left: 5px solid #2196F3;
     border-radius: 5px;
 }
 
@@ -263,98 +314,90 @@ header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    cursor: pointer;
 }
 
 .card-header h3 {
     margin: 0;
     font-size: 1.2em;
+}
+
+.value-container {
     display: flex;
     align-items: center;
     gap: 10px;
 }
 
 .header-value {
-    font-size: 1em;
     font-weight: bold;
-    color: #333;
 }
 
-/* List Items and Shared Badge - ÁREA CRÍTICA DE AJUSTES */
+/* Accordion */
+.accordion {
+    margin-bottom: 10px;
+}
+
+.accordion-toggle {
+    font-size: 1.2em;
+    color: #555;
+}
+
+.accordion-toggle i {
+    transition: transform 0.3s ease;
+}
+
+.accordion-toggle.open i {
+    transform: rotate(180deg);
+}
+
+.accordion-content {
+    display: none;
+    padding: 0;
+    background-color: #fff;
+    border: 1px solid #eee;
+    border-top: none;
+}
+
+/* List Items */
+.list-container {
+    padding: 10px;
+    background-color: #f9f9f9;
+    margin-bottom: 5px;
+    border-radius: 5px;
+}
+
+.list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+
 .list-item {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     padding: 10px 12px;
     border-bottom: 1px solid #eee;
     position: relative;
 }
 
-.item-name-wrapper {
-    display: flex;
-    align-items: center;
-    flex-grow: 1;
-    min-width: 0;
-    /* Permite que o texto faça overflow */
-}
-
-
-.shared-badge svg {
-    width: 12px;
-    height: 12px;
-    color: #3498db;
-}
-
-.shared-badge {
-    position: relative;
-    display: inline-flex;
-    cursor: help;
-}
-
-.shared-badge:hover::after {
-    content: attr(title);
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #333;
-    color: white;
-    padding: 5px 10px;
-    border-radius: 4px;
-    font-size: 12px;
-    white-space: nowrap;
-    z-index: 100;
-    margin-bottom: 5px;
-}
-
-.shared-badge:hover::before {
-    content: '';
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border-width: 5px;
-    border-style: solid;
-    border-color: #333 transparent transparent transparent;
-    margin-bottom: -5px;
-    z-index: 101;
-}
-
 .item-name {
+    flex: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    margin-right: 15px;
 }
 
-.shared-item {
-    border-left: 3px solid #3498db;
-    padding-left: 9px;
+.item-value {
+    text-align: right;
+    margin-right: 10px;
 }
 
 .options-trigger {
     cursor: pointer;
+    font-size: 20px;
     padding: 0 8px;
-    font-size: 1.2em;
-    flex-shrink: 0;
 }
 
 .options-menu {
@@ -363,7 +406,7 @@ header {
     background-color: white;
     border: 1px solid #ddd;
     right: 10px;
-    top: 100%;
+    top: calc(100% + 5px);
     border-radius: 5px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     padding: 5px 0;
@@ -387,7 +430,12 @@ header {
     background-color: #f5f5f5;
 }
 
-/* Finance Modal */
+.shared-badge {
+    margin-right: 5px;
+    color: #3498db;
+}
+
+/* Modal */
 .finance-modal {
     display: none;
     position: fixed;
@@ -397,16 +445,18 @@ header {
     height: 100%;
     background-color: rgba(0, 0, 0, 0.5);
     z-index: 1000;
+    overflow-y: auto;
+    padding: 20px 0;
+    box-sizing: border-box;
 }
 
 .finance-modal .modal-content {
     background: white;
-    margin: 10% auto;
+    margin: 20px auto;
     padding: 20px;
     width: 90%;
-    max-width: 600px;
+    max-width: 500px;
     border-radius: 5px;
-    position: relative;
 }
 
 .modal-header {
@@ -414,16 +464,6 @@ header {
     border-bottom: 1px solid #ddd;
     text-align: center;
     position: relative;
-}
-
-.modal-header.receita {
-    background-color: #e6ffe6;
-    color: #333;
-}
-
-.modal-header.despesa {
-    background-color: #ffe6e6;
-    color: #333;
 }
 
 .modal-header .close {
@@ -458,35 +498,7 @@ header {
     padding-top: 10px;
 }
 
-.modal-buttons button {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    background-color: #007bff;
-    color: white;
-}
-
-.modal-buttons button:first-child {
-    background-color: #ccc;
-    color: #333;
-}
-
-.modal-buttons button:hover {
-    background-color: #0056b3;
-}
-
-.modal-buttons button:first-child:hover {
-    background-color: #999;
-}
-
-/* Estilos para a tabela de relatório */
-#reportSummary {
-    padding: 10px;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
+/* Report Table */
 .report-table {
     width: 100%;
     border-collapse: collapse;
@@ -502,11 +514,6 @@ header {
 .report-table th {
     background-color: #f5f5f5;
     font-weight: bold;
-    color: #333;
-}
-
-.report-table td {
-    font-size: 1.1em;
 }
 
 /* Responsiveness */
@@ -532,32 +539,36 @@ header {
         top: 50px;
     }
 
-    .main-content {
-        width: 100%;
-    }
-
-    .user-initials {
-        right: 10px;
-    }
-
     .content {
         max-width: 90%;
     }
 
-    .lists {
+    .lists-button {
         flex-direction: column;
     }
 
-    .card-header h3 {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 5px;
+    .list-item {
+        flex-wrap: wrap;
     }
 
-    .report-table th,
-    .report-table td {
-        padding: 5px;
-        font-size: 0.9em;
+    .item-value {
+        flex: 0 0 60px;
+    }
+
+    .options-trigger {
+        flex: 0 0 20px;
+    }
+
+    .header-actions {
+        flex-direction: column;
+        /* Empilha os elementos em telas pequenas */
+        gap: 10px;
+    }
+
+    .month-selector,
+    .action-buttons {
+        width: 100%;
+        justify-content: space-around;
     }
 }
 
@@ -577,14 +588,5 @@ header {
 
     .main-content {
         padding-top: 20px;
-    }
-
-    .lists {
-        flex-direction: row;
-        justify-content: space-between;
-    }
-
-    .card {
-        width: 48%;
     }
 }

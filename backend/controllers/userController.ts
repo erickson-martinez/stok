@@ -4,6 +4,7 @@ import User, { IUser } from "../models/User";
 import crypto from "crypto";
 
 import dotenv from "dotenv";
+import { console } from "inspector";
 
 // Carrega as variáveis de ambiente
 dotenv.config();
@@ -37,6 +38,8 @@ const decryptPassword = (encrypted: string): string => {
     decrypted += decipher.final("utf8");
     return decrypted;
 };
+
+
 
 // Regex para validação da senha
 const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%^&*])[A-Za-z0-9!@#$%^&*]{15,}$/;
@@ -83,14 +86,15 @@ const createUser = async (req: Request, res: Response) => {
 
         const encryptedPassword = encryptPassword(pass);
         const encryptedPhone = encryptPassword(phone);
+        const encryptedName = encryptPassword(name);
         const user = new User({
-            name,
+            name: encryptedName,
             password: encryptedPassword,
             phone: encryptedPhone,
         });
 
         await user.save();
-        res.status(201).json({ message: "Usuário criado com sucesso", user: { name, phone } });
+        res.status(201).json({ user });
     } catch (error) {
         res.status(500).json({ error: "Erro ao criar usuário", details: (error as Error).message });
     }
@@ -165,21 +169,22 @@ const authenticateUser = async (req: Request, res: Response) => {
             return {
                 name: user.name,
                 phone: decryptPassword(user.phone),
-                password: user.password
+                password: user.password,
+                _id: user._id
             }
         })
 
-        const findPhone = users.find((user) => user.phone == phone);
-
-        if (!userAll || !findPhone || !users) {
+        const findUser = users.find((user) => user.phone == phone);
+        if (!userAll || !findUser || !users) {
             return res.status(404).json({ error: "Usuário não encontrado" });
         }
 
-        if (decryptPassword(findPhone.password) !== pass) {
+        if (decryptPassword(findUser.password) !== pass) {
             return res.status(401).json({ error: "Senha incorreta" });
         }
+        console.log(findUser.name)
 
-        res.json({ message: "Autenticação bem-sucedida", user: { name: findPhone.name, phone: findPhone.phone } });
+        res.status(200).json({ name: decryptPassword(findUser.name), phone: findUser.phone, _id: findUser._id });
     } catch (error) {
         res.status(500).json({ error: "Erro ao autenticar", details: (error as Error).message });
     }

@@ -1,5 +1,5 @@
-const API_URL = "https://stok-5ytv.onrender.com";
-//const API_URL = "http://192.168.1.67:3000"; // Adjust to match your backend server URL
+//const API_URL = "https://stok-5ytv.onrender.com";
+const API_URL = "http://192.168.1.67:3000/books"; // Ajustado para /book
 const menuItems = [
     { name: "Financeiro", route: "./finances.html" },
     { name: "Estoque", route: "./stock.html" },
@@ -80,12 +80,12 @@ async function fetchBooks() {
     const storedUser = localStorage.getItem("currentUser");
     if (!storedUser) return;
 
-    const phone = JSON.parse(storedUser).phone;
+    const idUser = JSON.parse(storedUser).idUser;
     try {
-        const response = await fetch(`${API_URL}/books/${phone}`);
+        const response = await fetch(`${API_URL}/${idUser}`);
         if (!response.ok) throw new Error(`Erro ao carregar livros: ${response.status}`);
         const data = await response.json();
-        books = data.books; // The API returns { phone, books }, so we extract books
+        books = data.books || []; // Ajustado para acessar o array de subdocumentos
         updateBookList();
     } catch (error) {
         console.error("Fetch books error:", error.message);
@@ -168,7 +168,6 @@ function openBookModal() {
         document.getElementById("bookIntent").value = "Emprestar";
         document.getElementById("bookRead").value = "false";
         document.getElementById("bookPages").value = "";
-        currentBookId = null; // Reset currentBookId for new book
         modal.style.display = "block";
     }
 }
@@ -178,9 +177,20 @@ function closeBookModal() {
     if (modal) modal.style.display = "none";
 }
 
+function openBookOptionsModal(bookId) {
+    currentBookId = bookId;
+    const modal = document.getElementById("bookOptionsModal");
+    if (modal) modal.style.display = "block";
+}
+
+function closeBookOptionsModal() {
+    const modal = document.getElementById("bookOptionsModal");
+    if (modal) modal.style.display = "none";
+}
+
 function openEditBookModal(bookId) {
     currentBookId = bookId;
-    const book = books.find(b => b._id === bookId);
+    const book = books.find(b => b._id === currentBookId);
     if (!book) return;
 
     document.getElementById("bookName").value = book.name;
@@ -188,7 +198,7 @@ function openEditBookModal(bookId) {
     document.getElementById("bookAuthor").value = book.author;
     document.getElementById("bookCondition").value = book.condition;
     document.getElementById("bookStatus").value = book.status;
-    document.getElementById("bookPhone").value = JSON.parse(localStorage.getItem("currentUser")).phone; // Use user's phone
+    document.getElementById("bookPhone").value = book.idUser;
     document.getElementById("bookIntent").value = book.intent;
     document.getElementById("bookRead").value = book.read.toString();
     document.getElementById("bookPages").value = book.pages;
@@ -201,31 +211,32 @@ async function saveBook() {
     const storedUser = localStorage.getItem("currentUser");
     if (!storedUser) return;
 
-    const phone = JSON.parse(storedUser).phone;
+    const idUser = JSON.parse(storedUser).idUser;
     const book = {
         name: document.getElementById("bookName").value,
         year: parseInt(document.getElementById("bookYear").value),
         author: document.getElementById("bookAuthor").value,
         condition: document.getElementById("bookCondition").value,
         status: document.getElementById("bookStatus").value,
+        phone: document.getElementById("bookPhone").value,
         intent: document.getElementById("bookIntent").value,
-        read: document.getElementById("bookRead").value === "true", // Convert string to boolean
+        read: document.getElementById("bookRead").value === "true", // Converte para booleano
         pages: parseInt(document.getElementById("bookPages").value)
     };
 
-    if (!book.name || !book.year || !book.author || !book.pages) {
+    if (!book.name || !book.year || !book.author || !book.phone || !book.pages) {
         alert("Todos os campos obrigatórios devem ser preenchidos!");
         return;
     }
 
     try {
-        const url = currentBookId ? `${API_URL}/books/${currentBookId}` : `${API_URL}/books/${phone}`;
+        const url = currentBookId ? `${API_URL}/${idUser}/${currentBookId}` : `${API_URL}/${idUser}`;
         const method = currentBookId ? "PUT" : "POST";
 
         const response = await fetch(url, {
             method: method,
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...book, phone }) // Include phone in the payload
+            body: JSON.stringify(book)
         });
 
         if (!response.ok) throw new Error(await response.text());
@@ -239,21 +250,28 @@ async function saveBook() {
 }
 
 async function viewBook(bookId) {
-    const book = books.find(b => b._id === bookId);
+    currentBookId = bookId;
+    const book = books.find(b => b._id === currentBookId);
     if (!book) return;
 
-    alert(`Livro: ${book.name}\nAutor: ${book.author}\nAno: ${book.year}\nCondição: ${book.condition}\nSituação: ${book.status}\nDesejo: ${book.intent}\nLeitura: ${book.read ? 'Sim' : 'Não'}\nPáginas: ${book.pages}`);
+    alert(`Livro: ${book.name}\nAutor: ${book.author}\nAno: ${book.year}\nCondição: ${book.condition}\nSituação: ${book.status}\nTelefone: ${book.phone}\nDesejo: ${book.intent}\nLeitura: ${book.read ? 'Sim' : 'Não'}\nPáginas: ${book.pages}`);
 }
 
 async function deleteBook(bookId) {
+    currentBookId = bookId;
+    const storedUser = localStorage.getItem("currentUser");
+    if (!storedUser) return;
+
+    const idUser = JSON.parse(storedUser).idUser;
     try {
-        const response = await fetch(`${API_URL}/books/${bookId}`, {
+        const response = await fetch(`${API_URL}/${idUser}/${currentBookId}`, {
             method: "DELETE",
             headers: { "Content-Type": "application/json" }
         });
 
         if (!response.ok) throw new Error(await response.text());
         await fetchBooks();
+        closeBookOptionsModal();
     } catch (error) {
         console.error("Delete book error:", error);
         alert(`Erro ao deletar livro: ${error.message}`);
@@ -285,6 +303,8 @@ async function exportToPDF() {
         y += 5;
         doc.text(`Situação: ${book.status}`, 10, y);
         y += 5;
+        doc.text(`Telefone: ${book.phone}`, 10, y);
+        y += 5;
         doc.text(`Desejo: ${book.intent}`, 10, y);
         y += 5;
         doc.text(`Leitura: ${book.read ? 'Sim' : 'Não'}`, 10, y);
@@ -301,7 +321,7 @@ async function exportToPDF() {
 function loadJsPDF() {
     const script = document.createElement("script");
     script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
-    script.onload = () => window.jsPDF = window.jspdf.jsPDF; // Correct namespace
+    script.onload = () => window.jsPDF = jspdf.jsPDF;
     document.body.appendChild(script);
 }
 
@@ -320,11 +340,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("exportPdfBtn")?.addEventListener("click", exportToPDF);
 });
 
-// Expose functions to global scope for HTML onclick handlers
 window.openBookModal = openBookModal;
 window.closeBookModal = closeBookModal;
 window.saveBook = saveBook;
+window.openBookOptionsModal = openBookOptionsModal;
+window.closeBookOptionsModal = closeBookOptionsModal;
 window.openEditBookModal = openEditBookModal;
 window.viewBook = viewBook;
 window.deleteBook = deleteBook;
-window.showOptions = showOptions;
