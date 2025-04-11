@@ -7,6 +7,7 @@ const valueSchema = new Schema<IValue>({
 });
 
 const transactionSchema = new Schema<ITransaction>({
+    _id: { type: String },
     name: { type: String, required: true },
     whenPay: { type: Date, required: true },
     total: { type: Number, required: true },

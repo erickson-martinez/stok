@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
         integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <link rel="stylesheet" href="../css/finances.css">
+    <link rel="stylesheet" href="../css/expense.css">
 </head>
 
 <body>
@@ -43,7 +43,7 @@
             <div class="content">
                 <div class="header">
                     <div class="header-actions">
-                        <div id="month-selector">
+                        <div class="month-selector" id="month-selector">
                             <button onclick="changeMonth(-1)">◄</button>
                             <span id="currentMonth">Abril 2025</span>
                             <button onclick="changeMonth(1)">►</button>
@@ -128,6 +128,26 @@
                 </div>
             </div>
 
+            <div id="actionModalItem" class="modal finance-modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 id="modalTitleItem"></h3>
+                        <span class="close" onclick="closeModal()">×</span>
+                    </div>
+                    <div id="modalBody">
+                        <div class="form-group">
+                            <label>Nome</label>
+                            <input type="text" id="modalNomeItem">
+                        </div>
+                        <div class="form-group">
+                            <label>Valor Total</label>
+                            <input type="number" id="modalValorItem" step="0.01">
+                        </div>
+                    </div>
+                    <div id="modalButtonsItem" class="modal-buttons"></div>
+                </div>
+            </div>
+
             <!-- Share Modal -->
             <div id="shareModal" class="modal finance-modal">
                 <div class="modal-content">
@@ -166,7 +186,7 @@
         </div>
     </div>
 
-    <script src="../js/finances.js"></script>
+    <script src="../js/expense.js"></script>
 </body>
 
 </html>

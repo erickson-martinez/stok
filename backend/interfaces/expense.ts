@@ -28,6 +28,7 @@ export interface ValueRequest {
 }
 
 export interface TransactionRequest {
+    _id?: string | import('mongoose').Types.ObjectId;
     name: string;
     whenPay: string;
     total: number;

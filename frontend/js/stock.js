@@ -3,7 +3,7 @@ const API_URL = "https://stok-5ytv.onrender.com";
 
 // Configuração do menu em JSON
 const menuItems = [
-    { name: "Financeiro", route: "./finances.html" },
+    { name: "Financeiro", route: "./expense.html" },
     { name: "Estoque", route: "./stock.html" },
     { name: "Atividade", route: "./activity.html" },
     { name: "Mercados", route: "./markets.html" },

@@ -173,6 +173,77 @@ const expenseController = {
         }
     },
 
+    async updateExpenseItem(req: Request, res: Response): Promise<void> {
+        try {
+            const { idUser, idUserShared, receitas, despesas }: ExpenseRequest = req.body;
+
+            if (!idUser) {
+                res.status(400).json({ error: 'idUser é obrigatório' });
+                return;
+            }
+
+            const userAll = await User.find({});
+            const users = userAll.map((user) => {
+                return {
+                    phone: decryptPassword(user.phone),
+                    _id: user._id
+                };
+            });
+
+            const expense = await Expense.findOne({ idUser });
+            if (!expense) {
+                res.status(404).json({ error: 'Registro não encontrado' });
+                return;
+            }
+
+            if (idUserShared) {
+                expense.idUserShared = users.find((user) => user.phone == idUserShared)?._id as string | undefined;
+            }
+
+            // Atualizar Receitas
+            if (expense && receitas) {
+                const newReceitas = receitas.map(receita => ({
+                    id: receita._id,
+                    name: receita.name,
+                    whenPay: new Date(receita.whenPay),
+                    total: receita.total,
+                    paid: receita.paid,
+                    values: receita.values || []
+                }));
+                newReceitas.forEach(newReceita => {
+                    const existingReceita = expense.receitas.find(item => item._id === newReceita.id);
+                    if (existingReceita) {
+                        Object.assign(existingReceita, newReceita);
+                    }
+                });
+            }
+
+            // Atualizar Despesas
+            if (expense && despesas) {
+                const newDespesas = despesas.map(despesa => ({
+                    id: despesa._id,
+                    name: despesa.name,
+                    whenPay: new Date(despesa.whenPay),
+                    total: despesa.total,
+                    paid: despesa.paid,
+                    values: despesa.values || []
+                }));
+                newDespesas.forEach(newDespesa => {
+                    const existingDespesa = expense.despesas.find(item => item._id === newDespesa.id);
+                    if (existingDespesa) {
+                        Object.assign(existingDespesa, newDespesa);
+                    }
+                });
+            }
+
+            expense.updateAt = new Date();
+            await expense.save();
+            res.json(expense);
+        } catch (error: any) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+
     async deleteExpense(req: Request, res: Response): Promise<void> {
         try {
             const { idUser, type, id } = req.query as {

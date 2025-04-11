@@ -1,5 +1,5 @@
-const API_URL = "https://stok-5ytv.onrender.com";
-//const API_URL = "http://192.168.1.67:3000";
+//const API_URL = "https://stok-5ytv.onrender.com";
+const API_URL = "http://192.168.1.67:3000";
 
 const menuItems = [
     { name: "Financeiro", route: "./finances.html" },
@@ -78,8 +78,9 @@ let currentDate = new Date();
 let currentType = '';
 let editingId = null;
 let idExpense = null;
-let totalReceitas
-let totalDespesas
+let idItemExpense = null;
+let totalReceitas;
+let totalDespesas;
 const receitas = [];
 const despesas = [];
 
@@ -117,9 +118,7 @@ async function fetchMonthData() {
         receitas.length = 0;
         despesas.length = 0;
 
-
         const processItems = (data, isShared = false, sharedBy = null) => {
-
             if (data.receitas.length > 0) {
                 data.receitas.forEach(item => {
                     receitas.push({
@@ -131,7 +130,7 @@ async function fetchMonthData() {
                         values: item.values || [{ name: item.name, value: item.total }],
                         shared: isShared,
                         sharedBy: sharedBy
-                    })
+                    });
                 });
             }
 
@@ -147,8 +146,7 @@ async function fetchMonthData() {
                     sharedBy: sharedBy
                 }));
             }
-        }
-
+        };
 
         idExpense = expensesData?._id || null;
         if (expensesData.receitas?.length > 0 || expensesData.despesas?.length > 0) {
@@ -158,8 +156,6 @@ async function fetchMonthData() {
         if (sharedData[0].receitas?.length > 0 || sharedData[0].despesas?.length > 0) {
             processItems(sharedData[0], true, sharedData[0]?.idUser);
         }
-        console.log(expensesData.receitas);
-        console.log(sharedData);
         updateLists();
         calculateColors();
     } catch (err) {
@@ -168,9 +164,9 @@ async function fetchMonthData() {
     }
 }
 
-function toggleAccordion(type) {
-    const content = document.getElementById(`accordion-${type}`).querySelector(".accordion-content");
-    const toggle = document.querySelector(`#accordion-${type}`).previousElementSibling.querySelector(".accordion-toggle");
+function toggleAccordion(id) {
+    const content = document.getElementById(`accordion-${id}`).querySelector(".accordion-content");
+    const toggle = document.querySelector(`#accordion-${id}`).previousElementSibling.querySelector(".accordion-toggle");
 
     if (content.style.display === "block") {
         content.style.display = "none";
@@ -203,7 +199,7 @@ function openActionModal(action, type, item = null) {
 
     if (item) {
         nome.value = item.name;
-        valor.value = item.total;
+        valor.value = item.total || item.value;
         data.value = new Date(item.whenPay.split('/').reverse().join('-')).toISOString().split("T")[0];
         paid.checked = item.paid;
     } else {
@@ -230,6 +226,26 @@ function openActionModal(action, type, item = null) {
             <button class="btn" onclick="confirmDelete('${item.id}')" ${item?.shared ? 'disabled' : ''}>Confirmar</button>
         `;
     }
+
+    modal.style.display = "block";
+}
+
+function openModalAddItem(type, id) {
+    const action = "add"
+
+    currentType = type;
+    const modal = document.getElementById("actionModalItem");
+    const modalTitle = document.getElementById("modalTitleItem");
+    const modalButtons = document.getElementById("modalButtonsItem");
+    const titlePrefix = type === "receita" ? "Receita" : "Despesa";
+    idItemExpense = id
+
+    modalTitle.textContent = `Nova ${titlePrefix}`
+
+    modalButtons.innerHTML = `
+            <button class="btn-secundary" onclick="closeModal()">Cancelar</button>
+            <button class="btn" onclick="saveValuesItem()" ${action ? '' : 'disabled'}>Salvar</button>
+        `;
 
     modal.style.display = "block";
 }
@@ -276,10 +292,13 @@ function closeModal() {
     document.getElementById("shareModal").style.display = "none";
 }
 
+function closeModalItem() {
+    document.getElementById("actionModalItem").style.display = "none";
+}
+
 async function saveItem() {
     const currentUser = JSON.parse(localStorage.getItem("currentUser"));
     const idUser = currentUser.idUser;
-    const idUserShared = currentUser.idUserShared || null;
     const nome = document.getElementById("modalNome").value;
     const valor = parseFloat(document.getElementById("modalValor").value) || 0;
     const data = document.getElementById("modalData").value; // YYYY-MM-DD
@@ -297,7 +316,7 @@ async function saveItem() {
         values: [{ name: nome, value: valor }]
     };
 
-    let payload
+    let payload;
 
     if (editingId) {
         const targetArray = currentType === "receita" ? receitas : despesas;
@@ -327,6 +346,65 @@ async function saveItem() {
         }
         await fetchMonthData();
         closeModal();
+    } catch (err) {
+        console.error(err);
+        alert(err.message);
+    }
+}
+
+async function saveValuesItem() {
+
+    const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+    const idUser = currentUser.idUser;
+    const nome = document.getElementById("modalNomeItem").value;
+    const valor = parseFloat(document.getElementById("modalValorItem").value) || 0;
+
+    let payload;
+
+
+    if (currentType === "receita") {
+        const findReceitas = receitas.find(item => item.id === idItemExpense)
+
+        const item = {
+            _id: findReceitas.id,
+            name: findReceitas.name,
+            total: valor + findReceitas.total,
+            whenPay: findReceitas.whenPay,
+            paid: findReceitas.paid,
+            values: [...findReceitas.values, { name: nome, value: valor }]
+        };
+
+        payload = { idUser, receitas: [item] };
+    } else {
+
+        const findDespesas = despesas.find(item => item.id === idItemExpense)
+
+        const item = {
+            _id: findDespesas.id,
+            name: findDespesas.name,
+            total: valor + findDespesas.total,
+            whenPay: findDespesas.whenPay,
+            paid: findDespesas.paid,
+            values: [...findDespesas.values, { name: nome, value: valor }]
+        };
+
+        payload = { idUser, despesas: [item] };
+    }
+
+    try {
+        const method = idExpense != null || idItemExpense != null ? "PATCH" : "POST";
+        const response = await fetch(`${API_URL}/expenses-item`, {
+            method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Erro ao salvar item: ${response.statusText} - ${errorText}`);
+        }
+        await fetchMonthData();
+        closeModalItem();
     } catch (err) {
         console.error(err);
         alert(err.message);
@@ -366,8 +444,7 @@ function handleOptionsClick(event) {
     }
 }
 
-function createListItem(item, type, total) {
-
+function createListItem(item, type) {
     const sharedBadge = item.shared ? `
         <span class="shared-badge" title="Compartilhado por: ${item.sharedBy || 'Número desconhecido'}">
             <i class="fas fa-share-alt"></i>
@@ -376,21 +453,23 @@ function createListItem(item, type, total) {
     const internalItemsHTML = item.values?.length ? `
         <div class="accordion-content">
             ${item.values.map(v => `
-                <div class="list-item internal-item">
-                    <span class="item-name">${v.name}</span>
-                    <span class="item-value">${v.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
-                    <span class="options-trigger" data-id="${item.id}-${v.name}" data-type="${type}" data-internal="true">⋯</span>
+                <div class="list-item internal-item" data-id="${item.id}-${v.name}">
+                    <span class="item-name" onclick="toggleAccordion('${item.id}-${v.name}')">${v.name}</span>
+                    <div class="value-container">
+                        <span class="item-value">${v.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                        <span class="options-trigger" data-id="${item.id}-${v.name}" data-type="${type}" data-internal="true">⋯</span>
+                    </div>
                 </div>
             `).join("")}
         </div>` : "";
 
     return `
         <div class="list-container" data-id="${item.id}">
-            <div class="list-header" onclick="toggleAccordion('${item.id}')">
-                <span class="item-name">${sharedBadge} ${item.name}</span>
+            <div class="list-header">
+                <span class="item-name" onclick="toggleAccordion('${item.id}')">${sharedBadge} ${item.name}</span>
                 <div class="value-container">
                     <span class="item-value">${item.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
-                    <span class="accordion-toggle"><i class="fas fa-chevron-down"></i></span>
+                    <span class="accordion-toggle" onclick="toggleAccordion('${item.id}')"><i class="fas fa-chevron-down"></i></span>
                     <span class="options-trigger" data-id="${item.id}" data-type="${type}">⋯</span>
                 </div>
             </div>
@@ -405,22 +484,24 @@ function showOptions(event, id) {
     event.stopPropagation();
     const options = document.getElementById(`options-${id}`);
     if (!options) {
-        const item = getItemById(id.split("-")[0]);
+        const item = getItemById(id);
         const isInternal = id.includes("-");
-        const type = isInternal ? event.target.getAttribute("data-type") : currentType;
+        const type = event.target.getAttribute("data-type");
+        console.log(item)
+
         const modalOptions = document.createElement("div");
         modalOptions.id = `options-${id}`;
         modalOptions.className = "options-menu";
         modalOptions.innerHTML = isInternal ? `
             <button onclick="openActionModal('view', '${type}', getInternalItem('${id}'))">Visualizar</button>
-            ${item.shared ? '' : `
+            ${item.shared ? "" : `
                 <button onclick="openActionModal('edit', '${type}', getInternalItem('${id}'))">Editar</button>
                 <button onclick="openActionModal('delete', '${type}', getInternalItem('${id}'))">Deletar</button>
             `}
         ` : `
-            <button onclick="openActionModal('add', '${type}', null)">+ ${type === 'receita' ? 'Receita' : 'Despesa'}</button>
-            <button onclick="openActionModal('view', '${type}', getItemById('${id}'))">Visualizar</button>
-            ${item.shared ? '' : `
+            ${item.shared ? `<button onclick="openActionModal('view', '${type}', getItemById('${id}'))">Visualizar</button>` : `
+                <button onclick="openModalAddItem('${type}', '${id}')">+ ${type === 'receita' ? 'Receita' : 'Despesa'}</button>
+                <button onclick="openActionModal('view', '${type}', getItemById('${id}'))">Visualizar</button>
                 <button onclick="openActionModal('edit', '${type}', getItemById('${id}'))">Editar</button>
                 <button onclick="openActionModal('delete', '${type}', getItemById('${id}'))">Deletar</button>
             `}

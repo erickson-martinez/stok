@@ -49,6 +49,7 @@ app.get("/expenses/:idUser", expenseController.getExpenses);
 app.get("/expensesShared/:idUserShared", expenseController.getExpensesShared);
 app.post("/expenses", expenseController.createExpense);
 app.patch("/expenses", expenseController.updateExpense);
+app.patch("/expenses-item", expenseController.updateExpenseItem);
 app.delete("/expenses", expenseController.deleteExpense);
 
 app.get("/activity/:phone", activityController.getActivities);

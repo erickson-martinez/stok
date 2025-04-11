@@ -193,12 +193,6 @@ header {
     margin-bottom: 5px;
 }
 
-#receitasList,
-#despesasList {
-    border: 1px solid red !important;
-    min-height: 50px;
-}
-
 /* Content Area */
 .content {
     background: white;
@@ -214,15 +208,12 @@ header {
 .header {
     display: flex;
     flex-direction: column;
-    /* Empilha o h2 e o header-actions verticalmente */
     align-items: center;
     margin-bottom: 20px;
-
 }
 
 .header h2 {
     margin: 0 0 10px 0;
-    /* Espaço abaixo do título */
 }
 
 /* Header Actions */
@@ -238,7 +229,6 @@ header {
 .month-selector {
     display: flex;
     flex-direction: row;
-    justify-content: space-around;
     justify-content: center;
     align-items: center;
     width: 100%;
@@ -248,10 +238,8 @@ header {
 .action-buttons {
     display: flex;
     justify-content: center;
-    /* Centraliza os botões de ação */
     align-items: center;
     gap: 10px;
-    /* Espaço entre os botões */
 }
 
 .btn {
@@ -300,6 +288,7 @@ header {
     width: 100%;
     background-color: #fff;
     border-radius: 5px;
+    margin-bottom: 20px;
 }
 
 .card-border {
@@ -340,6 +329,15 @@ header {
 .accordion-toggle {
     font-size: 1.2em;
     color: #555;
+    cursor: pointer;
+    padding: 0 8px;
+    transition: color 0.3s ease;
+    /* Transição suave para a cor */
+}
+
+.accordion-toggle:hover {
+    color: #333;
+    /* Cor mais escura no hover */
 }
 
 .accordion-toggle i {
@@ -370,7 +368,6 @@ header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    cursor: pointer;
 }
 
 .list-item {
@@ -381,12 +378,21 @@ header {
     position: relative;
 }
 
+.internal-item {
+    padding-left: 20px;
+}
+
+.sub-internal-item {
+    padding-left: 40px;
+}
+
 .item-name {
     flex: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     margin-right: 15px;
+    cursor: pointer;
 }
 
 .item-value {
@@ -395,23 +401,33 @@ header {
 }
 
 .options-trigger {
+    position: relative;
     cursor: pointer;
     font-size: 20px;
     padding: 0 8px;
+    color: #555;
+    transition: color 0.3s ease;
+    /* Transição suave para a cor */
+}
+
+.options-trigger:hover {
+    color: #333;
+    /* Cor mais escura no hover */
 }
 
 .options-menu {
-    display: none;
     position: absolute;
+    top: 100%;
+    right: 8px;
+    /* Ajustado para alinhar com o options-trigger */
     background-color: white;
     border: 1px solid #ddd;
-    right: 10px;
-    top: calc(100% + 5px);
     border-radius: 5px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     padding: 5px 0;
     z-index: 1000;
     min-width: 120px;
+    display: none;
 }
 
 .options-menu button {
@@ -561,7 +577,6 @@ header {
 
     .header-actions {
         flex-direction: column;
-        /* Empilha os elementos em telas pequenas */
         gap: 10px;
     }
 
