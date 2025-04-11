@@ -482,40 +482,40 @@ function createListItem(item, type) {
 
 function showOptions(event, id) {
     event.stopPropagation();
-    const options = document.getElementById(`options-${id}`);
-    if (!options) {
-        const item = getItemById(id);
-        const isInternal = id.includes("-");
-        const type = event.target.getAttribute("data-type");
-        console.log(item)
 
-        const modalOptions = document.createElement("div");
-        modalOptions.id = `options-${id}`;
-        modalOptions.className = "options-menu";
-        modalOptions.innerHTML = isInternal ? `
-            <button onclick="openActionModal('view', '${type}', getInternalItem('${id}'))">Visualizar</button>
-            ${item.shared ? "" : `
-                <button onclick="openActionModal('edit', '${type}', getInternalItem('${id}'))">Editar</button>
-                <button onclick="openActionModal('delete', '${type}', getInternalItem('${id}'))">Deletar</button>
-            `}
-        ` : `
-            ${item.shared ? `<button onclick="openActionModal('view', '${type}', getItemById('${id}'))">Visualizar</button>` : `
-                <button onclick="openModalAddItem('${type}', '${id}')">+ ${type === 'receita' ? 'Receita' : 'Despesa'}</button>
-                <button onclick="openActionModal('view', '${type}', getItemById('${id}'))">Visualizar</button>
-                <button onclick="openActionModal('edit', '${type}', getItemById('${id}'))">Editar</button>
-                <button onclick="openActionModal('delete', '${type}', getItemById('${id}'))">Deletar</button>
-            `}
-        `;
-        event.target.parentElement.appendChild(modalOptions);
-    }
+    // Remove any existing options menus to avoid duplicates
+    document.querySelectorAll(".options-menu").forEach(menu => menu.remove());
 
-    const isVisible = options.style.display === "block";
-    document.querySelectorAll(".options-menu").forEach(menu => menu.style.display = "none");
-    options.style.display = isVisible ? "none" : "block";
+    // Create the options menu
+    const item = getItemById(id);
+    const isInternal = id.includes("-");
+    const type = event.target.getAttribute("data-type");
+
+    const modalOptions = document.createElement("div");
+    modalOptions.id = `options-${id}`;
+    modalOptions.className = "options-menu";
+    modalOptions.innerHTML = isInternal ? `
+        <button onclick="openActionModal('view', '${type}', getInternalItem('${id}'))">Visualizar</button>
+        ${item.shared ? "" : `
+            <button onclick="openActionModal('edit', '${type}', getInternalItem('${id}'))">Editar</button>
+            <button onclick="openActionModal('delete', '${type}', getInternalItem('${id}'))">Deletar</button>
+        `}
+    ` : `
+        ${item.shared ? `<button onclick="openActionModal('view', '${type}', getItemById('${id}'))">Visualizar</button>` : `
+            <button onclick="openModalAddItem('${type}', '${id}')">+ ${type === 'receita' ? 'Receita' : 'Despesa'}</button>
+            <button onclick="openActionModal('view', '${type}', getItemById('${id}'))">Visualizar</button>
+            <button onclick="openActionModal('edit', '${type}', getItemById('${id}'))">Editar</button>
+            <button onclick="openActionModal('delete', '${type}', getItemById('${id}'))">Deletar</button>
+        `}
+    `;
+
+    event.target.parentElement.appendChild(modalOptions);
+
+    modalOptions.style.display = "block";
 
     document.addEventListener("click", function closeMenu(e) {
-        if (!options.contains(e.target) && e.target !== event.target) {
-            options.style.display = "none";
+        if (!modalOptions.contains(e.target) && e.target !== event.target) {
+            modalOptions.remove();
             document.removeEventListener("click", closeMenu);
         }
     }, { once: true });
