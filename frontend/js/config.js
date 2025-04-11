@@ -1,4 +1,5 @@
-export const API_URL = "http://192.168.1.67:3000";
+const API_URL = "https://stok-5ytv.onrender.com";
+//const API_URL = "http://192.168.1.67:3000";
 
 // Elementos da interface
 export const DOMElements = {
