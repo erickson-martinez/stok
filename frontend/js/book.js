@@ -1,4 +1,4 @@
-const API_URL = "https://stok-5ytv.onrender.com";
+const API_URL = "https://stok-5ytv.onrender.com/books";
 //const API_URL = "http://192.168.1.67:3000/books"; // Ajustado para /book
 const menuItems = [
     { name: "Financeiro", route: "./expense.html" },
