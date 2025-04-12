@@ -1,5 +1,5 @@
-const API_URL = "https://stok-5ytv.onrender.com";
-//const API_URL = "http://192.168.1.67:3000";
+//const API_URL = "https://stok-5ytv.onrender.com";
+const API_URL = "http://192.168.1.67:3000";
 
 const menuItems = [
     { name: "Financeiro", route: "./finances.html" },
@@ -148,7 +148,6 @@ async function fetchMonthData() {
             }
         };
 
-        idExpense = expensesData?._id || null;
         if (expensesData.receitas?.length > 0 || expensesData.despesas?.length > 0) {
             processItems(expensesData);
         }
@@ -196,6 +195,8 @@ function openActionModal(action, type, item = null) {
     const valor = document.getElementById("modalValor");
     const data = document.getElementById("modalData");
     const paid = document.getElementById("modalPaid");
+
+    action !== "add" ? idExpense = item.id : idExpense = null
 
     if (item) {
         nome.value = item.name;
@@ -332,6 +333,7 @@ async function saveItem() {
         }
     }
 
+
     try {
         const method = idExpense != null ? "PATCH" : "POST";
         const response = await fetch(`${API_URL}/expenses`, {
@@ -392,7 +394,7 @@ async function saveValuesItem() {
     }
 
     try {
-        const method = idExpense != null || idItemExpense != null ? "PATCH" : "POST";
+        const method = idItemExpense != null ? "PATCH" : "POST";
         const response = await fetch(`${API_URL}/expenses-item`, {
             method,
             headers: { "Content-Type": "application/json" },
@@ -483,14 +485,33 @@ function createListItem(item, type) {
 function showOptions(event, id) {
     event.stopPropagation();
 
-    // Remove any existing options menus to avoid duplicates
+    // Remove qualquer menu de opções existente para evitar duplicatas
     document.querySelectorAll(".options-menu").forEach(menu => menu.remove());
 
-    // Create the options menu
-    const item = getItemById(id);
-    const isInternal = id.includes("-");
+    // Determina o tipo do item (receita ou despesa)
     const type = event.target.getAttribute("data-type");
+    if (!type) {
+        console.error("Tipo de item não encontrado no elemento clicado.");
+        return;
+    }
+    currentType = type;
 
+    // Verifica se é um item interno (contém "-")
+    const isInternal = id.includes("-");
+    let item;
+
+    if (isInternal) {
+        item = getInternalItem(id);
+    } else {
+        item = getItemById(id);
+    }
+
+    if (!item) {
+        console.error(`Item com ID ${id} não encontrado.`);
+        return;
+    }
+
+    // Cria o menu de opções
     const modalOptions = document.createElement("div");
     modalOptions.id = `options-${id}`;
     modalOptions.className = "options-menu";
@@ -510,17 +531,16 @@ function showOptions(event, id) {
     `;
 
     event.target.parentElement.appendChild(modalOptions);
-
     modalOptions.style.display = "block";
 
+    // Fecha o menu quando clicar fora
     document.addEventListener("click", function closeMenu(e) {
+        closeModalItem()
         if (!modalOptions.contains(e.target) && e.target !== event.target) {
             modalOptions.remove();
             document.removeEventListener("click", closeMenu);
         }
     }, { once: true });
-
-    currentType = event.target.getAttribute("data-type");
 }
 
 function getItemById(id) {
@@ -536,7 +556,7 @@ function getInternalItem(id) {
 async function confirmDelete(id) {
     const idUser = JSON.parse(localStorage.getItem("currentUser")).idUser;
     try {
-        const response = await fetch(`${API_URL}/expenses?idUser=${idUser}&type=${currentType}&id=${id.split("-")[0]}`, {
+        const response = await fetch(`${API_URL}/expenses?idUser=${idUser}&type=${currentType}s&id=${id.split("-")[0]}`, {
             method: "DELETE",
         });
         if (!response.ok) throw new Error(`Erro ao deletar item: ${response.statusText}`);

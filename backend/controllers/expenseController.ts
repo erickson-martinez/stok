@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import Expense from '../models/Expense';
 import User from "../models/User";
 import crypto from "crypto";
+import mongoose from "mongoose";
 import dotenv from "dotenv"; // Supondo que você tenha um arquivo de utilitários para criptografia
 
 dotenv.config();
@@ -86,29 +87,70 @@ const expenseController = {
                 }
             })
 
+            const mongoose = require('mongoose'); // Certifique-se de importar o Mongoose
+
             let expense = await Expense.findOne({ idUser });
 
-            if (!expense && receitas) {
+            if (!expense && (receitas || despesas)) {
                 expense = new Expense({
                     idUser,
                     idUserShared: users.find((user) => user.phone == idUserShared)?._id as string | undefined,
-                    receitas: receitas,
+                    receitas: [],
+                    despesas: [],
                     createAt: new Date(),
                     updateAt: new Date()
                 });
-                await expense.save();
-
             }
-            if (!expense && despesas) {
-                expense = new Expense({
-                    idUser,
-                    idUserShared: users.find((user) => user.phone == idUserShared)?._id as string | undefined,
-                    despesas: despesas,
-                    createAt: new Date(),
-                    updateAt: new Date()
-                });
-                await expense.save();
 
+            if (expense && receitas) {
+                // Valida e adiciona receitas com _id gerado
+                const validReceitas = receitas.filter(receita =>
+                    receita.name &&
+                    receita.whenPay &&
+                    Number.isFinite(receita.total) &&
+                    typeof receita.paid === 'boolean'
+                );
+
+                if (validReceitas.length !== receitas.length) {
+                    console.warn("Algumas receitas foram ignoradas devido a dados inválidos.");
+                }
+
+                expense.receitas.push(...validReceitas.map(receita => ({
+                    _id: new mongoose.Types.ObjectId(), // Gera um _id único
+                    name: receita.name,
+                    whenPay: new Date(receita.whenPay),
+                    total: receita.total,
+                    paid: receita.paid,
+                    values: receita.values || []
+                })));
+            }
+
+            if (expense && despesas) {
+                // Valida e adiciona despesas com _id gerado
+                const validDespesas = despesas.filter(despesa =>
+                    despesa.name &&
+                    despesa.whenPay &&
+                    Number.isFinite(despesa.total) &&
+                    typeof despesa.paid === 'boolean'
+                );
+
+                if (validDespesas.length !== despesas.length) {
+                    console.warn("Algumas despesas foram ignoradas devido a dados inválidos.");
+                }
+
+                expense.despesas.push(...validDespesas.map(despesa => ({
+                    _id: new mongoose.Types.ObjectId(), // Gera um _id único
+                    name: despesa.name,
+                    whenPay: new Date(despesa.whenPay),
+                    total: despesa.total,
+                    paid: despesa.paid,
+                    values: despesa.values || []
+                })));
+            }
+
+            if (expense) {
+                expense.updateAt = new Date();
+                await expense.save();
             }
 
             res.status(201).json(expense);
@@ -244,50 +286,18 @@ const expenseController = {
         }
     },
 
+
     async deleteExpense(req: Request, res: Response): Promise<void> {
         try {
-            const { idUser, type, id } = req.query as {
-                idUser?: string;
-                type?: 'receitas' | 'despesas';
-                id?: string;
-            };
 
-            if (!idUser) {
-                res.status(400).json({ error: 'idUser é obrigatório' });
-                return;
-            }
+            res.status(400).json({ error: 'Em construção' });
 
-            const expense = await Expense.findOne({ idUser });
-            if (!expense) {
-                res.status(404).json({ error: 'Registro não encontrado' });
-                return;
-            }
 
-            if (type && id) {
-                if (type === 'receitas') {
-                    expense.receitas = expense.receitas.filter(r => r._id?.toString() !== id);
-                } else if (type === 'despesas') {
-                    expense.despesas = expense.despesas.filter(d => d._id?.toString() !== id);
-                }
-
-                if (expense.receitas.length === 0 && expense.despesas.length === 0) {
-                    await Expense.deleteOne({ idUser });
-                    res.json({ message: 'Registro completo deletado' });
-                    return;
-                }
-
-                expense.updateAt = new Date();
-                await expense.save();
-                res.json(expense);
-                return;
-            }
-
-            await Expense.deleteOne({ idUser });
-            res.json({ message: 'Registro deletado' });
         } catch (error: any) {
-            res.status(500).json({ error: error.message });
+            res.status(400).json({ error: 'Em construção' });
+
         }
     }
-};
+}
 
 export default expenseController;
