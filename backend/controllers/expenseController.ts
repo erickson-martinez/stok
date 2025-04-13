@@ -289,13 +289,103 @@ const expenseController = {
 
     async deleteExpense(req: Request, res: Response): Promise<void> {
         try {
+            const { idUser, type, id } = req.query as {
+                idUser?: string;
+                type?: 'receitas' | 'despesas';
+                id?: string;
+            };
 
-            res.status(400).json({ error: 'Em construção' });
+
+            if (!idUser) {
+                res.status(400).json({ error: 'Em construção' });
+                return;
+            }
+            if (!type || !id) {
+                res.status(400).json({ error: 'type e id são obrigatórios' });
+                return;
+            }
+            if (!['receitas', 'despesas'].includes(type)) {
+                res.status(400).json({ error: 'Tipo inválido. Use "receitas" ou "despesas"' });
+                return;
+            }
+            if (!mongoose.Types.ObjectId.isValid(id)) {
+                res.status(400).json({ error: 'ID inválido' });
+                return;
+            }
+
+            const updateField = type === 'receitas' ? 'receitas' : 'despesas';
+            const objectId = new mongoose.Types.ObjectId(id);
+
+            // Verifica se o documento existe
+            const expense = await Expense.findOne({ idUser });
+            if (!expense) {
+                res.status(404).json({ error: 'Registro não encontrado' });
+                return;
+            }
+
+            // Verifica se o item existe no array
+            const itemExists = expense[updateField].some(item => item._id?.toString() === id);
+            if (!itemExists) {
+                res.status(404).json({ error: 'Item não encontrado' });
+                return;
+            }
+
+            // Executa a operação $pull
+            const result = await Expense.updateOne(
+                { idUser },
+                {
+                    $pull: {
+                        [updateField]: { _id: objectId }
+                    },
+                    $set: { updateAt: new Date() }
+                },
+                { runValidators: true }
+            );
 
 
+            if (result.modifiedCount === 0) {
+                // Tenta uma abordagem alternativa
+                const expenseUpdated = await Expense.findOneAndUpdate(
+                    { idUser },
+                    {
+                        $pull: {
+                            [updateField]: { _id: objectId }
+                        },
+                        $set: { updateAt: new Date() }
+                    },
+                    { new: true, runValidators: true }
+                );
+
+                if (!expenseUpdated) {
+                    res.status(404).json({ error: 'Falha ao remover item' });
+                    return;
+                }
+
+                // Verifica se o item ainda existe
+                const stillExists = expenseUpdated[updateField].some(item => item._id?.toString() === id);
+                if (stillExists) {
+                    res.status(500).json({ error: 'Falha ao remover item' });
+                    return;
+                }
+            }
+
+            // Busca o documento atualizado
+            const updatedExpense = await Expense.findOne({ idUser });
+            if (!updatedExpense) {
+                res.status(404).json({ error: 'Registro não encontrado após atualização' });
+                return;
+            }
+
+            // Deleta o documento se ambos os arrays estiverem vazios
+            if (updatedExpense.receitas.length === 0 && updatedExpense.despesas.length === 0) {
+                await Expense.deleteOne({ idUser });
+                res.json({ message: 'Registro completo deletado' });
+                return;
+            }
+
+            res.json({ message: 'Item deletado com sucesso', expense: updatedExpense });
         } catch (error: any) {
-            res.status(400).json({ error: 'Em construção' });
-
+            res.status(500).json({ error: error.message });
         }
     }
 }
