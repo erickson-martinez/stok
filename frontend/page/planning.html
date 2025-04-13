@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plano de Leitura</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        h2 {
+            color: #333;
+            margin-top: 20px;
+        }
+
+        .day {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .livro {
+            font-weight: bold;
+        }
+
+        ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Plano de Leitura (13/04/2025 a 11/07/2025)</h1>
+    <div id="plano"></div>
+
+    <script>
+        // Função para carregar e exibir o JSON
+        async function loadPlano() {
+            try {
+                // Carrega o JSON (ajuste o caminho conforme necessário)
+                const response = await fetch('../utils/planning-read.json');
+                const plano = await response.json();
+
+                const container = document.getElementById('plano');
+
+                plano.forEach(dia => {
+                    const dayDiv = document.createElement('div');
+                    dayDiv.className = 'day';
+
+                    // Adiciona o título do dia
+                    const title = document.createElement('h2');
+                    title.textContent = `Dia ${dia.dia} (${dia.data})`;
+                    dayDiv.appendChild(title);
+
+                    // Adiciona o livro
+                    const livro = document.createElement('p');
+                    livro.innerHTML = `<span class="livro">Livro:</span> ${dia.livro}`;
+                    dayDiv.appendChild(livro);
+
+                    // Adiciona os versículos
+                    const versiculosTitle = document.createElement('p');
+                    versiculosTitle.innerHTML = '<strong>Versículos:</strong>';
+                    dayDiv.appendChild(versiculosTitle);
+
+                    const ul = document.createElement('ul');
+                    dia.versiculos.forEach(versiculo => {
+                        const li = document.createElement('li');
+                        li.textContent = versiculo;
+                        ul.appendChild(li);
+                    });
+                    dayDiv.appendChild(ul);
+
+                    container.appendChild(dayDiv);
+                });
+            } catch (error) {
+                console.error('Erro ao carregar o plano:', error);
+                document.getElementById('plano').innerHTML = '<p>Erro ao carregar o plano de leitura.</p>';
+            }
+        }
+
+        // Executa a função ao carregar a página
+        window.onload = loadPlano;
+    </script>
+</body>
+
+</html>
