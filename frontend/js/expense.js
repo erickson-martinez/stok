@@ -148,11 +148,12 @@ async function fetchMonthData() {
             }
         };
 
-        if (expensesData.receitas?.length > 0 || expensesData.despesas?.length > 0) {
+        if (expensesData?.receitas?.length > 0 || expensesData?.despesas?.length > 0) {
             processItems(expensesData);
         }
 
-        if (sharedData[0].receitas?.length > 0 || sharedData[0].despesas?.length > 0) {
+        // Check if sharedData exists and is not empty
+        if (sharedData?.length > 0 && (sharedData[0]?.receitas?.length > 0 || sharedData[0]?.despesas?.length > 0)) {
             processItems(sharedData[0], true, sharedData[0]?.idUser);
         }
         updateLists();
@@ -210,45 +211,61 @@ function openActionModal(action, type, item = null) {
         paid.checked = false;
     }
 
-    const isEditable = (action === "add" || action === "edit") && !item?.shared;
+    const isEditable = (action === "add") && !item?.shared;
     [nome, valor, data, paid].forEach(input => input.disabled = !isEditable);
 
+
     modalButtons.innerHTML = "";
-    if (action === "add" || action === "edit") {
+
+    if (action === "edit") {
+        const isEdit = (action === "edit") && !item?.shared;
+        [nome, data, paid].forEach(input => input.disabled = !isEdit);
+
+        modalButtons.innerHTML = `
+            <button class="btn-secundary" onclick="closeModal()">Cancelar</button>
+            <button class="btn" onclick="saveItem()" ${isEdit ? '' : 'disabled'}>Salvar</button>
+        `;
+    } else if (action === "add") {
         modalButtons.innerHTML = `
             <button class="btn-secundary" onclick="closeModal()">Cancelar</button>
             <button class="btn" onclick="saveItem()" ${isEditable ? '' : 'disabled'}>Salvar</button>
         `;
     } else if (action === "view") {
         modalButtons.innerHTML = `<button class="btn" onclick="closeModal()">Fechar</button>`;
-    } else if (action === "delete") {
+    }
+    else if (action === "delete") {
         modalButtons.innerHTML = `
             <button class="btn-secundary" onclick="closeModal()">Cancelar</button>
-            <button class="btn" onclick="confirmDelete('${item.id}')" ${item?.shared ? 'disabled' : ''}>Confirmar</button>
+            <button class="btn" onclick="confirmDelete('${type}','${item.id}')" ${item?.shared ? 'disabled' : ''}>Confirmar</button>
         `;
     }
 
     modal.style.display = "block";
 }
 
-function openModalAddItem(type, id) {
+function openActionModalItem(type, id) {
     const action = "add"
 
     currentType = type;
+
     const modal = document.getElementById("actionModalItem");
     const modalTitle = document.getElementById("modalTitleItem");
     const modalButtons = document.getElementById("modalButtonsItem");
     const titlePrefix = type === "receita" ? "Receita" : "Despesa";
-    idItemExpense = id
+
+    console.log(`${id}`)
+    idItemExpense = `${id}`
 
     modalTitle.textContent = `Nova ${titlePrefix}`
 
     modalButtons.innerHTML = `
-            <button class="btn-secundary" onclick="closeModal()">Cancelar</button>
+            <button class="btn-secundary" onclick="closeModalItem()">Cancelar</button>
             <button class="btn" onclick="saveValuesItem()" ${action ? '' : 'disabled'}>Salvar</button>
         `;
 
     modal.style.display = "block";
+
+    document.querySelectorAll(".options-menu").forEach(menu => menu.remove());
 }
 
 function renderInternalItems(values) {
@@ -346,7 +363,7 @@ async function saveItem() {
             const errorText = await response.text();
             throw new Error(`Erro ao salvar item: ${response.statusText} - ${errorText}`);
         }
-        await fetchMonthData();
+        fetchMonthData();
         closeModal();
     } catch (err) {
         console.error(err);
@@ -362,7 +379,6 @@ async function saveValuesItem() {
     const valor = parseFloat(document.getElementById("modalValorItem").value) || 0;
 
     let payload;
-
 
     if (currentType === "receita") {
         const findReceitas = receitas.find(item => item.id === idItemExpense)
@@ -455,16 +471,17 @@ function createListItem(item, type) {
     const internalItemsHTML = item.values?.length ? `
         <div class="accordion-content">
             ${item.values.map(v => `
-                <div class="list-item internal-item" data-id="${item.id}-${v.name}">
-                    <span class="item-name" onclick="toggleAccordion('${item.id}-${v.name}')">${v.name}</span>
+                <div class="list-item internal-item" data-id="${item.id}-${v._id}">
+                    <span class="item-name" onclick="toggleAccordion('${item.id}-${v._id}')">${v.name}</span>
                     <div class="value-container">
                         <span class="item-value">${v.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
-                        <span class="options-trigger" data-id="${item.id}-${v.name}" data-type="${type}" data-internal="true">⋯</span>
+                        <span class="options-trigger" data-id="${item.id}-${v._id}" data-type="${type}" data-internal="true" data-internal-id="${v._id}">⋯</span>
                     </div>
                 </div>
             `).join("")}
         </div>` : "";
 
+    // Resto da função permanece o mesmo
     return `
         <div class="list-container" data-id="${item.id}">
             <div class="list-header">
@@ -483,85 +500,205 @@ function createListItem(item, type) {
 }
 
 function showOptions(event, id) {
+    // Impede a propagação do evento
     event.stopPropagation();
+    event.preventDefault();
 
-    // Remove qualquer menu de opções existente para evitar duplicatas
-    document.querySelectorAll(".options-menu").forEach(menu => menu.remove());
+    // Remove qualquer menu de opções existente
+    const existingMenus = document.querySelectorAll('.options-menu');
+    existingMenus.forEach(menu => menu.remove());
 
-    // Determina o tipo do item (receita ou despesa)
-    const type = event.target.getAttribute("data-type");
-    if (!type) {
-        console.error("Tipo de item não encontrado no elemento clicado.");
-        return;
-    }
+    // Obtém o elemento que disparou o evento
+    const trigger = event.target.closest('.options-trigger') || event.target;
+
+    // Obtém o tipo (receita/despesa) do atributo data-type
+    const type = trigger.getAttribute('data-type');
+
     currentType = type;
 
-    // Verifica se é um item interno (contém "-")
-    const isInternal = id.includes("-");
-    let item;
-
-    if (isInternal) {
-        item = getInternalItem(id);
-    } else {
-        item = getItemById(id);
-    }
-
-    if (!item) {
-        console.error(`Item com ID ${id} não encontrado.`);
-        return;
-    }
+    // Verifica se é um item interno
+    const isInternal = trigger.hasAttribute('data-internal');
 
     // Cria o menu de opções
-    const modalOptions = document.createElement("div");
-    modalOptions.id = `options-${id}`;
-    modalOptions.className = "options-menu";
-    modalOptions.innerHTML = isInternal ? `
-        <button onclick="openActionModal('view', '${type}', getInternalItem('${id}'))">Visualizar</button>
-        ${item.shared ? "" : `
-            <button onclick="openActionModal('edit', '${type}', getInternalItem('${id}'))">Editar</button>
-            <button onclick="openActionModal('delete', '${type}', getInternalItem('${id}'))">Deletar</button>
-        `}
-    ` : `
-        ${item.shared ? `<button onclick="openActionModal('view', '${type}', getItemById('${id}'))">Visualizar</button>` : `
-            <button onclick="openModalAddItem('${type}', '${id}')">+ ${type === 'receita' ? 'Receita' : 'Despesa'}</button>
+    const optionsMenu = document.createElement('div');
+    optionsMenu.className = 'options-menu';
+    optionsMenu.style.display = 'block';
+    optionsMenu.style.position = 'absolute';
+    optionsMenu.style.right = '0';
+    optionsMenu.style.zIndex = '1000';
+
+    // Adiciona as opções conforme o tipo de item
+    if (isInternal) {
+        optionsMenu.innerHTML = `
+           <button onclick="openViewItemModal('${type}', '${id}')">Visualizar</button>
+            <button onclick="openEditItemModal('edit','${type}', '${id}')">Editar</button>
+            <button onclick="openEditItemModal('delete','${type}','${id}')">Deletar</button>
+        `;
+    } else {
+        optionsMenu.innerHTML = `
+            <button onclick="openActionModalItem('${type}', '${id}')">+ ${type === 'receita' ? 'Receita' : 'Despesa'}</button>
             <button onclick="openActionModal('view', '${type}', getItemById('${id}'))">Visualizar</button>
             <button onclick="openActionModal('edit', '${type}', getItemById('${id}'))">Editar</button>
             <button onclick="openActionModal('delete', '${type}', getItemById('${id}'))">Deletar</button>
-        `}
-    `;
+        `;
+    }
 
-    event.target.parentElement.appendChild(modalOptions);
-    modalOptions.style.display = "block";
+    // Adiciona o menu ao elemento que foi clicado
+    trigger.appendChild(optionsMenu);
 
     // Fecha o menu quando clicar fora
-    document.addEventListener("click", function closeMenu(e) {
-        closeModalItem()
-        if (!modalOptions.contains(e.target) && e.target !== event.target) {
-            modalOptions.remove();
-            document.removeEventListener("click", closeMenu);
+    document.addEventListener('click', function closeMenu(e) {
+        if (!optionsMenu.contains(e.target)) {
+            optionsMenu.remove();
+            document.removeEventListener('click', closeMenu);
         }
     }, { once: true });
 }
 
+function handleInternalAction(action, fullId) {
+    const [parentId, itemId] = fullId.split('-');
+    const item = getInternalItem(fullId);
+
+    if (!item) {
+        console.error('Item interno não encontrado:', fullId);
+        return;
+    }
+
+    if (action === 'delete') {
+        confirmDeleteInternal(fullId);
+    } else {
+        // Obtenha o tipo correto do elemento que disparou o evento
+        const triggerElement = document.querySelector(`[data-id="${fullId}"]`);
+        const type = triggerElement ? triggerElement.getAttribute('data-type') : currentType;
+
+        if (!type) {
+            console.error('Tipo não encontrado para o item:', fullId);
+            return;
+        }
+
+        openActionModal(action, type, {
+            ...item,
+            id: fullId,
+            name: item.name,
+            value: item.value,
+            whenPay: getItemById(parentId)?.whenPay || new Date().toISOString(),
+            paid: getItemById(parentId)?.paid || false
+        });
+    }
+}
+
+// Função para visualizar itens (apenas leitura)
+function openViewItemModal(type, id) {
+    const item = id.includes('-') ? getInternalItem(id) : getItemById(id);
+    if (!item) return;
+    const modal = document.getElementById("actionModalItem");
+    const modalTitle = document.getElementById("modalTitleItem");
+    const modalButtons = document.getElementById("modalButtonsItem");
+
+    modalTitle.textContent = `Visualizar ${type === 'receita' ? 'Receita' : 'Despesa'}`;
+
+    // Preenche os campos (só leitura)
+    document.getElementById("modalNomeItem").value = item.name;
+    document.getElementById("modalValorItem").value = id.includes('-') ? item.value : item.total;
+
+    // Desabilita todos os campos
+    ['modalNomeItem', 'modalValorItem'].forEach(id => {
+        document.getElementById(id).disabled = true;
+    });
+
+    modalButtons.innerHTML = `<button class="btn" onclick="closeModalItem()">Fechar</button>`;
+    modal.style.display = "block";
+}
+
+// Função para editar itens
+function openEditItemModal(action, type, id) {
+    const item = id.includes('-') ? getInternalItem(id) : getItemById(id);
+    if (!item) return;
+
+    currentType = type;
+    editingId = id;
+
+    const modal = document.getElementById("actionModalItem");
+    const modalTitle = document.getElementById("modalTitleItem");
+    const modalButtons = document.getElementById("modalButtonsItem");
+    const titlePrefix = type === "receita" ? "Receita" : "Despesa";
+
+    modalTitle.textContent = action === "edit" ? `Editar ${titlePrefix}` : `Deletar ${titlePrefix}`;
+
+    // Preenche os campos (editáveis)
+
+    if (action !== "add") {
+        document.getElementById("modalNomeItem").value = item.name;
+        document.getElementById("modalValorItem").value = id.includes('-') ? item.value : item.total;
+    }
+
+    modalButtons.innerHTML = "";
+    if (action === "edit") {
+        modalButtons.innerHTML = `
+            <button class="btn-secundary" onclick="closeModalItem()">Cancelar</button>
+            <button class="btn" onclick="saveValuesItem()" ${item?.shared ? 'disabled' : ''}>Salvar</button>
+        `;
+    } else if (action === "delete") {
+        modalButtons.innerHTML = `
+            <button class="btn-secundary" onclick="closeModalItem()">Cancelar</button>
+            <button class="btn" onclick="confirmDeleteInternal('${type}','${id}')" ${item?.shared ? 'disabled' : ''}>Confirmar</button>
+        `;
+    }
+    modal.style.display = "block";
+}
+
+function getInternalItem(fullId) {
+    if (!fullId.includes('-')) return null;
+
+    const [parentId, itemId] = fullId.split('-');
+    const parent = getItemById(parentId);
+    if (!parent) return null;
+
+    const internalItem = parent.values.find(v => v._id === itemId);
+    if (!internalItem) return null;
+
+    return {
+        ...internalItem,
+        id: fullId,
+        parentId: parentId,
+        whenPay: parent.whenPay,
+        paid: parent.paid
+    };
+}
+
 function getItemById(id) {
-    return (currentType === "receita" ? receitas : despesas).find(i => i.id === id);
+    const items = currentType === 'receita' ? receitas : despesas;
+    return items.find(item => item.id === id);
 }
 
-function getInternalItem(id) {
-    const [itemId, internalName] = id.split("-");
-    const item = getItemById(itemId);
-    return item.values.find(v => v.name === internalName);
-}
-
-async function confirmDelete(id) {
+async function confirmDelete(type, id) {
+    getItemById(id)
     const idUser = JSON.parse(localStorage.getItem("currentUser")).idUser;
     try {
-        const response = await fetch(`${API_URL}/expenses?idUser=${idUser}&type=${currentType}s&id=${id.split("-")[0]}`, {
+        const response = await fetch(`${API_URL}/expenses?idUser=${idUser}&type=${type}s&id=${id.split("-")[0]}`, {
             method: "DELETE",
         });
         if (!response.ok) throw new Error(`Erro ao deletar item: ${response.statusText}`);
         await fetchMonthData();
         closeModal();
+    } catch (err) {
+        console.error(err);
+        alert("Erro ao deletar item.");
+    }
+}
+
+async function confirmDeleteInternal(type, id) {
+
+    const idUser = JSON.parse(localStorage.getItem("currentUser")).idUser;
+    const [parentId, internalId] = id.split("-");
+
+    try {
+        const response = await fetch(`${API_URL}/expenses-item?idUser=${idUser}&type=${type}s&id=${parentId}&valuesId=${internalId}`, {
+            method: "DELETE",
+        });
+        if (!response.ok) throw new Error(`Erro ao deletar item: ${response.statusText}`);
+        await fetchMonthData();
+        closeModalItem();
     } catch (err) {
         console.error(err);
         alert("Erro ao deletar item.");
@@ -706,6 +843,7 @@ if (document.getElementById("userInitials")) {
 
 window.toggleAccordion = toggleAccordion;
 window.openActionModal = openActionModal;
+window.openActionModalItem = openActionModalItem;
 window.closeModal = closeModal;
 window.saveItem = saveItem;
 window.confirmDelete = confirmDelete;

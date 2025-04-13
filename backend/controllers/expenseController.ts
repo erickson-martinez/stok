@@ -286,7 +286,6 @@ const expenseController = {
         }
     },
 
-
     async deleteExpense(req: Request, res: Response): Promise<void> {
         try {
             const { idUser, type, id } = req.query as {
@@ -386,6 +385,103 @@ const expenseController = {
             res.json({ message: 'Item deletado com sucesso', expense: updatedExpense });
         } catch (error: any) {
             res.status(500).json({ error: error.message });
+        }
+    },
+
+    async deleteExpenseItem(req: Request, res: Response): Promise<void> {
+        try {
+            const { idUser, type, id, valuesId } = req.query as {
+                idUser?: string;
+                type?: 'receitas' | 'despesas';
+                id?: string;
+                valuesId?: string;
+            };
+
+            // Validações básicas
+            if (!idUser || !type || !id || !valuesId) {
+                res.status(400).json({ error: 'Todos os parâmetros são obrigatórios' });
+                return;
+            }
+
+            if (!['receitas', 'despesas'].includes(type)) {
+                res.status(400).json({ error: 'Tipo inválido. Use "receitas" ou "despesas"' });
+                return;
+            }
+
+            // Validação de ObjectId
+            if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(valuesId)) {
+                res.status(400).json({ error: 'IDs inválidos' });
+                return;
+            }
+
+            const updateField = type === 'receitas' ? 'receitas' : 'despesas';
+            const objectId = new mongoose.Types.ObjectId(id);
+            const valueObjectId = new mongoose.Types.ObjectId(valuesId);
+
+            // 1. Encontra o documento
+            const expense = await Expense.findOne({ idUser });
+            if (!expense) {
+                res.status(404).json({ error: 'Registro não encontrado' });
+                return;
+            }
+
+            // 2. Encontra o item principal
+            const mainItem = expense[updateField].find(
+                (item) => item._id?.toString() === id
+            );
+
+            if (!mainItem) {
+                res.status(404).json({ error: 'Item principal não encontrado' });
+                return;
+            }
+
+            // 3. Verifica se o valor existe
+            const valueItem = mainItem.values.find((v: any) => v._id == valuesId);
+
+            if (!valueItem) {
+                res.status(404).json({ error: 'Item interno não encontrado' });
+                return;
+            }
+
+            // 4. Calcula o novo total
+            const valueToSubtract = typeof valueItem.value === 'number' ? valueItem.value : 0;
+            const newTotal = mainItem.total - valueToSubtract;
+
+            // 5. Atualização no banco de dados
+            const result = await Expense.updateOne(
+                {
+                    idUser,
+                    [`${updateField}._id`]: objectId
+                },
+                {
+                    $pull: {
+                        [`${updateField}.$.values`]: { _id: valueObjectId }
+                    },
+                    $set: {
+                        [`${updateField}.$.total`]: newTotal,
+                        updateAt: new Date()
+                    }
+                },
+                { runValidators: true }
+            );
+
+            if (result.modifiedCount === 0) {
+                res.status(404).json({ error: 'Nenhum item foi modificado' });
+                return;
+            }
+
+            // 6. Retorna a resposta
+            res.json({
+                success: true,
+                message: 'Item deletado com sucesso',
+                newTotal
+            });
+        } catch (error: any) {
+            console.error('Erro ao deletar item:', error);
+            res.status(500).json({
+                error: 'Erro interno no servidor',
+                details: error.message
+            });
         }
     }
 }
