@@ -6,7 +6,8 @@ const menuItems = [
     { name: "Atividade", route: "./activity.html" },
     { name: "Mercados", route: "./markets.html" },
     { name: "Lista de Compras", route: "./shopping.html" },
-    { name: "Livros", route: "./book.html" }
+    { name: "Livros", route: "./book.html" },
+    { name: "Planing livros", route: "./planning.html" }
 ];
 
 let books = [];
