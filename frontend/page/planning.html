@@ -66,7 +66,8 @@
             background-color: #0056b3;
         }
 
-        .livro {
+        .livro,
+        .paginas {
             font-weight: bold;
             color: #333;
         }
@@ -87,36 +88,33 @@
     <div class="accordion" id="plano"></div>
 
     <script>
-        // Função para carregar e exibir o JSON
         async function loadPlano() {
             try {
-                // Carrega o JSON (ajuste o caminho se necessário)
                 const response = await fetch('../utils/planning-read.json');
                 const plano = await response.json();
-
                 const container = document.getElementById('plano');
-                const today = "13/04/2025"; // Data atual fixa para 13/04/2025
+                const today = "13/04/2025";
 
                 plano.forEach(dia => {
                     const accordionItem = document.createElement('div');
                     accordionItem.className = `accordion-item ${dia.data === today ? 'current' : ''}`;
 
-                    // Cabeçalho do accordion
                     const header = document.createElement('div');
                     header.className = 'accordion-header';
                     header.textContent = `Dia ${dia.dia} (${dia.data})`;
                     accordionItem.appendChild(header);
 
-                    // Conteúdo do accordion
                     const content = document.createElement('div');
                     content.className = `accordion-content ${dia.data === today ? 'active' : ''}`;
 
-                    // Livro
                     const livro = document.createElement('p');
                     livro.innerHTML = `<span class="livro">Livro:</span> ${dia.livro}`;
                     content.appendChild(livro);
 
-                    // Versículos
+                    const paginas = document.createElement('p');
+                    paginas.innerHTML = `<span class="paginas">Páginas:</span> ${dia.paginas_diarias}`;
+                    content.appendChild(paginas);
+
                     const versiculosTitle = document.createElement('p');
                     versiculosTitle.innerHTML = '<strong>Versículos:</strong>';
                     content.appendChild(versiculosTitle);
@@ -132,14 +130,11 @@
                     accordionItem.appendChild(content);
                     container.appendChild(accordionItem);
 
-                    // Evento de clique para abrir/fechar
                     header.addEventListener('click', () => {
                         const isActive = content.classList.contains('active');
-                        // Fecha todos os outros conteúdos
                         document.querySelectorAll('.accordion-content').forEach(item => {
                             item.classList.remove('active');
                         });
-                        // Abre ou fecha o clicado
                         if (!isActive) {
                             content.classList.add('active');
                         }
@@ -151,7 +146,6 @@
             }
         }
 
-        // Executa a função ao carregar a página
         window.onload = loadPlano;
     </script>
 </body>
