@@ -93,52 +93,56 @@
                 const response = await fetch('../utils/planning-read.json');
                 const plano = await response.json();
                 const container = document.getElementById('plano');
-                const today = "13/04/2025";
+                var data = new Date();
+                const today = data.toLocaleDateString()
 
                 plano.forEach(dia => {
-                    const accordionItem = document.createElement('div');
-                    accordionItem.className = `accordion-item ${dia.data === today ? 'current' : ''}`;
 
-                    const header = document.createElement('div');
-                    header.className = 'accordion-header';
-                    header.textContent = `Dia ${dia.dia} (${dia.data})`;
-                    accordionItem.appendChild(header);
+                    if (dia.data === today) {
+                        const accordionItem = document.createElement('div');
+                        accordionItem.className = `accordion-item ${dia.data === today ? 'current' : ''}`;
 
-                    const content = document.createElement('div');
-                    content.className = `accordion-content ${dia.data === today ? 'active' : ''}`;
+                        const header = document.createElement('div');
+                        header.className = 'accordion-header';
+                        header.textContent = `Dia ${dia.dia} (${dia.data})`;
+                        accordionItem.appendChild(header);
 
-                    const livro = document.createElement('p');
-                    livro.innerHTML = `<span class="livro">Livro:</span> ${dia.livro}`;
-                    content.appendChild(livro);
+                        const content = document.createElement('div');
+                        content.className = `accordion-content ${dia.data === today ? 'active' : ''}`;
 
-                    const paginas = document.createElement('p');
-                    paginas.innerHTML = `<span class="paginas">Páginas:</span> ${dia.paginas_diarias}`;
-                    content.appendChild(paginas);
+                        const livro = document.createElement('p');
+                        livro.innerHTML = `<span class="livro">Livro:</span> ${dia.livro}`;
+                        content.appendChild(livro);
 
-                    const versiculosTitle = document.createElement('p');
-                    versiculosTitle.innerHTML = '<strong>Versículos:</strong>';
-                    content.appendChild(versiculosTitle);
+                        const paginas = document.createElement('p');
+                        paginas.innerHTML = `<span class="paginas">Páginas:</span> ${dia.paginas_diarias}`;
+                        content.appendChild(paginas);
 
-                    const ul = document.createElement('ul');
-                    dia.versiculos.forEach(versiculo => {
-                        const li = document.createElement('li');
-                        li.textContent = versiculo;
-                        ul.appendChild(li);
-                    });
-                    content.appendChild(ul);
+                        const versiculosTitle = document.createElement('p');
+                        versiculosTitle.innerHTML = '<strong>Versículos:</strong>';
+                        content.appendChild(versiculosTitle);
 
-                    accordionItem.appendChild(content);
-                    container.appendChild(accordionItem);
-
-                    header.addEventListener('click', () => {
-                        const isActive = content.classList.contains('active');
-                        document.querySelectorAll('.accordion-content').forEach(item => {
-                            item.classList.remove('active');
+                        const ul = document.createElement('ul');
+                        dia.versiculos.forEach(versiculo => {
+                            const li = document.createElement('li');
+                            li.textContent = versiculo;
+                            ul.appendChild(li);
                         });
-                        if (!isActive) {
-                            content.classList.add('active');
-                        }
-                    });
+                        content.appendChild(ul);
+
+                        accordionItem.appendChild(content);
+                        container.appendChild(accordionItem);
+
+                        header.addEventListener('click', () => {
+                            const isActive = content.classList.contains('active');
+                            document.querySelectorAll('.accordion-content').forEach(item => {
+                                item.classList.remove('active');
+                            });
+                            if (!isActive) {
+                                content.classList.add('active');
+                            }
+                        });
+                    }
                 });
             } catch (error) {
                 console.error('Erro ao carregar o plano:', error);

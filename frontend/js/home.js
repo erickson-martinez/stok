@@ -1,5 +1,5 @@
-const API_URL = "https://stok-5ytv.onrender.com";
-//const API_URL = "http://192.168.1.67:3000";
+//const API_URL = "https://stok-5ytv.onrender.com";
+const API_URL = "http://192.168.1.67:3000";
 
 // Configuração do menu em JSON
 const menuItems = [
@@ -30,6 +30,74 @@ function getInitials(name) {
     return name.split(" ").map(word => word[0]).join("").toUpperCase().slice(0, 2);
 }
 
+// Função para carregar o plano de leitura do dia atual
+async function loadDailyPlan() {
+    try {
+        const response = await fetch('../utils/planning-read.json'); // Ajuste o caminho conforme necessário
+        const plano = await response.json();
+        const container = document.getElementById('plano');
+        var data = new Date();
+        const today = data.toLocaleDateString()
+
+        // Filtra o dia atual
+        plano.forEach(dia => {
+
+            if (dia.data === today) {
+                const accordionItem = document.createElement('div');
+                accordionItem.className = `accordion-item ${dia.data === today ? 'current' : ''}`;
+
+                const header = document.createElement('div');
+                header.className = 'accordion-header';
+                header.textContent = `Dia ${dia.dia} (${dia.data})`;
+                accordionItem.appendChild(header);
+
+                const content = document.createElement('div');
+                content.className = `accordion-content ${dia.data === today ? 'active' : ''}`;
+
+                const livro = document.createElement('p');
+                livro.innerHTML = `<span class="livro">Livro:</span> ${dia.livro}`;
+                content.appendChild(livro);
+
+                const paginas = document.createElement('p');
+                paginas.innerHTML = `<span class="paginas">Páginas:</span> ${dia.paginas_diarias}`;
+                content.appendChild(paginas);
+
+                const versiculosTitle = document.createElement('p');
+                versiculosTitle.innerHTML = '<strong>Versículos:</strong>';
+                content.appendChild(versiculosTitle);
+
+                const ul = document.createElement('ul');
+                dia.versiculos.forEach(versiculo => {
+                    const li = document.createElement('li');
+                    li.textContent = versiculo;
+                    ul.appendChild(li);
+                });
+                content.appendChild(ul);
+
+                accordionItem.appendChild(content);
+                container.appendChild(accordionItem);
+
+                header.addEventListener('click', () => {
+                    const isActive = content.classList.contains('active');
+                    document.querySelectorAll('.accordion-content').forEach(item => {
+                        item.classList.remove('active');
+                    });
+                    if (!isActive) {
+                        content.classList.add('active');
+                    }
+                });
+            }
+        });
+
+
+        // Se não houver plano para o dia atual, exibe uma mensagem
+
+    } catch (error) {
+        console.error('Erro ao carregar o plano de leitura:', error);
+        document.getElementById('dailyPlan').innerHTML = '<p>Erro ao carregar o plano de leitura.</p>';
+    }
+}
+
 // Função para carregar a home e configurar o modal
 function loadHome() {
     const userInitialsDiv = document.getElementById("userInitials");
@@ -53,7 +121,8 @@ function loadHome() {
     userPhone.textContent = user.phone;
 
     loadSidebarMenu();
-
+    loadDailyPlan(); // Carrega o plano de leitura do dia atual
+    window.onload = loadPlano;
     // Abrir/fechar modal
     userInitialsDiv.addEventListener("click", () => {
         userModal.classList.toggle("active");

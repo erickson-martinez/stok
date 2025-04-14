@@ -5,7 +5,6 @@ const menuItems = [
     { name: "Estoque", route: "./stock.html" },
     { name: "Atividade", route: "./activity.html" },
     { name: "Mercados", route: "./markets.html" },
-    { name: "Lista de Compras", route: "./shopping.html" },
     { name: "Livros", route: "./book.html" }
 ];
 
