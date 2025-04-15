@@ -13,6 +13,7 @@ Tela de pagamento, para liberar acesso as telas
 Validar Regras
 
 Não pode editar ou adicionar ou detelar se a despesa ou receita estiver paga ou passar da data
+Cadastrar receita ou despesa recorrente
 Criar novo calculo para mostrar as receitas ou despesas ja pagas
 Ajustar calendario para apresentar apenas do mes atual
 

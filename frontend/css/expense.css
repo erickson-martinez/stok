@@ -638,3 +638,20 @@ header {
         padding-top: 20px;
     }
 }
+
+#recurringMonthsItemGroup {
+    transition: opacity 0.3s ease, max-height 0.3s ease;
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+}
+
+#recurringMonthsItemGroup[style*="block"] {
+    opacity: 1;
+    max-height: 100px;
+}
+
+.report-table tfoot td {
+    font-weight: bold;
+    background-color: #f5f5f5;
+}

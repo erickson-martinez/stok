@@ -1,5 +1,5 @@
-const API_URL = "https://stok-5ytv.onrender.com";
-//const API_URL = "http://192.168.1.67:3000";
+//const API_URL = "https://stok-5ytv.onrender.com";
+const API_URL = "http://192.168.1.67:3000";
 
 const menuItems = [
     { name: "Home", route: "./home.html" },
@@ -20,6 +20,15 @@ function loadSidebarMenu() {
         a.textContent = item.name;
         li.appendChild(a);
         sidebarMenu.appendChild(li);
+    });
+}
+
+function setupRecurringField() {
+    const recurringCheckbox = document.getElementById("modalRecurring");
+    const recurringMonthsGroup = document.getElementById("recurringMonthsGroup");
+
+    recurringCheckbox.addEventListener("change", () => {
+        recurringMonthsGroup.style.display = recurringCheckbox.checked ? "block" : "none";
     });
 }
 
@@ -89,7 +98,7 @@ function formatMonth(date) {
 }
 
 function updateMonth() {
-    const monthText = formatMonth(currentDate);
+    const monthText = currentDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toLowerCase());
     document.getElementById('currentMonth').textContent = `Controle ${monthText}`;
     updateLists();
     calculateColors();
@@ -152,10 +161,10 @@ async function fetchMonthData() {
             processItems(expensesData);
         }
 
-        // Check if sharedData exists and is not empty
         if (sharedData?.length > 0 && (sharedData[0]?.receitas?.length > 0 || sharedData[0]?.despesas?.length > 0)) {
             processItems(sharedData[0], true, sharedData[0]?.idUser);
         }
+
         updateLists();
         calculateColors();
     } catch (err) {
@@ -179,6 +188,16 @@ function toggleAccordion(id) {
     }
 }
 
+function incrementName(name, monthIndex) {
+    const numberMatch = name.match(/\d+$/);
+    if (numberMatch) {
+        const baseName = name.replace(/\d+$/, "").trim();
+        const newNumber = parseInt(numberMatch[0]) + monthIndex;
+        return `${baseName} ${newNumber}`;
+    }
+    return name;
+}
+
 function openActionModal(action, type, item = null) {
     currentType = type;
     editingId = item?.id || null;
@@ -196,30 +215,38 @@ function openActionModal(action, type, item = null) {
     const valor = document.getElementById("modalValor");
     const data = document.getElementById("modalData");
     const paid = document.getElementById("modalPaid");
+    const recurring = document.getElementById("modalRecurring");
+    const recurringMonths = document.getElementById("modalRecurringMonths");
 
-    action !== "add" ? idExpense = item.id : idExpense = null
+    action !== "add" ? idExpense = item.id : idExpense = null;
 
     if (item) {
         nome.value = item.name;
         valor.value = item.total || item.value;
         data.value = new Date(item.whenPay.split('/').reverse().join('-')).toISOString().split("T")[0];
         paid.checked = item.paid;
+        recurring.checked = false; // Recorrência não é editável
+        recurringMonths.value = 1;
     } else {
         nome.value = "";
         valor.value = "";
-        data.value = new Date().toISOString().split("T")[0]; // Data atual
+        data.value = new Date().toISOString().split("T")[0];
         paid.checked = false;
+        recurring.checked = false;
+        recurringMonths.value = 1;
     }
 
     const isEditable = (action === "add") && !item?.shared;
-    [nome, valor, data, paid].forEach(input => input.disabled = !isEditable);
-
+    [nome, valor, data, paid, recurring, recurringMonths].forEach(input => input.disabled = !isEditable);
+    document.getElementById("recurringMonthsGroup").style.display = recurring.checked ? "block" : "none";
 
     modalButtons.innerHTML = "";
 
     if (action === "edit") {
         const isEdit = (action === "edit") && !item?.shared;
         [nome, data, paid].forEach(input => input.disabled = !isEdit);
+        recurring.disabled = true; // Recorrência só em adição
+        recurringMonths.disabled = true;
 
         modalButtons.innerHTML = `
             <button class="btn-secundary" onclick="closeModal()">Cancelar</button>
@@ -232,8 +259,7 @@ function openActionModal(action, type, item = null) {
         `;
     } else if (action === "view") {
         modalButtons.innerHTML = `<button class="btn" onclick="closeModal()">Fechar</button>`;
-    }
-    else if (action === "delete") {
+    } else if (action === "delete") {
         modalButtons.innerHTML = `
             <button class="btn-secundary" onclick="closeModal()">Cancelar</button>
             <button class="btn" onclick="confirmDelete('${type}','${item.id}')" ${item?.shared ? 'disabled' : ''}>Confirmar</button>
@@ -241,6 +267,7 @@ function openActionModal(action, type, item = null) {
     }
 
     modal.style.display = "block";
+    setupRecurringField(); // Configura o evento de recorrência
 }
 
 function openActionModalItem(type, id) {
@@ -321,38 +348,76 @@ async function saveItem() {
     const valor = parseFloat(document.getElementById("modalValor").value) || 0;
     const data = document.getElementById("modalData").value; // YYYY-MM-DD
     const paid = document.getElementById("modalPaid").checked;
+    const isRecurring = document.getElementById("modalRecurring").checked;
+    const recurringMonths = parseInt(document.getElementById("modalRecurringMonths").value) || 1;
+
+    if (!nome || valor <= 0 || !data) {
+        alert("Por favor, preencha todos os campos obrigatórios.");
+        return;
+    }
 
     const [year, month, day] = data.split("-");
-    const whenPay = `${year}/${month}/${day}`;
-
-    const item = {
-        _id: editingId || undefined,
-        name: nome,
-        total: valor,
-        whenPay: whenPay,
-        paid: paid,
-        values: [{ name: nome, value: valor }]
-    };
+    const baseDate = new Date(year, month - 1, day);
 
     let payload;
 
     if (editingId) {
+        // Modo edição: atualiza apenas o item existente
+        const whenPay = `${year}/${month}/${day}`;
+        const item = {
+            _id: editingId,
+            name: nome,
+            total: valor,
+            whenPay: whenPay,
+            paid: paid,
+            values: [{ name: nome, value: valor }]
+        };
+
         const targetArray = currentType === "receita" ? receitas : despesas;
         const index = targetArray.findIndex(i => i.id === editingId);
         if (index !== -1) {
             targetArray[index] = { ...targetArray[index], ...item };
         }
+
+        payload = {
+            idUser,
+            [currentType === "receita" ? "receitas" : "despesas"]: [item]
+        };
     } else {
-        if (currentType === "receita") {
-            payload = { idUser, receitas: [item] };
-        } else {
-            payload = { idUser, despesas: [item] };
+        // Modo adição: cria item atual e itens recorrentes
+        const items = [];
+        const totalMonths = isRecurring ? recurringMonths : 1;
+
+        for (let i = 0; i < totalMonths; i++) {
+            const currentDate = new Date(baseDate);
+            currentDate.setMonth(baseDate.getMonth() + i);
+
+            // Ajusta o dia para o último dia do mês, se necessário
+            const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+            currentDate.setDate(Math.min(parseInt(day), lastDayOfMonth));
+
+            const formattedDate = `${currentDate.getFullYear()}/${String(currentDate.getMonth() + 1).padStart(2, '0')}/${String(currentDate.getDate()).padStart(2, '0')}`;
+            const itemName = i === 0 ? nome : incrementName(nome, i);
+
+            const item = {
+                name: itemName,
+                total: valor,
+                whenPay: formattedDate,
+                paid: i === 0 ? paid : false, // Apenas o primeiro item usa o `paid` do formulário
+                values: [{ name: itemName, value: valor }]
+            };
+
+            items.push(item);
         }
+
+        payload = {
+            idUser,
+            [currentType === "receita" ? "receitas" : "despesas"]: items
+        };
     }
 
-
     try {
-        const method = idExpense != null ? "PATCH" : "POST";
+        const method = editingId ? "PATCH" : "POST";
         const response = await fetch(`${API_URL}/expenses`, {
             method,
             headers: { "Content-Type": "application/json" },
@@ -363,7 +428,8 @@ async function saveItem() {
             const errorText = await response.text();
             throw new Error(`Erro ao salvar item: ${response.statusText} - ${errorText}`);
         }
-        fetchMonthData();
+
+        await fetchMonthData();
         closeModal();
     } catch (err) {
         console.error(err);
@@ -769,44 +835,55 @@ function openReportModal() {
     const modal = document.getElementById("reportModal");
     const reportSummary = document.getElementById("reportSummary");
 
+    // Define o intervalo: mês atual + próximos 11 meses
     const startDate = new Date(currentDate);
-    startDate.setMonth(startDate.getMonth() - 2);
-    const endDate = new Date(currentDate);
-    endDate.setMonth(endDate.getMonth() + 9);
+    startDate.setDate(1); // Primeiro dia do mês atual
+    const endDate = new Date(startDate);
+    endDate.setMonth(endDate.getMonth() + 11);
 
     const despesasPorMes = {};
     const receitasPorMes = {};
 
+    // Inicializa os meses no relatório
     for (let i = 0; i < 12; i++) {
         const date = new Date(startDate);
         date.setMonth(startDate.getMonth() + i);
-        const monthYear = formatMonth(date);
+        // Formata o mês diretamente
+        const monthYear = date.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toLowerCase());
         despesasPorMes[monthYear] = 0;
         receitasPorMes[monthYear] = 0;
     }
 
+    // Função para parsear whenPay (formato YYYY/MM/DD)
     const parseDate = (dateStr) => {
-        const [day, month, year] = dateStr.split('/');
-        return new Date(`${year}-${month}-${day}`);
+        const [year, month, day] = dateStr.split('/');
+        return new Date(year, month - 1, day);
     };
 
+    // Agrega despesas
     despesas.forEach(item => {
         const itemDate = parseDate(item.whenPay);
         if (itemDate >= startDate && itemDate <= endDate) {
-            const monthYear = formatMonth(itemDate);
+            // Formata o mês diretamente
+            const monthYear = itemDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toLowerCase());
             despesasPorMes[monthYear] += item.total;
         }
     });
 
+    // Agrega receitas
     receitas.forEach(item => {
         const itemDate = parseDate(item.whenPay);
         if (itemDate >= startDate && itemDate <= endDate) {
-            const monthYear = formatMonth(itemDate);
+            // Formata o mês diretamente
+            const monthYear = itemDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toLowerCase());
             receitasPorMes[monthYear] += item.total;
         }
     });
 
+    // Formata valores para exibição
     const formatCurrency = (value) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    // Gera a tabela HTML
     let html = `
         <table class="report-table">
             <thead>
