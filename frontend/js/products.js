@@ -1,4 +1,3 @@
-
 export async function loadProducts() {
     if (!currentUser) return console.error("Nenhum usuário logado");
 

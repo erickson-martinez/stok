@@ -1,5 +1,3 @@
-const API_URL = "https://stok-5ytv.onrender.com/books";
-//const API_URL = "http://192.168.1.67:3000/books"; // Ajustado para /book
 const menuItems = [
     { name: "Home", route: "./home.html" },
     { name: "Financeiro", route: "./expense.html" },
@@ -84,7 +82,7 @@ async function fetchBooks() {
 
     const idUser = JSON.parse(storedUser).idUser;
     try {
-        const response = await fetch(`${API_URL}/${idUser}`);
+        const response = await fetch(`${API_URL}/books/${idUser}`);
         if (!response.ok) throw new Error(`Erro ao carregar livros: ${response.status}`);
         const data = await response.json();
         books = data.books || []; // Ajustado para acessar o array de subdocumentos
@@ -232,7 +230,7 @@ async function saveBook() {
     }
 
     try {
-        const url = currentBookId ? `${API_URL}/${idUser}/${currentBookId}` : `${API_URL}/${idUser}`;
+        const url = currentBookId ? `${API_URL}/books/${idUser}/${currentBookId}` : `${API_URL}/books/${idUser}`;
         const method = currentBookId ? "PUT" : "POST";
 
         const response = await fetch(url, {
@@ -266,7 +264,7 @@ async function deleteBook(bookId) {
 
     const idUser = JSON.parse(storedUser).idUser;
     try {
-        const response = await fetch(`${API_URL}/${idUser}/${currentBookId}`, {
+        const response = await fetch(`${API_URL}/books/${idUser}/${currentBookId}`, {
             method: "DELETE",
             headers: { "Content-Type": "application/json" }
         });

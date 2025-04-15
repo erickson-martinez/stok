@@ -1,5 +1,3 @@
-const API_URL = "https://stok-5ytv.onrender.com";
-//const API_URL = "http://192.168.1.67:3000";
 const menuItems = [
     { name: "Financeiro", route: "./expense.html" },
     { name: "Estoque", route: "./stock.html" },
