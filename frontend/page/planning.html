@@ -98,51 +98,49 @@
 
                 plano.forEach(dia => {
 
-                    if (dia.data === today) {
-                        const accordionItem = document.createElement('div');
-                        accordionItem.className = `accordion-item ${dia.data === today ? 'current' : ''}`;
+                    const accordionItem = document.createElement('div');
+                    accordionItem.className = `accordion-item ${dia.data === today ? 'current' : ''}`;
 
-                        const header = document.createElement('div');
-                        header.className = 'accordion-header';
-                        header.textContent = `Dia ${dia.dia} (${dia.data})`;
-                        accordionItem.appendChild(header);
+                    const header = document.createElement('div');
+                    header.className = 'accordion-header';
+                    header.textContent = `Dia ${dia.dia} (${dia.data})`;
+                    accordionItem.appendChild(header);
 
-                        const content = document.createElement('div');
-                        content.className = `accordion-content ${dia.data === today ? 'active' : ''}`;
+                    const content = document.createElement('div');
+                    content.className = `accordion-content ${dia.data === today ? 'active' : ''}`;
 
-                        const livro = document.createElement('p');
-                        livro.innerHTML = `<span class="livro">Livro:</span> ${dia.livro}`;
-                        content.appendChild(livro);
+                    const livro = document.createElement('p');
+                    livro.innerHTML = `<span class="livro">Livro:</span> ${dia.livro}`;
+                    content.appendChild(livro);
 
-                        const paginas = document.createElement('p');
-                        paginas.innerHTML = `<span class="paginas">Páginas:</span> ${dia.paginas_diarias}`;
-                        content.appendChild(paginas);
+                    const paginas = document.createElement('p');
+                    paginas.innerHTML = `<span class="paginas">Páginas:</span> ${dia.paginas_diarias}`;
+                    content.appendChild(paginas);
 
-                        const versiculosTitle = document.createElement('p');
-                        versiculosTitle.innerHTML = '<strong>Versículos:</strong>';
-                        content.appendChild(versiculosTitle);
+                    const versiculosTitle = document.createElement('p');
+                    versiculosTitle.innerHTML = '<strong>Versículos:</strong>';
+                    content.appendChild(versiculosTitle);
 
-                        const ul = document.createElement('ul');
-                        dia.versiculos.forEach(versiculo => {
-                            const li = document.createElement('li');
-                            li.textContent = versiculo;
-                            ul.appendChild(li);
+                    const ul = document.createElement('ul');
+                    dia.versiculos.forEach(versiculo => {
+                        const li = document.createElement('li');
+                        li.textContent = versiculo;
+                        ul.appendChild(li);
+                    });
+                    content.appendChild(ul);
+
+                    accordionItem.appendChild(content);
+                    container.appendChild(accordionItem);
+
+                    header.addEventListener('click', () => {
+                        const isActive = content.classList.contains('active');
+                        document.querySelectorAll('.accordion-content').forEach(item => {
+                            item.classList.remove('active');
                         });
-                        content.appendChild(ul);
-
-                        accordionItem.appendChild(content);
-                        container.appendChild(accordionItem);
-
-                        header.addEventListener('click', () => {
-                            const isActive = content.classList.contains('active');
-                            document.querySelectorAll('.accordion-content').forEach(item => {
-                                item.classList.remove('active');
-                            });
-                            if (!isActive) {
-                                content.classList.add('active');
-                            }
-                        });
-                    }
+                        if (!isActive) {
+                            content.classList.add('active');
+                        }
+                    });
                 });
             } catch (error) {
                 console.error('Erro ao carregar o plano:', error);
