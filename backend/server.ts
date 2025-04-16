@@ -52,6 +52,7 @@ app.patch("/expenses", expenseController.updateExpense);
 app.patch("/expenses-item", expenseController.updateExpenseItem);
 app.delete("/expenses", expenseController.deleteExpense);
 app.delete("/expenses-item", expenseController.deleteExpenseItem);
+app.patch("/expenses/payment", expenseController.updatePaymentStatus);
 
 app.get("/activity/:phone", activityController.getActivities);
 app.post("/activity", activityController.createOrUpdateActivity);

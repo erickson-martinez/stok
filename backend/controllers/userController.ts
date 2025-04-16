@@ -143,13 +143,23 @@ const updateUser = async (req: Request, res: Response) => {
 const getUser = async (req: Request, res: Response) => {
     try {
         const { phone } = req.params;
-        const user = await User.findOne({ phone });
+        const userAll = await User.find({});
+        const users = userAll.map((user) => {
+            return {
+                name: decryptPassword(user.name),
+                phone: decryptPassword(user.phone),
+                _id: user._id
+            }
+        })
+
+
+        let user = users.find((user) => user.phone == phone);
 
         if (!user) {
             return res.status(404).json({ error: "Usuário não encontrado" });
         }
 
-        res.json({ name: user.name, phone: user.phone });
+        res.json({ name: user.name, _id: user._id });
     } catch (error) {
         res.status(500).json({ error: "Erro ao buscar usuário", details: (error as Error).message });
     }

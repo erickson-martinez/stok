@@ -3,7 +3,9 @@ import { IValue, ITransaction, IExpense } from '../interfaces/expense';
 
 const valueSchema = new Schema<IValue>({
     name: { type: String, required: true },
-    value: { type: Schema.Types.Mixed, required: true } // Mixed for number or string
+    value: { type: Schema.Types.Mixed, required: true },
+    paid: { type: Boolean, default: false },
+    notify: { type: Boolean, default: false }
 });
 
 const transactionSchema = new Schema<ITransaction>({
@@ -12,6 +14,11 @@ const transactionSchema = new Schema<ITransaction>({
     whenPay: { type: Date, required: true },
     total: { type: Number, required: true },
     paid: { type: Boolean, required: true },
+    isDebt: { type: Boolean, default: false },
+    idOrigem: { type: String },
+    idDebts: { type: String },
+    notify: { type: Boolean, default: false },
+    totalPaid: { type: Number, default: 0 },
     values: [valueSchema]
 });
 

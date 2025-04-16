@@ -1,149 +1,4 @@
-@import url('./activity.css');
-@import url('./book.css');
-
-body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    background-color: #f0f0f0;
-    height: 100vh;
-    overflow: hidden;
-}
-
-.container {
-    display: flex;
-    height: 100%;
-}
-
-/* Sidebar */
-.sidebar {
-    width: 250px;
-    background: white;
-    padding: 0;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    height: 100%;
-    position: fixed;
-    top: 0;
-    left: -250px;
-    transition: left 0.3s ease;
-    z-index: 1000;
-}
-
-.sidebar.active {
-    left: 0;
-}
-
-.sidebar-header {
-    display: flex;
-    justify-content: space-between;
-    padding: 20px 0 0 20px;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.sidebar-header h2 {
-    margin: 0;
-    color: #333;
-}
-
-.sidebar-menu {
-    list-style: none;
-    padding: 0 20px;
-    text-align: left;
-}
-
-.sidebar-menu li {
-    margin-bottom: 15px;
-}
-
-.sidebar-menu a {
-    color: #555;
-    text-decoration: none;
-    font-size: 1.1em;
-}
-
-.sidebar-menu a:hover {
-    color: #007bff;
-}
-
-.close-btn {
-    background: none;
-    border: none;
-    padding: 20px;
-    color: #555;
-    font-size: 1.2em;
-    cursor: pointer;
-}
-
-.close-btn:hover {
-    color: #0056b3;
-}
-
-/* Main Content */
-.main-content {
-    flex: 1;
-    padding: 20px;
-    overflow-y: auto;
-    position: relative;
-}
-
-header {
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    margin-bottom: 20px;
-    position: relative;
-}
-
-.menu-btn {
-    background: none;
-    border: none;
-    font-size: 1.5em;
-    color: #555;
-    cursor: pointer;
-    display: none;
-}
-
-.menu-btn:hover {
-    color: #0056b3;
-}
-
-/* User Initials Circle */
-.user-initials {
-    width: 40px;
-    height: 40px;
-    background-color: #007bff;
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2em;
-    font-weight: bold;
-    cursor: pointer;
-    position: absolute;
-    top: 50%;
-    right: 20px;
-    transform: translateY(-50%);
-    z-index: 1100;
-}
-
-.user-initials:hover {
-    background-color: #0056b3;
-}
-
-/* Profile Modal */
-.modal {
-    display: none;
-    position: absolute;
-    top: 60px;
-    right: 20px;
-    background: white;
-    padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-    z-index: 1000;
-}
+@import url('./styles.css');
 
 .modal.active {
     display: block;
@@ -253,10 +108,6 @@ header {
     color: white;
 }
 
-.btn-secundary {
-    background-color: #e6e8ea;
-    color: #333;
-}
 
 .btn-icon {
     padding: 10px;
@@ -555,11 +406,6 @@ header {
         gap: 10px;
     }
 
-    .options-wrapper {
-        position: relative;
-        display: inline-block;
-    }
-
     .options-trigger {
         cursor: pointer;
         font-size: 20px;
@@ -654,4 +500,210 @@ header {
 .report-table tfoot td {
     font-weight: bold;
     background-color: #f5f5f5;
+}
+
+/* Adicione ao expense.css */
+.debt-badge,
+.origin-badge {
+    margin-right: 5px;
+    color: #3498db;
+}
+
+.paid {
+    background-color: #e8f5e9;
+}
+
+.paid-item {
+    background-color: #e8f5e9;
+}
+
+.pending-item {
+    background-color: #fff3e0;
+}
+
+.debt-summary {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px;
+    background-color: #f5f5f5;
+    border-top: 1px solid #ddd;
+    font-size: 0.9em;
+}
+
+.btn-small {
+    padding: 4px 8px;
+    font-size: 0.8em;
+    margin-left: 5px;
+}
+
+.confirm {
+    background-color: #4caf50;
+}
+
+.reject {
+    background-color: #f44336;
+}
+
+.paid-checkbox {
+    margin-right: 10px;
+    font-size: 0.9em;
+}
+
+.paid-checkbox input {
+    margin-right: 5px;
+}
+
+#debtorGroup {
+    transition: all 0.3s ease;
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+}
+
+#debtorGroup[style*="block"] {
+    max-height: 100px;
+    opacity: 1;
+    margin-top: 10px;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    /* Overlay escuro */
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: white;
+    padding: 20px;
+    border-radius: 5px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+
+.modal-content h2 {
+    margin-top: 0;
+}
+
+.modal-content label {
+    display: block;
+    margin: 10px 0 5px;
+}
+
+.modal-content input,
+.modal-content select {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.modal-content .btn {
+    padding: 10px 20px;
+    margin: 5px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.modal-content .btn-secundary {
+    background-color: #ccc;
+}
+
+.modal-content .btn {
+    background-color: #007bff;
+    color: white;
+}
+
+/* Estilo para o modal */
+.modal {
+    display: none;
+    /* Inicialmente escondido */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    /* Overlay escuro */
+    z-index: 1000;
+    /* Acima de outros elementos */
+    justify-content: center;
+    /* Centraliza horizontalmente */
+    align-items: center;
+    /* Centraliza verticalmente */
+}
+
+/* Estilo para o conteúdo do modal */
+.modal-content {
+    background-color: white;
+    padding: 20px;
+    border-radius: 5px;
+    width: 90%;
+    /* Largura responsiva */
+    max-width: 500px;
+    /* Limite máximo */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+
+/* Estilo para o título do modal */
+.modal-content h2 {
+    margin-top: 0;
+    font-size: 1.5em;
+    color: #333;
+}
+
+/* Estilo para labels */
+.modal-content label {
+    display: block;
+    margin: 10px 0 5px;
+    font-weight: bold;
+    color: #555;
+}
+
+/* Estilo para inputs e select */
+.modal-content input,
+.modal-content select {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+/* Estilo para botões */
+.modal-content .btn {
+    padding: 10px 20px;
+    margin: 5px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+}
+
+.modal-content .btn-secundary {
+    background-color: #ccc;
+    color: #333;
+}
+
+/* Hover nos botões */
+.modal-content .btn:hover {
+    background-color: #0056b3;
+}
+
+.modal-content .btn-secundary:hover {
+    background-color: #b3b3b3;
 }

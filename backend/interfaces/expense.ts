@@ -1,15 +1,25 @@
 // interfaces/expense.ts
+import { Types } from 'mongoose';
+
 export interface IValue {
     name: string;
     value: number | string;
+    _id?: string | Types.ObjectId;
+    paid?: boolean; // Campo para valores individuais
+    notify?: boolean; // Campo para notificações
 }
 
 export interface ITransaction {
-    _id?: string | import('mongoose').Types.ObjectId;
+    _id?: string | Types.ObjectId;
     name: string;
     whenPay: Date;
     total: number;
     paid: boolean;
+    isDebt?: boolean; // Identifica receitas vinculadas
+    idOrigem?: string; // Referencia a receita original (em despesas)
+    idDebts?: string; // Identifica o cobrador (em receitas)
+    notify?: boolean; // Para notificações
+    totalPaid?: number; // Total pago
     values: IValue[];
 }
 
@@ -25,14 +35,22 @@ export interface IExpense {
 export interface ValueRequest {
     name: string;
     value: number | string;
+    _id?: string | Types.ObjectId;
+    paid?: boolean; // Adicionado para suportar status de pagamento
+    notify?: boolean; // Adicionado para suportar notificações
 }
 
 export interface TransactionRequest {
-    _id?: string | import('mongoose').Types.ObjectId;
+    _id?: string | Types.ObjectId;
     name: string;
     whenPay: string;
     total: number;
     paid: boolean;
+    idDebts?: string; // Para receitas vinculadas
+    idOrigem?: string; // Para despesas vinculadas
+    isDebt?: boolean; // Para identificar receitas vinculadas
+    totalPaid?: number; // Para rastrear total pago
+    notify?: boolean; // Para notificações
     values?: ValueRequest[];
 }
 

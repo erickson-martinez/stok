@@ -7,6 +7,7 @@ import dotenv from "dotenv"; // Supondo que você tenha um arquivo de utilitári
 
 dotenv.config();
 import { ExpenseRequest } from '../interfaces/expense';
+import { is } from 'cypress/types/bluebird';
 
 // Carrega a ENCRYPTION_KEY do .env
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
@@ -118,6 +119,7 @@ const expenseController = {
                 expense.receitas.push(...validReceitas.map(receita => ({
                     _id: new mongoose.Types.ObjectId(), // Gera um _id único
                     name: receita.name,
+                    idDebts: receita.idDebts,
                     whenPay: new Date(receita.whenPay),
                     total: receita.total,
                     paid: receita.paid,
@@ -138,14 +140,18 @@ const expenseController = {
                     console.warn("Algumas despesas foram ignoradas devido a dados inválidos.");
                 }
 
-                expense.despesas.push(...validDespesas.map(despesa => ({
-                    _id: new mongoose.Types.ObjectId(), // Gera um _id único
-                    name: despesa.name,
-                    whenPay: new Date(despesa.whenPay),
-                    total: despesa.total,
-                    paid: despesa.paid,
-                    values: despesa.values || []
-                })));
+                expense.despesas.push(...validDespesas.map(despesa => {
+                    return ({
+                        _id: new mongoose.Types.ObjectId(), // Gera um _id único
+                        name: despesa.name,
+                        idOrigem: despesa.idOrigem,
+                        whenPay: new Date(despesa.whenPay),
+                        isDebt: despesa.isDebt,
+                        total: despesa.total,
+                        paid: despesa.paid,
+                        values: despesa.values || []
+                    })
+                }));
             }
 
             if (expense) {
@@ -225,12 +231,10 @@ const expenseController = {
             }
 
             const userAll = await User.find({});
-            const users = userAll.map((user) => {
-                return {
-                    phone: decryptPassword(user.phone),
-                    _id: user._id
-                };
-            });
+            const users = userAll.map((user) => ({
+                phone: decryptPassword(user.phone),
+                _id: user._id,
+            }));
 
             const expense = await Expense.findOne({ idUser });
             if (!expense) {
@@ -239,47 +243,149 @@ const expenseController = {
             }
 
             if (idUserShared) {
-                expense.idUserShared = users.find((user) => user.phone == idUserShared)?._id as string | undefined;
+                expense.idUserShared = users.find((user) => user.phone === idUserShared)?._id as string | undefined;
             }
 
             // Atualizar Receitas
-            if (expense && receitas) {
-                const newReceitas = receitas.map(receita => ({
-                    id: receita._id,
-                    name: receita.name,
-                    whenPay: new Date(receita.whenPay),
-                    total: receita.total,
-                    paid: receita.paid,
-                    values: receita.values || []
-                }));
-                newReceitas.forEach(newReceita => {
-                    const existingReceita = expense.receitas.find(item => item._id === newReceita.id);
+            if (receitas) {
+                for (const newReceita of receitas) {
+                    const existingReceita = expense.receitas.find(item => (item._id ?? '').toString() === newReceita._id);
                     if (existingReceita) {
-                        Object.assign(existingReceita, newReceita);
+                        existingReceita.name = newReceita.name;
+                        existingReceita.whenPay = new Date(newReceita.whenPay);
+                        existingReceita.total = newReceita.total;
+                        existingReceita.totalPaid = newReceita.totalPaid || existingReceita.totalPaid || 0;
+                        existingReceita.paid = newReceita.paid;
+                        existingReceita.isDebt = newReceita.isDebt || existingReceita.isDebt;
+                        existingReceita.idDebts = newReceita.idDebts || existingReceita.idDebts;
+                        existingReceita.values = (newReceita.values ?? []).map(val => ({
+                            _id: new mongoose.Types.ObjectId(),
+                            name: val.name,
+                            value: val.value,
+                            paid: val.paid || false,
+                            notify: val.notify || false,
+                        }));
                     }
-                });
+                }
             }
 
             // Atualizar Despesas
-            if (expense && despesas) {
-                const newDespesas = despesas.map(despesa => ({
-                    id: despesa._id,
-                    name: despesa.name,
-                    whenPay: new Date(despesa.whenPay),
-                    total: despesa.total,
-                    paid: despesa.paid,
-                    values: despesa.values || []
-                }));
-                newDespesas.forEach(newDespesa => {
-                    const existingDespesa = expense.despesas.find(item => item._id === newDespesa.id);
+            if (despesas) {
+                for (const newDespesa of despesas) {
+                    const existingDespesa = expense.despesas.find(item => (item._id ?? '').toString() === newDespesa._id);
                     if (existingDespesa) {
-                        Object.assign(existingDespesa, newDespesa);
+                        existingDespesa.name = newDespesa.name;
+                        existingDespesa.whenPay = new Date(newDespesa.whenPay);
+                        existingDespesa.total = newDespesa.total;
+                        existingDespesa.totalPaid = newDespesa.totalPaid || existingDespesa.totalPaid || 0;
+                        existingDespesa.paid = newDespesa.paid;
+                        existingDespesa.isDebt = newDespesa.isDebt || existingDespesa.isDebt;
+                        existingDespesa.idOrigem = newDespesa.idOrigem || existingDespesa.idOrigem;
+                        existingDespesa.values = (newDespesa.values ?? []).map(val => ({
+                            _id: val._id || new mongoose.Types.ObjectId(),
+                            name: val.name,
+                            value: val.value,
+                            paid: false, // Devedor não pode marcar paid
+                            notify: val.notify || false,
+                        }));
                     }
-                });
+                }
             }
 
             expense.updateAt = new Date();
             await expense.save();
+            res.json(expense);
+        } catch (error: any) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    async updatePaymentStatus(req: Request, res: Response): Promise<void> {
+        try {
+            const {
+                idUser,
+                type,
+                itemId,
+                isPaid,
+                valueId,
+                idUserShared
+            }: {
+                idUser: string,
+                type: 'receita' | 'despesa',
+                itemId: string,
+                isPaid: boolean,
+                valueId?: string,
+                idUserShared?: string
+            } = req.body;
+
+            if (!idUser || !itemId || typeof isPaid === 'undefined') {
+                res.status(400).json({ error: 'idUser, itemId e isPaid são obrigatórios' });
+                return;
+            }
+
+            // Verifica se há usuário compartilhado e decripta os telefones
+            let users: { phone: string; _id: string }[] = [];
+            if (idUserShared) {
+                const userAll = await User.find({});
+                users = userAll.map((user) => ({
+                    phone: decryptPassword(user.phone),
+                    _id: user._id as string
+                }));
+            }
+
+            const expense = await Expense.findOne({ idUser });
+            if (!expense) {
+                res.status(404).json({ error: 'Registro não encontrado' });
+                return;
+            }
+
+            // Atualiza idUserShared se fornecido
+            if (idUserShared) {
+                expense.idUserShared = users.find((user) => user.phone === idUserShared)?._id as string | undefined;
+            }
+
+            const items = type === 'receita' ? expense.receitas : expense.despesas;
+            const itemIndex = items.findIndex(i => (i._id ?? '').toString() === itemId);
+
+            if (itemIndex === -1) {
+                res.status(404).json({ error: 'Item não encontrado' });
+                return;
+            }
+
+            // Atualização do status de pagamento
+            if (valueId) {
+                // Atualiza um valor específico dentro do item
+                const valueIndex = items[itemIndex].values.findIndex((v: any) => v._id.toString() === valueId);
+                if (valueIndex !== -1) {
+                    items[itemIndex].values[valueIndex].paid = isPaid;
+
+                    // Se for uma confirmação do cobrador em receita vinculada, atualiza o total pago
+                    if (isPaid && type === 'receita' && (items[itemIndex] as any).isDebt) {
+                        (items[itemIndex] as any).totalPaid += Number(items[itemIndex].values[valueIndex].value) || 0;
+                    }
+                }
+            } else {
+                // Atualiza o item inteiro
+                items[itemIndex].paid = isPaid;
+            }
+
+            expense.updateAt = new Date();
+            await expense.save();
+
+            // Se for uma receita vinculada, atualiza a despesa correspondente
+            if (type === 'receita' && (items[itemIndex] as any).isDebt && (items[itemIndex] as any).idOrigem) {
+                await Expense.updateOne(
+                    { "despesas._id": new mongoose.Types.ObjectId((items[itemIndex] as any).idOrigem) },
+                    {
+                        $set: {
+                            "despesas.$.paid": isPaid,
+                            "despesas.$.totalPaid": (items[itemIndex] as any).totalPaid,
+                            updateAt: new Date()
+                        }
+                    }
+                );
+            }
+
             res.json(expense);
         } catch (error: any) {
             res.status(500).json({ error: error.message });

@@ -1,6 +1,8 @@
 
 // Função para carregar o plano de leitura do dia atual
 async function loadDailyPlan() {
+    initializeUserInterface();
+
     try {
         const response = await fetch('../utils/planning-read.json'); // Ajuste o caminho conforme necessário
         const plano = await response.json();
