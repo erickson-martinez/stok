@@ -1,10 +1,3 @@
-const { API_URL } = require('./config.js');
-
-// Configuração do menu
-const menuItems = [
-    { name: "Atividade", route: "./activity.html" }
-];
-
 // Elementos DOM
 const timerDisplay = document.getElementById('timer');
 const startPauseBtn = document.getElementById('startPauseBtn');
@@ -36,30 +29,6 @@ const MAX_MILLISECONDS = MAX_HOURS * 60 * 60 * 1000;
 let currentUser = null;
 let currentRecords = { start: [], pause: [], return: [], final: [], activities: [] };
 
-// Funções auxiliares
-function loadSidebarMenu() {
-    const sidebarMenu = document.getElementById("sidebarMenu");
-    if (!sidebarMenu) return;
-
-    sidebarMenu.innerHTML = "";
-    menuItems.forEach(item => {
-        const li = document.createElement("li");
-        const a = document.createElement("a");
-        a.href = item.route;
-        a.textContent = item.name;
-        li.appendChild(a);
-        sidebarMenu.appendChild(li);
-    });
-}
-
-function getInitials(name) {
-    return name.split(" ").map(word => word[0]).join("").toUpperCase().slice(0, 2);
-}
-
-function getISOTime(date) {
-    return date.toISOString();
-}
-
 function formatDuration(milliseconds) {
     const hours = Math.floor(milliseconds / (1000 * 60 * 60));
     const minutes = Math.floor((milliseconds % (1000 * 60 * 60)) / (1000 * 60));
@@ -67,22 +36,7 @@ function formatDuration(milliseconds) {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }
 
-// Autenticação e usuário
-function checkAuthAndLoadUser() {
-    const storedUser = localStorage.getItem("currentUser");
-    if (!storedUser) {
-        window.location.href = "../login.html";
-        return;
-    }
 
-    currentUser = JSON.parse(storedUser);
-    if (userInitialsDiv) userInitialsDiv.textContent = getInitials(currentUser.name);
-    if (userFullName) userFullName.textContent = currentUser.name;
-    if (userPhone) userPhone.textContent = currentUser.phone;
-
-    loadSidebarMenu();
-    setupUserEvents();
-}
 
 function setupUserEvents() {
     if (!userInitialsDiv) return;

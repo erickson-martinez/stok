@@ -1,12 +1,3 @@
-const menuItems = [
-    { name: "Financeiro", route: "./expense.html" },
-    { name: "Estoque", route: "./stock.html" },
-    { name: "Atividade", route: "./activity.html" },
-    { name: "Mercados", route: "./markets.html" },
-    { name: "Lista de Compras", route: "./shopping.html" },
-    { name: "Livros", route: "./book.html" }
-];
-
 // Cache de elementos DOM
 const DOM = {
     userInitials: document.getElementById("userInitials"),
@@ -46,7 +37,7 @@ const MenuManager = {
         if (!Utils.checkAuth()) return;
 
         MenuManager.loadUserInfo();
-        MenuManager.loadSidebarMenu();
+
         MenuManager.setupEventListeners();
     },
 
@@ -57,15 +48,6 @@ const MenuManager = {
         if (DOM.userPhone) DOM.userPhone.textContent = currentUser.phone;
     },
 
-    loadSidebarMenu: () => {
-        if (!DOM.sidebarMenu) return;
-
-        DOM.sidebarMenu.innerHTML = menuItems.map(item => `
-            <li>
-                <a href="${item.route}">${item.name}</a>
-            </li>
-        `).join("");
-    },
 
     setupEventListeners: () => {
         // Modal do usuário

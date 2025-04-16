@@ -1,33 +1,4 @@
 
-// Configuração do menu em JSON
-const menuItems = [
-    { name: "Financeiro", route: "./expense.html" },
-    { name: "Estoque", route: "./stock.html" },
-    { name: "Atividade", route: "./activity.html" },
-    { name: "Mercados", route: "./markets.html" },
-    { name: "Lista de Compras", route: "./shopping.html" },
-    { name: "Livros", route: "./book.html" }
-];
-
-// Função para carregar o menu dinamicamente
-function loadSidebarMenu() {
-    const sidebarMenu = document.getElementById("sidebarMenu");
-    sidebarMenu.innerHTML = "";
-    menuItems.forEach(item => {
-        const li = document.createElement("li");
-        const a = document.createElement("a");
-        a.href = item.route;
-        a.textContent = item.name;
-        li.appendChild(a);
-        sidebarMenu.appendChild(li);
-    });
-}
-
-// Função para obter as iniciais do nome
-function getInitials(name) {
-    return name.split(" ").map(word => word[0]).join("").toUpperCase().slice(0, 2);
-}
-
 // Função para carregar o plano de leitura do dia atual
 async function loadDailyPlan() {
     try {
