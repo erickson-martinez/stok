@@ -1,4 +1,4 @@
-const API_URL = false ? "https://stok-5ytv.onrender.com" : "http://192.168.1.67:3000";
+const API_URL = true ? "https://stok-5ytv.onrender.com" : "http://192.168.1.67:3000";
 
 const menuItems = [
     { name: "Home", route: "./home.html" },
