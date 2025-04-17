@@ -1195,10 +1195,17 @@ function openReportModal() {
     const reportSummary = document.getElementById("reportSummary");
 
     // Define o intervalo: mês atual + próximos 11 meses
-    const startDate = new Date(currentDate);
-    startDate.setDate(1); // Primeiro dia do mês atual
+    const currentDate = new Date();
+    const startDate = new Date(Date.UTC(currentDate.getFullYear(), currentDate.getMonth(), 1)); // Primeiro dia do mês atual em UTC
     const endDate = new Date(startDate);
-    endDate.setMonth(endDate.getMonth() + 11);
+    endDate.setMonth(endDate.getMonth() + 12); // 12 meses a partir de startDate
+    endDate.setDate(0); // Último dia do 11º mês
+
+    console.log("startDate", startDate);
+    console.log("endDate", endDate);
+
+    console.log(despesas);
+    console.log(receitas);
 
     const despesasPorMes = {};
     const receitasPorMes = {};
@@ -1207,25 +1214,28 @@ function openReportModal() {
     for (let i = 0; i < 12; i++) {
         const date = new Date(startDate);
         date.setMonth(startDate.getMonth() + i);
-        // Formata o mês diretamente
-        const monthYear = date.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toLowerCase());
+        // Formata o mês diretamente, garantindo UTC
+        const monthYear = date.toLocaleString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).replace(/^\w/, c => c.toLowerCase());
         despesasPorMes[monthYear] = 0;
         receitasPorMes[monthYear] = 0;
     }
 
-    // Função para parsear whenPay (formato YYYY/MM/DD)
+    // Função para parsear whenPay (formato ISO: YYYY-MM-DDTHH:mm:ss.sssZ)
     const parseDate = (dateStr) => {
-        const [year, month, day] = dateStr.split('/');
-        return new Date(year, month - 1, day);
+        return new Date(dateStr); // Converte diretamente a string ISO para Date
     };
 
     // Agrega despesas
     despesas.forEach(item => {
         const itemDate = parseDate(item.whenPay);
         if (itemDate >= startDate && itemDate <= endDate) {
-            // Formata o mês diretamente
-            const monthYear = itemDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toLowerCase());
-            despesasPorMes[monthYear] += item.total;
+            // Formata o mês diretamente, garantindo UTC
+            const monthYear = itemDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).replace(/^\w/, c => c.toLowerCase());
+            if (despesasPorMes[monthYear] !== undefined) {
+                despesasPorMes[monthYear] += item.total;
+            } else {
+                despesasPorMes[monthYear] = item.total; // Inicializa se não existir
+            }
         }
     });
 
@@ -1233,14 +1243,20 @@ function openReportModal() {
     receitas.forEach(item => {
         const itemDate = parseDate(item.whenPay);
         if (itemDate >= startDate && itemDate <= endDate) {
-            // Formata o mês diretamente
-            const monthYear = itemDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toLowerCase());
-            receitasPorMes[monthYear] += item.total;
+            // Formata o mês diretamente, garantindo UTC
+            const monthYear = itemDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).replace(/^\w/, c => c.toLowerCase());
+            if (receitasPorMes[monthYear] !== undefined) {
+                receitasPorMes[monthYear] += item.total;
+            } else {
+                receitasPorMes[monthYear] = item.total; // Inicializa se não existir
+            }
         }
     });
 
     // Formata valores para exibição
-    const formatCurrency = (value) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const formatCurrency = (value) => {
+        return (value ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    };
 
     // Gera a tabela HTML
     let html = `
