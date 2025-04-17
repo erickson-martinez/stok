@@ -384,12 +384,13 @@ header {
     background-color: #fff;
     border-radius: 8px;
     margin-top: 20px;
+    height: 100%;
 }
 
 .card-border {
     border-left: 5px solid #6f42c1;
-    padding: 15px;
     border-radius: 0 8px 8px 0;
+    height: 92%;
 }
 
 .card-header {
@@ -410,7 +411,7 @@ header {
 
 .card-content {
     padding: 15px;
-    max-height: 300px;
+    max-height: 90%;
     overflow-y: auto;
 }
 
