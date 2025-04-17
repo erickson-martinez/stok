@@ -829,8 +829,10 @@ async function saveValuesItem() {
 
     if (currentType === "receita") {
         const findReceitas = receitas.find(item => item.id === idItemExpense);
-        const newTotal = paid ? findReceitas.total : findReceitas.total + valor;
-        const newTotalPaid = paid ? findReceitas.totalPaid + valor : findReceitas.totalPaid;
+        // Soma o novo valor ao total existente
+        const newTotal = findReceitas.total + valor;
+        // Atualiza totalPaid apenas se o item estiver marcado como pago
+        const newTotalPaid = paid ? (findReceitas.totalPaid || 0) + valor : findReceitas.totalPaid || 0;
 
         const item = {
             _id: findReceitas.id,
@@ -852,12 +854,15 @@ async function saveValuesItem() {
         }
     } else {
         const findDespesas = despesas.find(item => item.id === idItemExpense);
-        const newTotalPaid = notify ? findDespesas.totalPaid + valor : findDespesas.totalPaid;
+        // Soma o novo valor ao total existente
+        const newTotal = findDespesas.total + valor;
+        // Atualiza totalPaid apenas se notify for true
+        const newTotalPaid = notify ? (findDespesas.totalPaid || 0) + valor : findDespesas.totalPaid || 0;
 
         const item = {
             _id: findDespesas.id,
             name: findDespesas.name,
-            total: findDespesas.total,
+            total: newTotal,
             totalPaid: newTotalPaid,
             whenPay: findDespesas.whenPay,
             paid: findDespesas.paid,
