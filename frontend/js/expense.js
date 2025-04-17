@@ -545,6 +545,15 @@ async function checkDebtorPhone() {
     }
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+    const checkbox = document.getElementById('modalDebtorCheckbox');
+    const phoneContainer = document.getElementById('debtorPhoneContainer');
+
+    checkbox.addEventListener('change', () => {
+        phoneContainer.style.display = checkbox.checked ? 'block' : 'none';
+    });
+});
+
 // Modifique a função saveItem para lidar com a vinculação
 async function saveItem() {
     const currentUser = JSON.parse(localStorage.getItem("currentUser"));

@@ -7,7 +7,6 @@ import dotenv from "dotenv"; // Supondo que você tenha um arquivo de utilitári
 
 dotenv.config();
 import { ExpenseRequest } from '../interfaces/expense';
-import { is } from 'cypress/types/bluebird';
 
 // Carrega a ENCRYPTION_KEY do .env
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;

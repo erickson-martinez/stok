@@ -1,50 +1,6 @@
 let books = [];
 let currentBookId = null;
 
-function checkAuthAndLoadUser() {
-    const storedUser = localStorage.getItem("currentUser");
-    if (!storedUser) {
-        window.location.href = "../login.html";
-        return;
-    }
-
-    const currentUser = JSON.parse(storedUser);
-    document.getElementById("userInitials").textContent = getInitials(currentUser.name);
-    document.getElementById("userFullName").textContent = currentUser.name;
-    document.getElementById("userPhone").textContent = currentUser.phone;
-
-    loadSidebarMenu();
-    setupUserEvents();
-}
-
-function setupUserEvents() {
-    const userInitialsDiv = document.getElementById("userInitials");
-    const userModal = document.getElementById("userModal");
-    const logoutButton = document.getElementById("logout");
-    const openSidebarButton = document.getElementById("openSidebar");
-    const closeSidebarButton = document.getElementById("closeSidebar");
-    const sidebar = document.getElementById("sidebar");
-
-    if (!userInitialsDiv || !userModal || !logoutButton || !openSidebarButton || !closeSidebarButton || !sidebar) return;
-
-    userInitialsDiv.addEventListener("click", () => userModal.classList.toggle("active"));
-    document.addEventListener("click", (event) => {
-        if (!userModal.contains(event.target) && !userInitialsDiv.contains(event.target)) {
-            userModal.classList.remove("active");
-        }
-    });
-    logoutButton.addEventListener("click", () => {
-        localStorage.removeItem("currentUser");
-        window.location.href = "../login.html";
-    });
-    openSidebarButton.addEventListener("click", () => sidebar.classList.add("active"));
-    closeSidebarButton.addEventListener("click", () => sidebar.classList.remove("active"));
-    document.addEventListener("click", (event) => {
-        if (!sidebar.contains(event.target) && !openSidebarButton.contains(event.target)) {
-            sidebar.classList.remove("active");
-        }
-    });
-}
 
 async function fetchBooks() {
     const storedUser = localStorage.getItem("currentUser");

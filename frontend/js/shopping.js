@@ -6,22 +6,6 @@ let shoppingLists = [];
 let currentListId = null;
 let editingProductId = null;
 
-function checkAuthAndLoadUser() {
-    const storedUser = localStorage.getItem("currentUser");
-    if (!storedUser) {
-        window.location.href = "../login.html";
-        return;
-    }
-
-    const currentUser = JSON.parse(storedUser);
-    document.getElementById("userInitials").textContent = getInitials(currentUser.name);
-    document.getElementById("userFullName").textContent = currentUser.name;
-    document.getElementById("userPhone").textContent = currentUser.phone;
-
-    loadSidebarMenu();
-    setupUserEvents();
-}
-
 document.getElementById('marketSelectAdd').addEventListener('change', function () {
     const marketId = this.value;
     const market = markets.find(m => m._id === marketId);

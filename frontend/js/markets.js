@@ -2,24 +2,6 @@
 let markets = [];
 let editingId = null;
 
-
-
-function checkAuthAndLoadUser() {
-    const storedUser = localStorage.getItem("currentUser");
-    if (!storedUser) {
-        window.location.href = "../login.html";
-        return;
-    }
-
-    const currentUser = JSON.parse(storedUser);
-    document.getElementById("userInitials").textContent = getInitials(currentUser.name);
-    document.getElementById("userFullName").textContent = currentUser.name;
-    document.getElementById("userPhone").textContent = currentUser.phone;
-
-    loadSidebarMenu();
-    setupUserEvents();
-}
-
 async function fetchMarkets() {
     try {
         const response = await fetch(`${API_URL}/markets`);

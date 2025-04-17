@@ -1,4 +1,4 @@
-const API_URL = true ? "https://stok-5ytv.onrender.com" : "http://192.168.1.67:3000";
+const API_URL = false ? "https://stok-5ytv.onrender.com" : "http://192.168.1.67:3000";
 
 const menuItems = [
     { name: "Home", route: "./home.html" },
@@ -20,6 +20,61 @@ function getInitials(name) {
 // Função para obter data em formato ISO
 function getISOTime(date) {
     return date.toISOString();
+}
+
+function setupUserEvents() {
+    if (!userInitialsDiv) return;
+
+    userInitialsDiv.addEventListener("click", () => {
+        userModal.classList.toggle("active");
+    });
+
+    document.addEventListener("click", (event) => {
+        if (!userModal.contains(event.target) && !userInitialsDiv.contains(event.target)) {
+            userModal.classList.remove("active");
+        }
+    });
+
+    if (logoutButton) {
+        logoutButton.addEventListener("click", () => {
+            localStorage.removeItem("currentUser");
+            window.location.href = "../login.html";
+        });
+    }
+
+    if (openSidebarButton) {
+        openSidebarButton.addEventListener("click", () => {
+            sidebar.classList.add("active");
+        });
+    }
+
+    if (closeSidebarButton) {
+        closeSidebarButton.addEventListener("click", () => {
+            sidebar.classList.remove("active");
+        });
+    }
+
+    document.addEventListener("click", (event) => {
+        if (!sidebar.contains(event.target) && !openSidebarButton.contains(event.target)) {
+            sidebar.classList.remove("active");
+        }
+    });
+}
+
+function checkAuthAndLoadUser() {
+    const storedUser = localStorage.getItem("currentUser");
+    if (!storedUser) {
+        window.location.href = "../login.html";
+        return;
+    }
+
+    const currentUser = JSON.parse(storedUser);
+    document.getElementById("userInitials").textContent = getInitials(currentUser.name);
+    document.getElementById("userFullName").textContent = currentUser.name;
+    document.getElementById("userPhone").textContent = currentUser.phone;
+
+    loadSidebarMenu();
+    setupUserEvents();
 }
 
 // Carregar menu da sidebar
@@ -134,6 +189,35 @@ function initializeUserInterface() {
         }
 
         if (!sidebar.contains(event.target) && !newOpenSidebarButton.contains(event.target)) {
+            sidebar.classList.remove("active");
+        }
+    });
+}
+
+function setupUserEvents() {
+    const userInitialsDiv = document.getElementById("userInitials");
+    const userModal = document.getElementById("userModal");
+    const logoutButton = document.getElementById("logout");
+    const openSidebarButton = document.getElementById("openSidebar");
+    const closeSidebarButton = document.getElementById("closeSidebar");
+    const sidebar = document.getElementById("sidebar");
+
+    if (!userInitialsDiv || !userModal || !logoutButton || !openSidebarButton || !closeSidebarButton || !sidebar) return;
+
+    userInitialsDiv.addEventListener("click", () => userModal.classList.toggle("active"));
+    document.addEventListener("click", (event) => {
+        if (!userModal.contains(event.target) && !userInitialsDiv.contains(event.target)) {
+            userModal.classList.remove("active");
+        }
+    });
+    logoutButton.addEventListener("click", () => {
+        localStorage.removeItem("currentUser");
+        window.location.href = "../login.html";
+    });
+    openSidebarButton.addEventListener("click", () => sidebar.classList.add("active"));
+    closeSidebarButton.addEventListener("click", () => sidebar.classList.remove("active"));
+    document.addEventListener("click", (event) => {
+        if (!sidebar.contains(event.target) && !openSidebarButton.contains(event.target)) {
             sidebar.classList.remove("active");
         }
     });
