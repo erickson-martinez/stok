@@ -1,11 +1,3 @@
-function loadFinances() {
-    // Inicializar interface comum
-    initializeUserInterface();
-
-    // Carregar dados financeiros
-    fetchMonthData();
-    updateMonth();
-}
 
 let currentDate = new Date();
 let currentType = '';
@@ -16,6 +8,15 @@ let totalReceitas;
 let totalDespesas;
 const receitas = [];
 const despesas = [];
+
+function loadFinances() {
+    // Inicializar interface comum
+    initializeUserInterface();
+
+    // Carregar dados financeiros
+    fetchMonthData();
+    updateMonth();
+}
 
 function formatMonth(date) {
     return date.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c);
@@ -217,6 +218,150 @@ function openActionModal(action, type, item = null) {
     modal.style.display = "block";
 }
 
+function openActionModalItem(type, id) {
+    const action = "add";
+    currentType = type;
+    idItemExpense = id;
+
+    const modal = document.getElementById("actionModalItem");
+    const modalTitle = document.getElementById("modalTitleItem");
+    const modalButtons = document.getElementById("modalButtonsItem");
+    const titlePrefix = type === "receita" ? "Receita" : "Despesa";
+    const paidCheckbox = document.getElementById("modalPaidItem");
+    const notifyCheckbox = document.getElementById("modalNotifyItem");
+    const cobradorReceitasSelect = document.getElementById("cobradorReceitasSelect");
+
+    modalTitle.textContent = `Nova ${titlePrefix}`;
+
+    // Limpar campos
+    document.getElementById("modalNomeItem").value = "";
+    document.getElementById("modalValorItem").value = "";
+    paidCheckbox.checked = false;
+    notifyCheckbox.checked = false;
+
+    // Se for despesa (devedor), carregar receitas do cobrador
+    if (type === "despesa") {
+        const despesa = despesas.find(item => item.id === id);
+        if (despesa?.idOrigem) {
+            fetchCobradorReceitas(despesa.idOrigem, cobradorReceitasSelect);
+            cobradorReceitasSelect.style.display = "block";
+            paidCheckbox.disabled = true; // Devedor não pode marcar paid
+            notifyCheckbox.style.display = "block";
+        } else {
+            cobradorReceitasSelect.style.display = "none";
+            notifyCheckbox.style.display = "none";
+        }
+    } else {
+        cobradorReceitasSelect.style.display = "none";
+        paidCheckbox.disabled = false; // Cobrador pode marcar paid
+        notifyCheckbox.style.display = "none";
+    }
+
+    modalButtons.innerHTML = `
+        <button class="btn-secundary" onclick="closeModalItem()">Cancelar</button>
+        <button class="btn" onclick="saveValuesItem()">Salvar</button>
+    `;
+
+    modal.style.display = "block";
+    document.querySelectorAll(".options-menu").forEach(menu => menu.remove());
+}
+
+async function fetchCobradorReceitas(cobradorId, selectElement) {
+    try {
+        const response = await fetch(`${API_URL}/expenses/${cobradorId}`);
+        if (!response.ok) throw new Error("Erro ao carregar receitas do cobrador");
+        const expenseData = await response.json();
+        selectElement.innerHTML = '<option value="">Selecione uma receita</option>';
+        expenseData.receitas.forEach(receita => {
+            selectElement.innerHTML += `
+                <option value="${receita._id}">${receita.name} - ${receita.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</option>
+            `;
+        });
+    } catch (err) {
+        console.error('Erro em fetchCobradorReceitas:', err);
+        selectElement.innerHTML = '<option value="">Erro ao carregar receitas</option>';
+    }
+}
+
+function renderInternalItems(values) {
+    const internalItemsList = document.getElementById("internalItemsList");
+    internalItemsList.innerHTML = values.length ? values.map((v, index) => `
+        <div class="internal-item">
+            <input type="text" value="${v.name}" data-index="${index}" class="internal-name">
+            <input type="number" value="${v.value}" step="0.01" data-index="${index}" class="internal-value">
+            <button class="btn delete-internal" onclick="removeInternalItem(${index})">✖</button>
+        </div>
+    `).join("") : "<p>Nenhum item interno cadastrado</p>";
+}
+
+function addInternalItem() {
+    const internalItemsList = document.getElementById("internalItemsList");
+    const items = Array.from(internalItemsList.querySelectorAll(".internal-item"));
+    const newItem = document.createElement("div");
+    newItem.className = "internal-item";
+    newItem.innerHTML = `
+        <input type="text" placeholder="Nome" data-index="${items.length}" class="internal-name">
+        <input type="number" placeholder="Valor" step="0.01" data-index="${items.length}" class="internal-value">
+        <button class="btn delete-internal" onclick="removeInternalItem(${items.length})">✖</button>
+    `;
+    internalItemsList.appendChild(newItem);
+    if (items.length === 1 && internalItemsList.querySelector("p")) {
+        internalItemsList.innerHTML = "";
+        internalItemsList.appendChild(newItem);
+    }
+}
+
+function removeInternalItem(index) {
+    const internalItemsList = document.getElementById("internalItemsList");
+    const items = internalItemsList.querySelectorAll(".internal-item");
+    if (items[index]) items[index].remove();
+    if (!internalItemsList.querySelector(".internal-item")) {
+        internalItemsList.innerHTML = "<p>Nenhum item interno cadastrado</p>";
+    }
+}
+
+function closeModal() {
+    document.getElementById("actionModal").style.display = "none";
+    document.getElementById("shareModal").style.display = "none";
+}
+
+function closeModalItem() {
+    document.getElementById("actionModalItem").style.display = "none";
+}
+
+// Adicione esta função para verificar o telefone do devedor
+async function checkDebtorPhone() {
+    const phone = document.getElementById('modalDebtorPhone').value;
+    if (!phone) {
+        document.getElementById('debtorInfo').style.display = 'none';
+        return null;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/users/${phone}`);
+        if (!response.ok) throw new Error('Usuário não encontrado');
+
+        const user = await response.json();
+        document.getElementById('debtorInfo').textContent = `Devedor: ${user.name}`;
+        document.getElementById('debtorInfo').style.display = 'block';
+        return user._id;
+    } catch (error) {
+        document.getElementById('debtorInfo').textContent = 'Usuário não encontrado';
+        document.getElementById('debtorInfo').style.color = 'red';
+        document.getElementById('debtorInfo').style.display = 'block';
+        return null;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const checkbox = document.getElementById('modalDebtorCheckbox');
+    const phoneContainer = document.getElementById('debtorPhoneContainer');
+
+    checkbox.addEventListener('change', () => {
+        phoneContainer.style.display = checkbox.checked ? 'block' : 'none';
+    });
+});
+
 async function saveItem() {
     const currentUser = JSON.parse(localStorage.getItem("currentUser"));
     const idUser = currentUser.idUser;
@@ -408,348 +553,6 @@ async function saveItem() {
     }
 }
 
-function openActionModalItem(type, id) {
-    const action = "add";
-    currentType = type;
-    idItemExpense = id;
-
-    const modal = document.getElementById("actionModalItem");
-    const modalTitle = document.getElementById("modalTitleItem");
-    const modalButtons = document.getElementById("modalButtonsItem");
-    const titlePrefix = type === "receita" ? "Receita" : "Despesa";
-    const paidCheckbox = document.getElementById("modalPaidItem");
-    const notifyCheckbox = document.getElementById("modalNotifyItem");
-    const cobradorReceitasSelect = document.getElementById("cobradorReceitasSelect");
-
-    modalTitle.textContent = `Nova ${titlePrefix}`;
-
-    // Limpar campos
-    document.getElementById("modalNomeItem").value = "";
-    document.getElementById("modalValorItem").value = "";
-    paidCheckbox.checked = false;
-    notifyCheckbox.checked = false;
-
-    // Se for despesa (devedor), carregar receitas do cobrador
-    if (type === "despesa") {
-        const despesa = despesas.find(item => item.id === id);
-        if (despesa?.idOrigem) {
-            fetchCobradorReceitas(despesa.idOrigem, cobradorReceitasSelect);
-            cobradorReceitasSelect.style.display = "block";
-            paidCheckbox.disabled = true; // Devedor não pode marcar paid
-            notifyCheckbox.style.display = "block";
-        } else {
-            cobradorReceitasSelect.style.display = "none";
-            notifyCheckbox.style.display = "none";
-        }
-    } else {
-        cobradorReceitasSelect.style.display = "none";
-        paidCheckbox.disabled = false; // Cobrador pode marcar paid
-        notifyCheckbox.style.display = "none";
-    }
-
-    modalButtons.innerHTML = `
-        <button class="btn-secundary" onclick="closeModalItem()">Cancelar</button>
-        <button class="btn" onclick="saveValuesItem()">Salvar</button>
-    `;
-
-    modal.style.display = "block";
-    document.querySelectorAll(".options-menu").forEach(menu => menu.remove());
-}
-
-async function fetchCobradorReceitas(cobradorId, selectElement) {
-    try {
-        const response = await fetch(`${API_URL}/expenses/${cobradorId}`);
-        if (!response.ok) throw new Error("Erro ao carregar receitas do cobrador");
-        const expenseData = await response.json();
-        selectElement.innerHTML = '<option value="">Selecione uma receita</option>';
-        expenseData.receitas.forEach(receita => {
-            selectElement.innerHTML += `
-                <option value="${receita._id}">${receita.name} - ${receita.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</option>
-            `;
-        });
-    } catch (err) {
-        console.error('Erro em fetchCobradorReceitas:', err);
-        selectElement.innerHTML = '<option value="">Erro ao carregar receitas</option>';
-    }
-}
-
-function renderInternalItems(values) {
-    const internalItemsList = document.getElementById("internalItemsList");
-    internalItemsList.innerHTML = values.length ? values.map((v, index) => `
-        <div class="internal-item">
-            <input type="text" value="${v.name}" data-index="${index}" class="internal-name">
-            <input type="number" value="${v.value}" step="0.01" data-index="${index}" class="internal-value">
-            <button class="btn delete-internal" onclick="removeInternalItem(${index})">✖</button>
-        </div>
-    `).join("") : "<p>Nenhum item interno cadastrado</p>";
-}
-
-function addInternalItem() {
-    const internalItemsList = document.getElementById("internalItemsList");
-    const items = Array.from(internalItemsList.querySelectorAll(".internal-item"));
-    const newItem = document.createElement("div");
-    newItem.className = "internal-item";
-    newItem.innerHTML = `
-        <input type="text" placeholder="Nome" data-index="${items.length}" class="internal-name">
-        <input type="number" placeholder="Valor" step="0.01" data-index="${items.length}" class="internal-value">
-        <button class="btn delete-internal" onclick="removeInternalItem(${items.length})">✖</button>
-    `;
-    internalItemsList.appendChild(newItem);
-    if (items.length === 1 && internalItemsList.querySelector("p")) {
-        internalItemsList.innerHTML = "";
-        internalItemsList.appendChild(newItem);
-    }
-}
-
-function removeInternalItem(index) {
-    const internalItemsList = document.getElementById("internalItemsList");
-    const items = internalItemsList.querySelectorAll(".internal-item");
-    if (items[index]) items[index].remove();
-    if (!internalItemsList.querySelector(".internal-item")) {
-        internalItemsList.innerHTML = "<p>Nenhum item interno cadastrado</p>";
-    }
-}
-
-function closeModal() {
-    document.getElementById("actionModal").style.display = "none";
-    document.getElementById("shareModal").style.display = "none";
-}
-
-function closeModalItem() {
-    document.getElementById("actionModalItem").style.display = "none";
-}
-
-
-
-// Adicione esta função para verificar o telefone do devedor
-async function checkDebtorPhone() {
-    const phone = document.getElementById('modalDebtorPhone').value;
-    if (!phone) {
-        document.getElementById('debtorInfo').style.display = 'none';
-        return null;
-    }
-
-    try {
-        const response = await fetch(`${API_URL}/users/${phone}`);
-        if (!response.ok) throw new Error('Usuário não encontrado');
-
-        const user = await response.json();
-        document.getElementById('debtorInfo').textContent = `Devedor: ${user.name}`;
-        document.getElementById('debtorInfo').style.display = 'block';
-        return user._id;
-    } catch (error) {
-        document.getElementById('debtorInfo').textContent = 'Usuário não encontrado';
-        document.getElementById('debtorInfo').style.color = 'red';
-        document.getElementById('debtorInfo').style.display = 'block';
-        return null;
-    }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    const checkbox = document.getElementById('modalDebtorCheckbox');
-    const phoneContainer = document.getElementById('debtorPhoneContainer');
-
-    checkbox.addEventListener('change', () => {
-        phoneContainer.style.display = checkbox.checked ? 'block' : 'none';
-    });
-});
-
-// Modifique a função saveItem para lidar com a vinculação
-async function saveItem() {
-    const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-    const idUser = currentUser.idUser;
-    const nome = document.getElementById("modalNome").value;
-    const valor = parseFloat(document.getElementById("modalValor").value) || 0;
-    const data = document.getElementById("modalData").value;
-    const paid = document.getElementById("modalPaid").checked;
-    const isRecurring = document.getElementById("modalRecurring").checked;
-    const recurringMonths = parseInt(document.getElementById("modalRecurringMonths").value) || 1;
-
-    // Só obtém o telefone do devedor se for uma receita
-    const debtorPhone = currentType === "receita" ? document.getElementById("modalDebtorPhone").value : null;
-    const isLinkedReceita = currentType === "receita" && debtorPhone;
-
-    if (!nome || valor <= 0 || !data) {
-        alert("Por favor, preencha todos os campos obrigatórios.");
-        return;
-    }
-
-    // Verifica o devedor se for uma receita vinculada
-    let debtorId = null;
-    if (isLinkedReceita) {
-        try {
-            const response = await fetch(`${API_URL}/users/${debtorPhone}`);
-            if (!response.ok) throw new Error('Usuário não encontrado');
-
-            const user = await response.json();
-            debtorId = user._id;
-        } catch (error) {
-            alert("Por favor, insira um telefone válido para o devedor.");
-            return;
-        }
-    }
-
-    const [year, month, day] = data.split("-");
-    const baseDate = new Date(year, month - 1, day);
-
-    let payload;
-
-    if (editingId) {
-        // Modo edição
-        const whenPay = `${year}/${month}/${day}`;
-        const item = {
-            _id: editingId,
-            name: nome,
-            total: valor,
-            idDebts: debtorId,
-            whenPay: whenPay,
-            paid: paid,
-            values: [{
-                name: nome,
-                value: valor
-            }]
-        };
-
-        if (isLinkedReceita) {
-            item.isDebt = true;
-            item.totalPaid = 0;
-        }
-
-        payload = {
-            idUser,
-            [currentType === "receita" ? "receitas" : "despesas"]: [item]
-        };
-
-
-    } else {
-        // Modo adição
-        const items = [];
-        const totalMonths = isRecurring ? parseInt(recurringMonths) : 1;
-
-        for (let i = 0; i < totalMonths; i++) {
-            const currentDate = new Date(baseDate);
-            currentDate.setMonth(baseDate.getMonth() + i);
-            const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
-            currentDate.setDate(Math.min(parseInt(day), lastDayOfMonth));
-
-            const formattedDate = `${currentDate.getFullYear()}/${String(currentDate.getMonth() + 1).padStart(2, '0')}/${String(currentDate.getDate()).padStart(2, '0')}`;
-            const itemName = i === 0 ? nome : incrementName(nome, i);
-
-            const item = {
-                name: itemName,
-                total: parseFloat(valor),
-                idDebts: debtorId,
-                isDebt: debtorId ? true : false,
-                whenPay: formattedDate,
-                paid: i === 0 ? paid : false,
-                isRecurring: isRecurring && i === 0, // Marca apenas o primeiro como recorrente
-                recurringMonths: isRecurring && i === 0 ? parseInt(recurringMonths) : undefined,
-                values: [{ name: itemName, value: parseFloat(valor) }]
-            };
-
-            if (isLinkedReceita && i === 0) {
-                item.isDebt = true;
-                item.totalPaid = 0;
-            }
-
-            items.push(item);
-        }
-
-        payload = {
-            idUser,
-            [currentType === "receita" ? "receitas" : "despesas"]: items
-        };
-
-        // Se for uma receita vinculada, cria também a despesa correspondente
-        if (isLinkedReceita) {
-            try {
-                // Primeiro cria a receita para obter o ID
-                const receitaResponse = await fetch(`${API_URL}/expenses`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload),
-                });
-
-                if (!receitaResponse.ok) throw new Error("Erro ao criar receita");
-
-                await receitaResponse.json();
-
-                // Cria as despesas correspondentes para o devedor, considerando a recorrência
-                const despesaItems = [];
-                for (let i = 0; i < totalMonths; i++) {
-                    const currentDate = new Date(baseDate);
-                    currentDate.setMonth(baseDate.getMonth() + i);
-                    const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
-                    currentDate.setDate(Math.min(parseInt(day), lastDayOfMonth));
-
-                    const formattedDate = `${currentDate.getFullYear()}/${String(currentDate.getMonth() + 1).padStart(2, '0')}/${String(currentDate.getDate()).padStart(2, '0')}`;
-                    const itemName = i === 0 ? nome : incrementName(nome, i);
-
-                    const despesaItem = {
-                        name: itemName,
-                        total: parseFloat(valor),
-                        whenPay: formattedDate,
-                        paid: false,
-                        idOrigem: idUser,
-                        isDebts: idUser ? true : false,
-                        notify: false,
-                        totalPaid: 0,
-                        values: [{
-                            name: itemName,
-                            value: parseFloat(valor),
-                            notify: false
-                        }],
-                        isRecurring: isRecurring && i === 0,
-                        recurringMonths: isRecurring && i === 0 ? parseInt(recurringMonths) : undefined
-                    };
-
-
-                    despesaItems.push(despesaItem);
-                }
-
-                const despesaPayload = {
-                    idUser: debtorId,
-                    despesas: despesaItems
-                };
-
-                await fetch(`${API_URL}/expenses`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(despesaPayload),
-                });
-
-                await fetchMonthData();
-                closeModal();
-                return;
-            } catch (err) {
-                console.error(err);
-                alert("Erro ao vincular receita/despesa: " + err.message);
-                return;
-            }
-        }
-    }
-
-    try {
-        const method = editingId ? "PATCH" : "POST";
-        const response = await fetch(`${API_URL}/expenses`, {
-            method,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-        });
-
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Erro ao salvar item: ${response.statusText} - ${errorText}`);
-        }
-
-        await fetchMonthData();
-        closeModal();
-    } catch (err) {
-        console.error(err);
-        alert(err.message);
-    }
-}
 // Adicione esta função para atualizar o status de pagamento
 async function updatePaymentStatus(itemId, type, isPaid, isDebtor = false) {
     const currentUser = JSON.parse(localStorage.getItem("currentUser"));
@@ -1051,58 +854,6 @@ document.addEventListener('DOMContentLoaded', () => {
         loadFinances();
     }
 });
-
-function showOptions(event, id) {
-    event.stopPropagation();
-    event.preventDefault();
-
-    const existingMenus = document.querySelectorAll('.options-menu');
-    existingMenus.forEach(menu => menu.remove());
-
-    const trigger = event.target.closest('.options-trigger') || event.target;
-    const type = trigger.getAttribute('data-type');
-    currentType = type;
-
-    const isInternal = trigger.hasAttribute('data-internal');
-
-    const optionsMenu = document.createElement('div');
-    optionsMenu.className = 'options-menu';
-    optionsMenu.style.position = 'absolute';
-    optionsMenu.style.zIndex = '1000';
-    optionsMenu.style.background = 'white';
-    optionsMenu.style.border = '1px solid #ccc';
-    optionsMenu.style.padding = '5px';
-    optionsMenu.style.borderRadius = '4px';
-
-    if (isInternal) {
-        optionsMenu.innerHTML = `
-            <button onclick="openViewItemModal('${type}', '${id}')">Visualizar</button>
-            <button onclick="openEditItemModal('edit','${type}', '${id}')">Editar</button>
-            <button onclick="openEditItemModal('delete','${type}','${id}')">Deletar</button>
-        `;
-    } else {
-        optionsMenu.innerHTML = `
-            <button onclick="openActionModalItem('${type}', '${id}')">+ ${type === 'receita' ? 'Receita' : 'Despesa'}</button>
-            <button onclick="openActionModal('view', '${type}', getItemById('${id}'))">Visualizar</button>
-            <button onclick="openActionModal('edit', '${type}', getItemById('${id}'))">Editar</button>
-            <button onclick="openActionModal('delete', '${type}', getItemById('${id}'))">Deletar</button>
-        `;
-    }
-
-    trigger.appendChild(optionsMenu);
-
-    // Posicionamento dinâmico
-    const rect = trigger.getBoundingClientRect();
-    optionsMenu.style.top = `${rect.bottom + window.scrollY}px`;
-    optionsMenu.style.left = `${rect.left + window.scrollX}px`;
-
-    document.addEventListener('click', function closeMenu(e) {
-        if (!optionsMenu.contains(e.target)) {
-            optionsMenu.remove();
-            document.removeEventListener('click', closeMenu);
-        }
-    }, { once: true });
-}
 
 // Adicione estas novas funções para lidar com pagamentos
 async function notifyPayment(itemId, valueId) {

@@ -184,39 +184,14 @@
     font-weight: bold;
 }
 
-/* Accordion */
-.accordion {
-    margin-bottom: 10px;
+#paid {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
 }
 
-.accordion-toggle {
-    font-size: 1.2em;
-    color: #555;
-    cursor: pointer;
-    padding: 0 8px;
-    transition: color 0.3s ease;
-    /* Transição suave para a cor */
-}
-
-.accordion-toggle:hover {
-    color: #333;
-    /* Cor mais escura no hover */
-}
-
-.accordion-toggle i {
-    transition: transform 0.3s ease;
-}
-
-.accordion-toggle.open i {
-    transform: rotate(180deg);
-}
-
-.accordion-content {
-    display: none;
-    padding: 0;
-    background-color: #fff;
-    border: 1px solid #eee;
-    border-top: none;
+#paid input {
+    margin: 0px;
 }
 
 /* List Items */
@@ -262,18 +237,6 @@
     text-align: right;
     margin-right: 10px;
 }
-
-
-
-
-
-.modal-buttons {
-    display: flex;
-    justify-content: space-between;
-    padding-top: 10px;
-}
-
-
 
 .shared-badge {
     margin-right: 5px;
@@ -335,12 +298,6 @@
     border: 1px solid #ddd;
     border-radius: 4px;
     box-sizing: border-box;
-}
-
-.modal-buttons {
-    display: flex;
-    justify-content: space-between;
-    padding-top: 10px;
 }
 
 /* Report Table */
