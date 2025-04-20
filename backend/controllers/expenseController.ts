@@ -124,6 +124,7 @@ const expenseController = {
                     idDespesa: receita.idDespesa,
                     whenPay: new Date(receita.whenPay),
                     total: receita.total,
+                    totalPaid: receita.totalPaid,
                     paid: receita.paid,
                     values: receita.values || []
                 })));
@@ -151,6 +152,7 @@ const expenseController = {
                         whenPay: new Date(despesa.whenPay),
                         isDebt: despesa.isDebt,
                         total: despesa.total,
+                        totalPaid: despesa.totalPaid,
                         paid: despesa.paid,
                         values: despesa.values || []
                     })
@@ -354,7 +356,6 @@ const expenseController = {
             // Atualiza o idDespesa
             receita.idDespesa = idDespesa;
 
-            console.log(expense)
             expense.updateAt = new Date();
 
             await expense.save();

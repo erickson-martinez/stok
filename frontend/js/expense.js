@@ -4,8 +4,10 @@ let currentType = '';
 let editingId = null;
 let idExpense = null;
 let idItemExpense = null;
-let totalReceitas;
-let totalDespesas;
+let totalReceber;
+let totalPago;
+let totalRecebido;
+let totalPagar;
 const receitas = [];
 const despesas = [];
 
@@ -190,7 +192,6 @@ function openActionModal(action, type, item = null) {
 
     const isEditable = (action === "add" || action === "edit") && !item?.shared;
     [nome, valor, data, debtorPhone, recurring, recurringMonths].forEach(input => input.disabled = !isEditable);
-    paid.disabled = !isEditable || type === "despesa"; // Desabilita paid para despesas
 
     // Define a exibição inicial do recurringMonthsGroup
     recurringMonthsGroup.style.display = recurring.checked ? "block" : "none";
@@ -418,9 +419,10 @@ async function saveItem() {
         const item = {
             _id: editingId,
             name: nome,
-            total: valor,
+            total: paid ? 0 : valor,
             whenPay: whenPay,
             paid: paid,
+            totalPaid: paid ? valor : 0,
             isRecurring: isRecurring,
             recurringMonths: isRecurring ? recurringMonths : undefined,
             values: [{ name: nome, value: valor }]
@@ -453,19 +455,16 @@ async function saveItem() {
 
             const item = {
                 name: itemName,
-                total: parseFloat(valor),
+                total: i === 0 && paid ? 0 : parseFloat(valor),
                 idDebts: debtorId,
                 isDebt: debtorId !== null ? true : false,
                 whenPay: formattedDate,
+                totalPaid: i === 0 && paid ? parseFloat(valor) : 0,
                 paid: i === 0 ? paid : false,
                 isRecurring: isRecurring && i === 0,
                 recurringMonths: isRecurring && i === 0 ? parseInt(recurringMonths) : undefined,
                 values: [{ name: itemName, value: parseFloat(valor) }]
             };
-
-            if (isLinkedReceita && i === 0) {
-                item.totalPaid = 0;
-            }
 
             items.push(item);
         }
@@ -513,14 +512,14 @@ async function saveItem() {
 
                     const despesaItem = {
                         name: itemName,
-                        total: parseFloat(valor),
+                        total: i === 0 && paid ? 0 : parseFloat(valor),
                         whenPay: formattedDate,
-                        paid: false,
+                        paid: paid,
                         idOrigem: idUser,
                         isDebt: idUser ? true : false,
                         notify: false,
                         idReceita: itemName === receitaId[i].name ? receitaId[i].id : null,
-                        totalPaid: 0,
+                        totalPaid: i === 0 && paid ? parseFloat(valor) : 0,
                         values: [{
                             name: itemName,
                             value: parseFloat(valor),
@@ -679,10 +678,7 @@ async function saveValuesItem() {
 
     if (currentType === "receita") {
         const findReceitas = receitas.find(item => item.id === idItemExpense);
-
-        // Soma o novo valor ao total existente
-        const newTotal = findReceitas.total + valor;
-        // Atualiza totalPaid apenas se o item estiver marcado como pago
+        const newTotal = paid ? (findReceitas.total || 0) - valor : (findReceitas.total || 0) + valor;
         const newTotalPaid = paid ? (findReceitas.totalPaid || 0) + valor : findReceitas.totalPaid || 0;
 
         const item = {
@@ -699,7 +695,6 @@ async function saveValuesItem() {
         };
 
         payload = { idUser, receitas: [item] };
-
         // Se for receita vinculada, atualizar a despesa correspondente
         if (findReceitas.isDebt && findReceitas.idDebts) {
             await updateDespesaDevedor(findReceitas.idDebts, findReceitas.idDespesa, nome, valor, paid);
@@ -707,7 +702,7 @@ async function saveValuesItem() {
     } else {
         const findDespesas = despesas.find(item => item.id === idItemExpense);
         // Soma o novo valor ao total existente
-        const newTotal = findDespesas.total + valor;
+        const newTotal = paid ? findDespesas.total + valor : findDespesas.total - valor;
         // Atualiza totalPaid apenas se notify for true
         const newTotalPaid = notify ? (findDespesas.totalPaid || 0) + valor : findDespesas.totalPaid || 0;
 
@@ -788,12 +783,22 @@ async function updateReceitaCobrador(cobradorId, receitaId, name, paid, valor) {
 }
 
 async function updateDespesaDevedor(devedorId, idDespesa, name, valor, paid) {
+    console.log(devedorId, idDespesa, name, valor, paid);
     try {
         const response = await fetch(`${API_URL}/expenses/${devedorId}`);
         if (!response.ok) throw new Error("Erro ao buscar despesas do devedor");
         const expenseData = await response.json();
-        const despesa = expenseData.despesas.find(d => { console.log(idDespesa); console.log(d._id); return d._id === idDespesa });
-        console.log("despesa", despesa)
+        let despesa = expenseData.despesas.find(d => d._id === idDespesa);
+
+        console.log("depesa", despesa);
+        if (!despesa) {
+            despesa = expenseData.despesas[0]._id === idDespesa ? expenseData.despesas[0] : null;
+            console.log("depesaVazia", despesa);
+        }
+
+
+
+
         if (despesa) {
             const newTotal = paid ? despesa.total : despesa.total + valor;
             const newTotalPaid = paid ? despesa.totalPaid + valor : despesa.totalPaid;
@@ -836,14 +841,16 @@ function updateLists() {
     const receitasFiltradas = filterByMonth(receitas);
     const despesasFiltradas = filterByMonth(despesas);
 
-    totalReceitas = receitasFiltradas.reduce((sum, r) => sum + r.total, 0);
-    totalDespesas = despesasFiltradas.reduce((sum, d) => sum + d.total, 0);
+    totalRecebido = receitasFiltradas.reduce((sum, r) => sum + r.total, 0);
+    totalPagar = despesasFiltradas.reduce((sum, d) => sum + d.total, 0);
+    totalReceber = receitasFiltradas.reduce((sum, r) => sum + r.totalPaid, 0);
+    totalPago = despesasFiltradas.reduce((sum, d) => sum + d.totalPaid, 0);
     document.getElementById("receitasList").innerHTML = receitasFiltradas.length ?
-        receitasFiltradas.map(item => createListItem(item, "receita", totalReceitas)).join("") :
+        receitasFiltradas.map(item => createListItem(item, "receita", totalRecebido)).join("") :
         "<p>Nenhuma receita cadastrada</p>";
 
     document.getElementById("despesasList").innerHTML = despesasFiltradas.length ?
-        despesasFiltradas.map(item => createListItem(item, "despesa", totalDespesas)).join("") :
+        despesasFiltradas.map(item => createListItem(item, "despesa", totalPagar)).join("") :
         "<p>Nenhuma despesa cadastrada</p>";
 
     document.getElementById("receitasList").addEventListener("click", handleOptionsClick);
@@ -1186,8 +1193,8 @@ function calculateColors() {
         return parseInt(item.whenPay.split("/")[0]) === currentYear && parseInt(item.whenPay.split("/")[1]) === currentMonth;
     });
 
-    const saldoRestante = totalReceitas - totalDespesas;
-    const percentage = totalReceitas > 0 ? (totalDespesas / totalReceitas) * 100 : 0;
+    const saldoRestante = totalReceber - totalPago;
+    const percentage = totalRecebido > 0 ? (totalPagar / totalRecebido) * 100 : 0;
 
     let colorDespesa = percentage > 95 ? "#ff3333" : percentage > 75 ? "#ff9999" : percentage > 50 ? "#ffcc99" : "#ff9999";
     let colorReceita = percentage > 95 ? "#ff3333" : percentage > 75 ? "#ffff99" : percentage > 50 ? "#ffff99" : "#9cff99";
@@ -1196,8 +1203,10 @@ function calculateColors() {
     document.getElementById("border-despesas-card").style.borderColor = colorDespesa;
 
     const formatCurrency = (value) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    document.getElementById("totalDespesas").textContent = formatCurrency(totalDespesas);
+    document.getElementById("totalPagar").textContent = formatCurrency(totalPagar - totalPago < 0 ? 0 : totalPagar - totalPago);
+    document.getElementById("totalPago").textContent = formatCurrency(totalPago);
     document.getElementById("saldoRestante").textContent = formatCurrency(saldoRestante);
+    document.getElementById("saldoHaReceber").textContent = formatCurrency(totalRecebido);
     document.getElementById("saldoRestante").style.color = saldoRestante >= 0 ? "#2ecc71" : "#e74c3c";
 }
 
