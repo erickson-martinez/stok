@@ -7,6 +7,7 @@ import dotenv from "dotenv"; // Supondo que você tenha um arquivo de utilitári
 
 dotenv.config();
 import { ExpenseRequest } from '../interfaces/expense';
+import { is } from 'cypress/types/bluebird';
 
 // Carrega a ENCRYPTION_KEY do .env
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
@@ -119,6 +120,8 @@ const expenseController = {
                     _id: new mongoose.Types.ObjectId(), // Gera um _id único
                     name: receita.name,
                     idDebts: receita.idDebts,
+                    isDebt: receita.isDebt,
+                    idDespesa: receita.idDespesa,
                     whenPay: new Date(receita.whenPay),
                     total: receita.total,
                     paid: receita.paid,
@@ -144,6 +147,7 @@ const expenseController = {
                         _id: new mongoose.Types.ObjectId(), // Gera um _id único
                         name: despesa.name,
                         idOrigem: despesa.idOrigem,
+                        idReceita: despesa.idReceita,
                         whenPay: new Date(despesa.whenPay),
                         isDebt: despesa.isDebt,
                         total: despesa.total,
@@ -265,13 +269,14 @@ const expenseController = {
                         existingReceita.paid = newReceita.paid;
                         existingReceita.isDebt = newReceita.isDebt ?? existingReceita.isDebt;
                         existingReceita.idDebts = newReceita.idDebts ?? existingReceita.idDebts;
+                        existingReceita.idDespesa = newReceita.idDespesa ?? existingReceita.idDespesa;
 
                         // Atualiza os valores (values)
                         existingReceita.values = (newReceita.values ?? []).map((val) => ({
                             _id: val._id || new mongoose.Types.ObjectId(),
                             name: val.name,
                             value: Number(val.value), // Garante que value é número
-                            paid: val.paid ?? false,
+                            paid: val.paid,
                             notify: val.notify ?? false,
                         }));
 
@@ -296,17 +301,16 @@ const expenseController = {
                         existingDespesa.paid = newDespesa.paid;
                         existingDespesa.isDebt = newDespesa.isDebt ?? existingDespesa.isDebt;
                         existingDespesa.idOrigem = newDespesa.idOrigem ?? existingDespesa.idOrigem;
+                        existingDespesa.idReceita = newDespesa.idReceita ?? existingDespesa.idReceita;
 
                         // Atualiza os valores (values)
                         existingDespesa.values = (newDespesa.values ?? []).map((val) => ({
                             _id: val._id || new mongoose.Types.ObjectId(),
                             name: val.name,
                             value: Number(val.value), // Garante que value é número
-                            paid: false, // Devedor não pode marcar paid
+                            paid: val.paid,
                             notify: val.notify ?? false,
                         }));
-
-                        console.log(`Atualizando despesa ${newDespesa._id}: Novo total = ${newDespesa.total}`);
                     } else {
                         console.warn(`Despesa com ID ${newDespesa._id} não encontrada para atualização.`);
                     }
@@ -320,6 +324,44 @@ const expenseController = {
             res.json(expense);
         } catch (error: any) {
             console.error('Erro ao atualizar item:', error);
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    async updateReceitaDespesa(req: Request, res: Response): Promise<void> {
+        try {
+            const { idUser, idReceita, idDespesa } = req.body;
+            // Validação
+            if (!idUser || !idReceita || !idDespesa) {
+                res.status(400).json({ error: 'idUser, idReceita e idDespesa são obrigatórios' });
+                return;
+            }
+
+            // Busca o documento de despesas do usuário
+            const expense = await Expense.findOne({ idUser });
+            if (!expense) {
+                res.status(404).json({ error: 'Registro não encontrado' });
+                return;
+            }
+
+            // Encontra a receita específica
+            const receita = expense.receitas.find(r => r._id?.toString() === idReceita);
+            if (!receita) {
+                res.status(404).json({ error: 'Receita não encontrada' });
+                return;
+            }
+
+            // Atualiza o idDespesa
+            receita.idDespesa = idDespesa;
+
+            console.log(expense)
+            expense.updateAt = new Date();
+
+            await expense.save();
+
+            res.json({ success: true, message: 'Receita atualizada com sucesso' });
+        } catch (error: any) {
+            console.error('Erro ao atualizar receita:', error);
             res.status(500).json({ error: error.message });
         }
     },

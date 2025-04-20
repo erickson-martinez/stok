@@ -60,8 +60,13 @@ async function fetchMonthData() {
                         name: item.name,
                         total: item.total,
                         whenPay: item.whenPay,
+                        isDebt: item.isDebt,
+                        idDebts: item.idDebts,
+                        idDespesa: item.idDespesa,
                         paid: item.paid,
-                        values: item.values || [{ name: item.name, value: item.total }],
+                        totalPaid: item.totalPaid,
+                        notify: item.notify,
+                        values: item.values || [{ name: item.name, value: item.total, paid: item.paid, notify: item.notify }],
                         shared: isShared,
                         sharedBy: sharedBy
                     });
@@ -74,8 +79,13 @@ async function fetchMonthData() {
                     name: item.name,
                     total: item.total,
                     whenPay: item.whenPay,
+                    idOrigem: item.idOrigem,
+                    isDebt: item.isDebt,
+                    notify: item.notify,
+                    idReceita: item.idReceita,
+                    totalPaid: item.totalPaid,
                     paid: item.paid,
-                    values: item.values || [{ name: item.name, value: item.total }],
+                    values: item.values || [{ name: item.name, value: item.total, paid: item.paid, notify: item.notify }],
                     shared: isShared,
                     sharedBy: sharedBy
                 }));
@@ -429,6 +439,7 @@ async function saveItem() {
         // Modo adição
         const items = [];
         const totalMonths = isRecurring ? parseInt(recurringMonths) : 1;
+        const namasIncrementals = []
 
         for (let i = 0; i < totalMonths; i++) {
             const currentDate = new Date(baseDate);
@@ -438,12 +449,13 @@ async function saveItem() {
 
             const formattedDate = `${currentDate.getFullYear()}/${String(currentDate.getMonth() + 1).padStart(2, '0')}/${String(currentDate.getDate()).padStart(2, '0')}`;
             const itemName = i === 0 ? nome : incrementName(nome, i);
+            namasIncrementals.push(itemName);
 
             const item = {
                 name: itemName,
                 total: parseFloat(valor),
                 idDebts: debtorId,
-                isDebts: debtorId ? true : false,
+                isDebt: debtorId !== null ? true : false,
                 whenPay: formattedDate,
                 paid: i === 0 ? paid : false,
                 isRecurring: isRecurring && i === 0,
@@ -452,7 +464,6 @@ async function saveItem() {
             };
 
             if (isLinkedReceita && i === 0) {
-                item.isDebt = true;
                 item.totalPaid = 0;
             }
 
@@ -466,6 +477,7 @@ async function saveItem() {
 
         // Se for uma receita vinculada, cria também a despesa correspondente
         if (isLinkedReceita) {
+
             try {
                 // Primeiro cria a receita para obter o ID
                 const receitaResponse = await fetch(`${API_URL}/expenses`, {
@@ -473,10 +485,20 @@ async function saveItem() {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload),
                 });
-
                 if (!receitaResponse.ok) throw new Error("Erro ao criar receita");
+                let receitaId = [];
+                const receitaCobrador = await receitaResponse.json();
 
-                await receitaResponse.json();
+                for (i = 0; i < namasIncrementals.length; i++) {
+                    receitaCobrador.receitas.filter(receitaFind => {
+                        if (receitaFind.idDebts === debtorId && receitaFind.name === namasIncrementals[i]) {
+                            receitaFind.values.filter((receitafilter) => {
+                                if (receitafilter.name === namasIncrementals[i] && receitafilter.value === valor)
+                                    receitaId.push({ id: receitaFind._id, name: namasIncrementals[i] });
+                            });
+                        }
+                    })
+                }
 
                 // Cria as despesas correspondentes para o devedor, considerando a recorrência
                 const despesaItems = [];
@@ -495,8 +517,9 @@ async function saveItem() {
                         whenPay: formattedDate,
                         paid: false,
                         idOrigem: idUser,
-                        isDebts: idUser ? true : false,
+                        isDebt: idUser ? true : false,
                         notify: false,
+                        idReceita: itemName === receitaId[i].name ? receitaId[i].id : null,
                         totalPaid: 0,
                         values: [{
                             name: itemName,
@@ -515,12 +538,35 @@ async function saveItem() {
                     despesas: despesaItems
                 };
 
-                await fetch(`${API_URL}/expenses`, {
+
+                const despesaResponse = await fetch(`${API_URL}/expenses`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(despesaPayload),
                 });
 
+                if (!despesaResponse.ok) throw new Error("Erro ao criar receita");
+                const despesaId = [];
+                const despesaDevedor = await despesaResponse.json();
+
+                for (i = 0; i < namasIncrementals.length; i++) {
+                    despesaDevedor.despesas.filter(despesaFind => {
+                        if (despesaFind.idOrigem === idUser && despesaFind.name === namasIncrementals[i]) {
+                            despesaFind.values.filter((despesafilter) => {
+                                if (despesafilter.name === namasIncrementals[i] && despesafilter.value === valor)
+                                    despesaId.push({ idUser: despesaFind.idOrigem, idReceita: despesaFind.idReceita, idDespesa: despesaFind._id, });
+                            });
+                        }
+                    })
+                }
+
+                despesaId.forEach(async (despesa) => {
+                    await fetch(`${API_URL}/expenses/update-receita-despesa`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(despesa),
+                    });
+                })
                 await fetchMonthData();
                 closeModal();
                 return;
@@ -630,8 +676,10 @@ async function saveValuesItem() {
 
     let payload;
 
+
     if (currentType === "receita") {
         const findReceitas = receitas.find(item => item.id === idItemExpense);
+
         // Soma o novo valor ao total existente
         const newTotal = findReceitas.total + valor;
         // Atualiza totalPaid apenas se o item estiver marcado como pago
@@ -645,6 +693,7 @@ async function saveValuesItem() {
             whenPay: findReceitas.whenPay,
             paid: findReceitas.paid,
             isDebt: findReceitas.isDebt,
+            idDespesa: findReceitas.idDespesa,
             idDebts: findReceitas.idDebts,
             values: [...findReceitas.values, { name: nome, value: valor, paid, notify: false }],
         };
@@ -653,7 +702,7 @@ async function saveValuesItem() {
 
         // Se for receita vinculada, atualizar a despesa correspondente
         if (findReceitas.isDebt && findReceitas.idDebts) {
-            await updateDespesaDevedor(findReceitas.idDebts, findReceitas.id, nome, valor, paid);
+            await updateDespesaDevedor(findReceitas.idDebts, findReceitas.idDespesa, nome, valor, paid);
         }
     } else {
         const findDespesas = despesas.find(item => item.id === idItemExpense);
@@ -677,7 +726,7 @@ async function saveValuesItem() {
 
         // Se for despesa vinculada e notify for true, atualizar a receita do cobrador
         if (notify && findDespesas.idOrigem && selectedReceitaId) {
-            await updateReceitaCobrador(findDespesas.idOrigem, selectedReceitaId, nome, valor);
+            await updateReceitaCobrador(findDespesas.idOrigem, selectedReceitaId, nome, paid, valor);
         }
     }
 
@@ -701,7 +750,7 @@ async function saveValuesItem() {
     }
 }
 
-async function updateReceitaCobrador(cobradorId, receitaId, nome, valor) {
+async function updateReceitaCobrador(cobradorId, receitaId, name, paid, valor) {
     try {
         const response = await fetch(`${API_URL}/expenses/${cobradorId}`);
         if (!response.ok) throw new Error("Erro ao buscar receitas do cobrador");
@@ -720,7 +769,7 @@ async function updateReceitaCobrador(cobradorId, receitaId, nome, valor) {
                     paid: receita.paid,
                     isDebt: receita.isDebt,
                     idDebts: receita.idDebts,
-                    values: [...receita.values, { name, value: valor, paid: false, notify: true }],
+                    values: [...receita.values, { name, value: valor, paid, notify: true }],
                 }],
             };
 
@@ -738,13 +787,13 @@ async function updateReceitaCobrador(cobradorId, receitaId, nome, valor) {
     }
 }
 
-async function updateDespesaDevedor(devedorId, receitaId, nome, valor, paid) {
+async function updateDespesaDevedor(devedorId, idDespesa, name, valor, paid) {
     try {
         const response = await fetch(`${API_URL}/expenses/${devedorId}`);
         if (!response.ok) throw new Error("Erro ao buscar despesas do devedor");
         const expenseData = await response.json();
-        const despesa = expenseData.despesas.find(d => d.idOrigem === receitaId);
-
+        const despesa = expenseData.despesas.find(d => { console.log(idDespesa); console.log(d._id); return d._id === idDespesa });
+        console.log("despesa", despesa)
         if (despesa) {
             const newTotal = paid ? despesa.total : despesa.total + valor;
             const newTotalPaid = paid ? despesa.totalPaid + valor : despesa.totalPaid;
@@ -759,10 +808,9 @@ async function updateDespesaDevedor(devedorId, receitaId, nome, valor, paid) {
                     whenPay: despesa.whenPay,
                     paid: despesa.paid,
                     idOrigem: despesa.idOrigem,
-                    values: [...despesa.values, { name, value: valor, paid: false, notify: false }],
+                    values: [...despesa.values, { name, value: valor, paid, notify: false }],
                 }],
             };
-
             const updateResponse = await fetch(`${API_URL}/expenses-item`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
@@ -1198,20 +1246,13 @@ function openReportModal() {
     const currentDate = new Date();
     const startDate = new Date(Date.UTC(currentDate.getFullYear(), currentDate.getMonth(), 1)); // Primeiro dia do mês atual em UTC
     const endDate = new Date(startDate);
-    endDate.setMonth(endDate.getMonth() + 12); // 12 meses a partir de startDate
-    endDate.setDate(0); // Último dia do 11º mês
-
-    console.log("startDate", startDate);
-    console.log("endDate", endDate);
-
-    console.log(despesas);
-    console.log(receitas);
-
+    endDate.setMonth(endDate.getMonth() + 11);
+    endDate.setDate(0);
     const despesasPorMes = {};
     const receitasPorMes = {};
 
     // Inicializa os meses no relatório
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 11; i++) {
         const date = new Date(startDate);
         date.setMonth(startDate.getMonth() + i);
         // Formata o mês diretamente, garantindo UTC

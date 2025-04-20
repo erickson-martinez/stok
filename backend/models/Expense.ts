@@ -16,6 +16,8 @@ const transactionSchema = new Schema<ITransaction>({
     paid: { type: Boolean, required: true },
     isDebt: { type: Boolean, default: false },
     idOrigem: { type: String },
+    idReceita: { type: String },
+    idDespesa: { type: String },
     idDebts: { type: String },
     notify: { type: Boolean, default: false },
     totalPaid: { type: Number, default: 0 },

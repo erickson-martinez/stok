@@ -17,6 +17,8 @@ export interface ITransaction {
     paid: boolean;
     isDebt?: boolean; // Identifica receitas vinculadas
     idOrigem?: string; // Referencia a receita original (em despesas)
+    idReceita?: string; // Referencia a despesa original (em receitas)
+    idDespesa?: string; // Referencia a despesa original (em receitas)
     idDebts?: string; // Identifica o cobrador (em receitas)
     notify?: boolean; // Para notificações
     totalPaid?: number; // Total pago
@@ -48,10 +50,18 @@ export interface TransactionRequest {
     paid: boolean;
     idDebts?: string; // Para receitas vinculadas
     idOrigem?: string; // Para despesas vinculadas
+    idReceita?: string; // Para despesas vinculadas
+    idDespesa?: string; // Para receitas vinculadas
     isDebt?: boolean; // Para identificar receitas vinculadas
     totalPaid?: number; // Para rastrear total pago
     notify?: boolean; // Para notificações
     values?: ValueRequest[];
+}
+
+export interface UpdateReceitaDespesaRequest {
+    idUser: string;
+    idReceita: string;
+    idDespesa: string;
 }
 
 export interface ExpenseRequest {
