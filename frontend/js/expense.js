@@ -702,7 +702,7 @@ async function saveValuesItem() {
     } else {
         const findDespesas = despesas.find(item => item.id === idItemExpense);
         // Soma o novo valor ao total existente
-        const newTotal = paid ? findDespesas.total + valor : findDespesas.total - valor;
+        const newTotal = paid ? findDespesas.total - valor : findDespesas.total + valor;
         // Atualiza totalPaid apenas se notify for true
         const newTotalPaid = notify ? (findDespesas.totalPaid || 0) + valor : findDespesas.totalPaid || 0;
 
