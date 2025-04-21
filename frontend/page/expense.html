@@ -78,7 +78,8 @@
                                 </div>
                                 <div class="value-container">
                                     <div>
-                                        <span>Recebido:</span><span id="saldoRestante" class="header-value"></span>
+                                        <span>Saldo:</span><span id="saldoRestante" class="header-value"></span>
+                                        <span>Recebido:</span><span id="saldoRecebido" class="header-value"></span>
                                         <span>Receber:</span><span id="saldoHaReceber" class="header-value"></span>
                                     </div>
                                 </div>
@@ -166,10 +167,11 @@
                     <input type="number" id="modalValorItem" step="0.01" placeholder="Valor">
                     <label for="modalPaidItem">Pago:</label>
                     <input type="checkbox" id="modalPaidItem">
-                    <label for="modalNotifyItem" style="display: none;">Notificar:</label>
-                    <input type="checkbox" id="modalNotifyItem" style="display: none;">
-                    <label for="cobradorReceitasSelect" style="display: none;">Receita do Cobrador:</label>
-                    <select id="cobradorReceitasSelect" style="display: none;"></select>
+                    <div id="notify-content" style="display: none;">
+                        <label for="modalNotifyItem">Notificar:</label>
+                        <input type="checkbox" id="modalNotifyItem" style="display: none;">
+                    </div>
+
                     <div id="modalButtonsItem"></div>
                 </div>
             </div>

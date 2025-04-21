@@ -131,12 +131,6 @@
     border-radius: 5px;
 }
 
-.value-container {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
 
 /* Ensure no unexpected padding/margins are affecting the layout */
 .options-menu {
@@ -172,12 +166,6 @@
     border-radius: 5px;
 }
 
-.list-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
 .list-item {
     display: flex;
     align-items: center;
@@ -192,15 +180,6 @@
 
 .sub-internal-item {
     padding-left: 40px;
-}
-
-.item-name {
-    flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-right: 15px;
-    cursor: pointer;
 }
 
 .item-value {

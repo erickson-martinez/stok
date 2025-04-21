@@ -230,19 +230,18 @@ function openActionModal(action, type, item = null) {
 }
 
 function openActionModalItem(type, id) {
-    const action = "add";
+    const modalTitle = document.getElementById("modalTitleItem");
+    modalTitle.textContent = `Nova ${type === "receita" ? "Receita" : "Despesa"}`;
+
     currentType = type;
     idItemExpense = id;
 
     const modal = document.getElementById("actionModalItem");
-    const modalTitle = document.getElementById("modalTitleItem");
     const modalButtons = document.getElementById("modalButtonsItem");
-    const titlePrefix = type === "receita" ? "Receita" : "Despesa";
     const paidCheckbox = document.getElementById("modalPaidItem");
     const notifyCheckbox = document.getElementById("modalNotifyItem");
-    const cobradorReceitasSelect = document.getElementById("cobradorReceitasSelect");
+    const notifyContant = document.getElementById("notify-content")
 
-    modalTitle.textContent = `Nova ${titlePrefix}`;
 
     // Limpar campos
     document.getElementById("modalNomeItem").value = "";
@@ -253,17 +252,18 @@ function openActionModalItem(type, id) {
     // Se for despesa (devedor), carregar receitas do cobrador
     if (type === "despesa") {
         const despesa = despesas.find(item => item.id === id);
-        if (despesa?.idOrigem) {
-            fetchCobradorReceitas(despesa.idOrigem, cobradorReceitasSelect);
-            cobradorReceitasSelect.style.display = "block";
-            paidCheckbox.disabled = true; // Devedor não pode marcar paid
+        if (despesa?.idOrigem && despesa?.isDebt) {
+            notifyContant.disabled = false
+            notifyContant.style.display = "block";
+            paidCheckbox.disabled = true;
             notifyCheckbox.style.display = "block";
+            notifyCheckbox.disabled = true;
+            notifyCheckbox.checked = true;
+            paidCheckbox.checked = false;
         } else {
-            cobradorReceitasSelect.style.display = "none";
             notifyCheckbox.style.display = "none";
         }
     } else {
-        cobradorReceitasSelect.style.display = "none";
         paidCheckbox.disabled = false; // Cobrador pode marcar paid
         notifyCheckbox.style.display = "none";
     }
@@ -277,21 +277,81 @@ function openActionModalItem(type, id) {
     document.querySelectorAll(".options-menu").forEach(menu => menu.remove());
 }
 
-async function fetchCobradorReceitas(cobradorId, selectElement) {
-    try {
-        const response = await fetch(`${API_URL}/expenses/${cobradorId}`);
-        if (!response.ok) throw new Error("Erro ao carregar receitas do cobrador");
-        const expenseData = await response.json();
-        selectElement.innerHTML = '<option value="">Selecione uma receita</option>';
-        expenseData.receitas.forEach(receita => {
-            selectElement.innerHTML += `
-                <option value="${receita._id}">${receita.name} - ${receita.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</option>
-            `;
-        });
-    } catch (err) {
-        console.error('Erro em fetchCobradorReceitas:', err);
-        selectElement.innerHTML = '<option value="">Erro ao carregar receitas</option>';
+// Função para editar itens
+function openDeleteItemModal(action, type, id) {
+    const item = id.includes('-') ? getInternalItem(id) : getItemById(id);
+    if (!item) return;
+
+    currentType = type;
+    editingId = id;
+
+    const modal = document.getElementById("actionModalItem");
+    const modalTitle = document.getElementById("modalTitleItem");
+    const modalButtons = document.getElementById("modalButtonsItem");
+    const titlePrefix = type === "receita" ? "Receita" : "Despesa";
+
+    modalTitle.textContent = action === "edit" ? `Editar ${titlePrefix}` : `Deletar ${titlePrefix}`;
+
+    document.getElementById("modalNomeItem").value = item.name;
+    document.getElementById("modalValorItem").value = id.includes('-') ? item.value : item.total;
+
+    modalButtons.innerHTML = "";
+
+    modalButtons.innerHTML = `
+            <button class="btn-secundary" onclick="closeModalItem()">Cancelar</button>
+            <button class="btn" onclick="confirmDeleteInternal('${type}','${id}')" ${item?.shared ? 'disabled' : ''}>Confirmar</button>
+        `;
+    modal.style.display = "block";
+}
+
+// Função para editar itens
+function openEditItemModal(type, id) {
+    const modalTitle = document.getElementById("modalTitleItem");
+    modalTitle.textContent = `Editar ${type === "receita" ? "Receita" : "Despesa"}`
+
+    const item = id.includes('-') ? getInternalItem(id) : getItemById(id);
+    if (!item) return;
+    idItemExpense = id;
+
+    currentType = type;
+    editingId = id;
+
+    const modal = document.getElementById("actionModalItem");
+    const modalButtons = document.getElementById("modalButtonsItem");
+    const paidCheckbox = document.getElementById("modalPaidItem");
+    const notifyCheckbox = document.getElementById("modalNotifyItem");
+    const notifyContant = document.getElementById("notify-content")
+
+    document.getElementById("modalNomeItem").value = item.name;
+    document.getElementById("modalValorItem").value = id.includes('-') ? item.value : item.total;
+
+    if (type === "despesa") {
+        const despesa = despesas.find(item => item.id === id.split('-')[0]);
+        if (despesa?.idOrigem && despesa?.isDebt) {
+            notifyContant.disabled = false
+            notifyContant.style.display = "block";
+            paidCheckbox.disabled = true;
+            notifyCheckbox.style.display = "block";
+            notifyCheckbox.disabled = true;
+            notifyCheckbox.checked = true;
+            paidCheckbox.checked = false;
+        } else {
+            notifyCheckbox.style.display = "none";
+        }
+    } else {
+        paidCheckbox.disabled = false; // Cobrador pode marcar paid
+        notifyCheckbox.style.display = "none";
     }
+
+
+    // Preenche os campos (editáveis)
+
+    modalButtons.innerHTML = "";
+    modalButtons.innerHTML = `
+            <button class="btn-secundary" onclick="closeModalItem()">Cancelar</button>
+            <button class="btn" onclick="editValuesItem()" ${item?.shared ? 'disabled' : ''}>Salvar</button>
+        `;
+    modal.style.display = "block";
 }
 
 function renderInternalItems(values) {
@@ -666,7 +726,6 @@ async function saveValuesItem() {
     const valor = parseFloat(document.getElementById("modalValorItem").value) || 0;
     const paid = document.getElementById("modalPaidItem").checked;
     const notify = document.getElementById("modalNotifyItem").checked;
-    const selectedReceitaId = document.getElementById("cobradorReceitasSelect")?.value;
 
     if (!nome || valor <= 0) {
         alert("Preencha todos os campos obrigatórios.");
@@ -674,7 +733,6 @@ async function saveValuesItem() {
     }
 
     let payload;
-
 
     if (currentType === "receita") {
         const findReceitas = receitas.find(item => item.id === idItemExpense);
@@ -701,10 +759,20 @@ async function saveValuesItem() {
         }
     } else {
         const findDespesas = despesas.find(item => item.id === idItemExpense);
-        // Soma o novo valor ao total existente
-        const newTotal = paid ? findDespesas.total - valor : findDespesas.total + valor;
-        // Atualiza totalPaid apenas se notify for true
-        const newTotalPaid = notify ? (findDespesas.totalPaid || 0) + valor : findDespesas.totalPaid || 0;
+        let newTotalPaid = 0;
+        let newTotal = 0;
+
+        if (findDespesas.isDebt == false) {
+            // Soma o novo valor ao total existente
+            newTotal = paid ? findDespesas.total - valor : findDespesas.total + valor;
+            // Atualiza totalPaid apenas se notify for true
+            newTotalPaid = notify ? (findDespesas.totalPaid || 0) + valor : findDespesas.totalPaid || 0;
+        } else {
+            // Soma o novo valor ao total existente
+            newTotal = findDespesas.total
+            // Atualiza totalPaid apenas se notify for true
+            newTotalPaid = findDespesas.totalPaid
+        }
 
         const item = {
             _id: findDespesas.id,
@@ -714,14 +782,17 @@ async function saveValuesItem() {
             whenPay: findDespesas.whenPay,
             paid: findDespesas.paid,
             idOrigem: findDespesas.idOrigem,
+            isDebt: findDespesas.isDebt,
+            notify: findDespesas.notify,
+            idReceita: findDespesas.idReceita,
             values: [...findDespesas.values, { name: nome, value: valor, paid: false, notify }],
         };
 
         payload = { idUser, despesas: [item] };
 
         // Se for despesa vinculada e notify for true, atualizar a receita do cobrador
-        if (notify && findDespesas.idOrigem && selectedReceitaId) {
-            await updateReceitaCobrador(findDespesas.idOrigem, selectedReceitaId, nome, paid, valor);
+        if (notify && findDespesas.idOrigem) {
+            await updateReceitaCobrador(findDespesas.idOrigem, findDespesas.idReceita, nome, paid, valor);
         }
     }
 
@@ -745,13 +816,62 @@ async function saveValuesItem() {
     }
 }
 
-async function updateReceitaCobrador(cobradorId, receitaId, name, paid, valor) {
+async function editValuesItem() {
+    const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+    const idUser = currentUser.idUser;
+    const nome = document.getElementById("modalNomeItem").value;
+    const valor = parseFloat(document.getElementById("modalValorItem").value) || 0;
+    const paid = document.getElementById("modalPaidItem").checked;
+    const notify = document.getElementById("modalNotifyItem").checked;
+
+    if (!nome || valor <= 0) {
+        alert("Preencha todos os campos obrigatórios.");
+        return;
+    }
+
+    const [parentId, itemId] = idItemExpense.split('-');
+
+    console.log("currentType", currentType)
+    return
+
+    try {
+        const response = await fetch(`${API_URL}/expenses/edit-despesa-value`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                idUser,
+                itemId: parentId,
+                valueId: itemId,
+                name: nome,
+                value: valor,
+                paid,
+                notify
+            }),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Erro ao editar item: ${response.statusText} - ${errorText}`);
+        }
+
+        await fetchMonthData();
+        closeModalItem();
+    } catch (err) {
+        console.error(err);
+        alert(err.message);
+    }
+}
+
+async function updateReceitaCobrador(cobradorId, idReceita, name, paid = false, valor) {
     try {
         const response = await fetch(`${API_URL}/expenses/${cobradorId}`);
         if (!response.ok) throw new Error("Erro ao buscar receitas do cobrador");
         const expenseData = await response.json();
-        const receita = expenseData.receitas.find(r => r._id === receitaId);
-
+        const receita = expenseData.receitas.find(r => r._id === idReceita);
+        if (!receita) {
+            receita = expenseData.receita[0]._id === idReceita ? expenseData.receita[0] : null;
+            console.log("receitaVazia", receita);
+        }
         if (receita) {
             const payload = {
                 idUser: cobradorId,
@@ -783,21 +903,16 @@ async function updateReceitaCobrador(cobradorId, receitaId, name, paid, valor) {
 }
 
 async function updateDespesaDevedor(devedorId, idDespesa, name, valor, paid) {
-    console.log(devedorId, idDespesa, name, valor, paid);
     try {
         const response = await fetch(`${API_URL}/expenses/${devedorId}`);
         if (!response.ok) throw new Error("Erro ao buscar despesas do devedor");
         const expenseData = await response.json();
         let despesa = expenseData.despesas.find(d => d._id === idDespesa);
 
-        console.log("depesa", despesa);
         if (!despesa) {
             despesa = expenseData.despesas[0]._id === idDespesa ? expenseData.despesas[0] : null;
             console.log("depesaVazia", despesa);
         }
-
-
-
 
         if (despesa) {
             const newTotal = paid ? despesa.total : despesa.total + valor;
@@ -841,9 +956,9 @@ function updateLists() {
     const receitasFiltradas = filterByMonth(receitas);
     const despesasFiltradas = filterByMonth(despesas);
 
-    totalRecebido = receitasFiltradas.reduce((sum, r) => sum + r.total, 0);
+    totalRecebido = receitasFiltradas.reduce((sum, r) => sum + r.totalPaid, 0);
     totalPagar = despesasFiltradas.reduce((sum, d) => sum + d.total, 0);
-    totalReceber = receitasFiltradas.reduce((sum, r) => sum + r.totalPaid, 0);
+    totalReceber = receitasFiltradas.reduce((sum, r) => sum + r.total, 0);
     totalPago = despesasFiltradas.reduce((sum, d) => sum + d.totalPaid, 0);
     document.getElementById("receitasList").innerHTML = receitasFiltradas.length ?
         receitasFiltradas.map(item => createListItem(item, "receita", totalRecebido)).join("") :
@@ -877,7 +992,7 @@ function createListItem(item, type) {
         const borderStyle = v.notify && !v.paid ? 'border: 2px solid yellow' : '';
         return `
                     <div class="list-item internal-item" data-id="${item.id}-${v._id}" style="${borderStyle}">
-                        <span class="item-name" onclick="toggleAccordion('${item.id}-${v._id}')">${v.name}</span>
+                        <span class="item-name-accordion" onclick="toggleAccordion('${item.id}-${v._id}')">${v.name}</span>
                         <div class="value-container">
                             <span class="item-value">${v.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
                             <span class="options-trigger" data-id="${item.id}-${v._id}" data-type="${type}" data-internal="true" data-internal-id="${v._id}">⋯</span>
@@ -1011,8 +1126,8 @@ function showOptions(event, id) {
     if (isInternal) {
         optionsMenu.innerHTML = `
            <button onclick="openViewItemModal('${type}', '${id}')">Visualizar</button>
-            <button onclick="openEditItemModal('edit','${type}', '${id}')">Editar</button>
-            <button onclick="openEditItemModal('delete','${type}','${id}')">Deletar</button>
+            <button onclick="openEditItemModal('${type}', '${id}')">Editar</button>
+            <button onclick="openDeleteItemModal('delete','${type}','${id}')">Deletar</button>
         `;
     } else {
         optionsMenu.innerHTML = `
@@ -1090,43 +1205,6 @@ function openViewItemModal(type, id) {
     modal.style.display = "block";
 }
 
-// Função para editar itens
-function openEditItemModal(action, type, id) {
-    const item = id.includes('-') ? getInternalItem(id) : getItemById(id);
-    if (!item) return;
-
-    currentType = type;
-    editingId = id;
-
-    const modal = document.getElementById("actionModalItem");
-    const modalTitle = document.getElementById("modalTitleItem");
-    const modalButtons = document.getElementById("modalButtonsItem");
-    const titlePrefix = type === "receita" ? "Receita" : "Despesa";
-
-    modalTitle.textContent = action === "edit" ? `Editar ${titlePrefix}` : `Deletar ${titlePrefix}`;
-
-    // Preenche os campos (editáveis)
-
-    if (action !== "add") {
-        document.getElementById("modalNomeItem").value = item.name;
-        document.getElementById("modalValorItem").value = id.includes('-') ? item.value : item.total;
-    }
-
-    modalButtons.innerHTML = "";
-    if (action === "edit") {
-        modalButtons.innerHTML = `
-            <button class="btn-secundary" onclick="closeModalItem()">Cancelar</button>
-            <button class="btn" onclick="saveValuesItem()" ${item?.shared ? 'disabled' : ''}>Salvar</button>
-        `;
-    } else if (action === "delete") {
-        modalButtons.innerHTML = `
-            <button class="btn-secundary" onclick="closeModalItem()">Cancelar</button>
-            <button class="btn" onclick="confirmDeleteInternal('${type}','${id}')" ${item?.shared ? 'disabled' : ''}>Confirmar</button>
-        `;
-    }
-    modal.style.display = "block";
-}
-
 function getInternalItem(fullId) {
     if (!fullId.includes('-')) return null;
 
@@ -1193,7 +1271,7 @@ function calculateColors() {
         return parseInt(item.whenPay.split("/")[0]) === currentYear && parseInt(item.whenPay.split("/")[1]) === currentMonth;
     });
 
-    const saldoRestante = totalReceber - totalPago;
+    const saldoRestante = totalReceber - totalPagar;
     const percentage = totalRecebido > 0 ? (totalPagar / totalRecebido) * 100 : 0;
 
     let colorDespesa = percentage > 95 ? "#ff3333" : percentage > 75 ? "#ff9999" : percentage > 50 ? "#ffcc99" : "#ff9999";
@@ -1206,7 +1284,8 @@ function calculateColors() {
     document.getElementById("totalPagar").textContent = formatCurrency(totalPagar - totalPago < 0 ? 0 : totalPagar - totalPago);
     document.getElementById("totalPago").textContent = formatCurrency(totalPago);
     document.getElementById("saldoRestante").textContent = formatCurrency(saldoRestante);
-    document.getElementById("saldoHaReceber").textContent = formatCurrency(totalRecebido);
+    document.getElementById("saldoRecebido").textContent = formatCurrency(totalRecebido);
+    document.getElementById("saldoHaReceber").textContent = formatCurrency(totalReceber);
     document.getElementById("saldoRestante").style.color = saldoRestante >= 0 ? "#2ecc71" : "#e74c3c";
 }
 
