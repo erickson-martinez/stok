@@ -1617,7 +1617,7 @@ function calculateColors() {
         return parseInt(item.whenPay.split("/")[0]) === currentYear && parseInt(item.whenPay.split("/")[1]) === currentMonth;
     });
 
-    const saldoRestante = totalReceber - totalPagar;
+    const saldoRestante = totalRecebido - totalPago;
     const percentage = totalRecebido > 0 ? (totalPagar / totalRecebido) * 100 : 0;
 
     let colorDespesa = percentage > 95 ? "#ff3333" : percentage > 75 ? "#ff9999" : percentage > 50 ? "#ffcc99" : "#ff9999";
