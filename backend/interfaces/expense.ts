@@ -1,12 +1,13 @@
-// interfaces/expense.ts
+//backend/interfaces/expense.ts
 import { Types } from 'mongoose';
 
 export interface IValue {
     name: string;
     value: number | string;
     _id?: string | Types.ObjectId;
-    paid?: boolean; // Campo para valores individuais
-    notify?: boolean; // Campo para notificações
+    paid?: boolean;
+    notify?: boolean;
+    uuid: string; // Campo obrigatório para novos registros
 }
 
 export interface ITransaction {
@@ -15,13 +16,13 @@ export interface ITransaction {
     whenPay: Date;
     total: number;
     paid: boolean;
-    isDebt?: boolean; // Identifica receitas vinculadas
-    idOrigem?: string; // Referencia a receita original (em despesas)
-    idReceita?: string; // Referencia a despesa original (em receitas)
-    idDespesa?: string; // Referencia a despesa original (em receitas)
-    idDebts?: string; // Identifica o cobrador (em receitas)
-    notify?: boolean; // Para notificações
-    totalPaid?: number; // Total pago
+    isDebt?: boolean;
+    idOrigem?: string;
+    idReceita?: string;
+    idDespesa?: string;
+    idDebts?: string;
+    notify?: boolean;
+    totalPaid?: number;
     values: IValue[];
 }
 
@@ -38,8 +39,9 @@ export interface ValueRequest {
     name: string;
     value: number | string;
     _id?: string | Types.ObjectId;
-    paid?: boolean; // Adicionado para suportar status de pagamento
-    notify?: boolean; // Adicionado para suportar notificações
+    paid?: boolean;
+    notify?: boolean;
+    uuid: string; // Campo obrigatório para novos registros
 }
 
 export interface TransactionRequest {
@@ -48,20 +50,14 @@ export interface TransactionRequest {
     whenPay: string;
     total: number;
     paid: boolean;
-    idDebts?: string; // Para receitas vinculadas
-    idOrigem?: string; // Para despesas vinculadas
-    idReceita?: string; // Para despesas vinculadas
-    idDespesa?: string; // Para receitas vinculadas
-    isDebt?: boolean; // Para identificar receitas vinculadas
-    totalPaid?: number; // Para rastrear total pago
-    notify?: boolean; // Para notificações
+    idDebts?: string;
+    idOrigem?: string;
+    idReceita?: string;
+    idDespesa?: string;
+    isDebt?: boolean;
+    totalPaid?: number;
+    notify?: boolean;
     values?: ValueRequest[];
-}
-
-export interface UpdateReceitaDespesaRequest {
-    idUser: string;
-    idReceita: string;
-    idDespesa: string;
 }
 
 export interface ExpenseRequest {
@@ -69,4 +65,10 @@ export interface ExpenseRequest {
     idUserShared?: string;
     receitas?: TransactionRequest[];
     despesas?: TransactionRequest[];
+}
+
+export interface UpdateReceitaDespesaRequest {
+    idUser: string;
+    idReceita: string;
+    idDespesa: string;
 }

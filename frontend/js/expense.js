@@ -1,4 +1,5 @@
 
+//frontend/js/expense.js
 let currentDate = new Date();
 let currentType = '';
 let editingId = null;
@@ -10,7 +11,17 @@ let totalRecebido;
 let totalPagar;
 const receitas = [];
 const despesas = [];
-
+// Função para gerar UUIDs
+if (typeof uuidv4 !== 'function') {
+    console.warn('uuidv4 não está definido. Usando função de fallback.');
+    window.uuidv4 = function () {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    };
+}
 function loadFinances() {
     // Inicializar interface comum
     initializeUserInterface();
@@ -241,7 +252,9 @@ function openActionModalItem(type, id) {
     const paidCheckbox = document.getElementById("modalPaidItem");
     const notifyCheckbox = document.getElementById("modalNotifyItem");
     const notifyContant = document.getElementById("notify-content")
-
+    document.getElementById("modalNomeItem").disabled = false;
+    document.getElementById("modalValorItem").disabled = false;
+    paidCheckbox.disabled = false;
 
     // Limpar campos
     document.getElementById("modalNomeItem").value = "";
@@ -278,9 +291,12 @@ function openActionModalItem(type, id) {
 }
 
 // Função para editar itens
-function openDeleteItemModal(action, type, id) {
+function openDeleteItemModal(type, id) {
+    const action = "delete";
     const item = id.includes('-') ? getInternalItem(id) : getItemById(id);
     if (!item) return;
+
+
 
     currentType = type;
     editingId = id;
@@ -294,7 +310,10 @@ function openDeleteItemModal(action, type, id) {
 
     document.getElementById("modalNomeItem").value = item.name;
     document.getElementById("modalValorItem").value = id.includes('-') ? item.value : item.total;
-
+    document.getElementById("modalPaidItem").checked = item.paid;
+    document.getElementById("modalNomeItem").disabled = true;
+    document.getElementById("modalValorItem").disabled = true;
+    document.getElementById("modalPaidItem").disabled = true
     modalButtons.innerHTML = "";
 
     modalButtons.innerHTML = `
@@ -304,37 +323,54 @@ function openDeleteItemModal(action, type, id) {
     modal.style.display = "block";
 }
 
-// Função para editar itens
 function openEditItemModal(type, id) {
+    // Redefinir estados dos campos
+    const modalNomeItem = document.getElementById("modalNomeItem");
+    const modalValorItem = document.getElementById("modalValorItem");
+    const paidCheckbox = document.getElementById("modalPaidItem");
+    const notifyCheckbox = document.getElementById("modalNotifyItem");
+    const notifyContent = document.getElementById("notify-content");
+
+    modalNomeItem.disabled = false;
+    modalValorItem.disabled = false;
+    paidCheckbox.disabled = false;
+    notifyCheckbox.disabled = false;
+    notifyCheckbox.style.display = "none";
+    notifyContent.style.display = "none";
+
+    // Configurar título
     const modalTitle = document.getElementById("modalTitleItem");
-    modalTitle.textContent = `Editar ${type === "receita" ? "Receita" : "Despesa"}`
+    modalTitle.textContent = `Editar ${type === "receita" ? "Receita" : "Despesa"}`;
 
-    const item = id.includes('-') ? getInternalItem(id) : getItemById(id);
-    if (!item) return;
+    // Obter dados do item
+    const itemInternal = getInternalItem(id);
+    const item = getItemById(id.split('-')[0]);
+
+    console.log("item", item);
+    console.log("itemInternal", itemInternal);
+
+    if (!item && !itemInternal) return;
+
+    // Armazenar ID e tipo
     idItemExpense = id;
-
     currentType = type;
     editingId = id;
 
-    const modal = document.getElementById("actionModalItem");
-    const modalButtons = document.getElementById("modalButtonsItem");
-    const paidCheckbox = document.getElementById("modalPaidItem");
-    const notifyCheckbox = document.getElementById("modalNotifyItem");
-    const notifyContant = document.getElementById("notify-content")
+    // Preencher campos
+    modalNomeItem.value = itemInternal.name;
+    modalValorItem.value = id.includes('-') ? itemInternal.value : itemInternal.total;
+    paidCheckbox.checked = itemInternal.paid;
 
-    document.getElementById("modalNomeItem").value = item.name;
-    document.getElementById("modalValorItem").value = id.includes('-') ? item.value : item.total;
-
+    // Aplicar bloqueios para despesas
     if (type === "despesa") {
-        const despesa = despesas.find(item => item.id === id.split('-')[0]);
-        if (despesa?.idOrigem && despesa?.isDebt) {
-            notifyContant.disabled = false
-            notifyContant.style.display = "block";
+        if (itemInternal.paid && itemInternal.notify === false) {
+            modalNomeItem.disabled = true;
+            modalValorItem.disabled = true;
+            notifyContent.style.display = "block";
             paidCheckbox.disabled = true;
             notifyCheckbox.style.display = "block";
             notifyCheckbox.disabled = true;
             notifyCheckbox.checked = true;
-            paidCheckbox.checked = false;
         } else {
             notifyCheckbox.style.display = "none";
         }
@@ -343,14 +379,15 @@ function openEditItemModal(type, id) {
         notifyCheckbox.style.display = "none";
     }
 
-
-    // Preenche os campos (editáveis)
-
-    modalButtons.innerHTML = "";
+    // Configurar botões
+    const modalButtons = document.getElementById("modalButtonsItem");
     modalButtons.innerHTML = `
-            <button class="btn-secundary" onclick="closeModalItem()">Cancelar</button>
-            <button class="btn" onclick="editValuesItem()" ${item?.shared ? 'disabled' : ''}>Salvar</button>
-        `;
+        <button class="btn-secundary" onclick="closeModalItem()">Cancelar</button>
+        <button class="btn" onclick="editValuesItem()" ${item?.shared ? 'disabled' : ''}>Salvar</button>
+    `;
+
+    // Exibir modal
+    const modal = document.getElementById("actionModalItem");
     modal.style.display = "block";
 }
 
@@ -458,9 +495,7 @@ async function saveItem() {
         try {
             const response = await fetch(`${API_URL}/users/${debtorPhone}`);
             if (!response.ok) throw new Error('Usuário não encontrado');
-
             const user = await response.json();
-
             debtorId = user._id;
         } catch (error) {
             alert("Por favor, insira um telefone válido para o devedor.");
@@ -485,7 +520,7 @@ async function saveItem() {
             totalPaid: paid ? valor : 0,
             isRecurring: isRecurring,
             recurringMonths: isRecurring ? recurringMonths : undefined,
-            values: [{ name: nome, value: valor }]
+            values: [{ name: nome, value: valor, paid, notify: false, uuid: uuidv4() }]
         };
 
         if (isLinkedReceita) {
@@ -501,7 +536,13 @@ async function saveItem() {
         // Modo adição
         const items = [];
         const totalMonths = isRecurring ? parseInt(recurringMonths) : 1;
-        const namasIncrementals = []
+        const namesIncremental = [];
+        const uuids = []; // Array para armazenar UUIDs para cada mês
+
+        // Gera UUIDs para cada mês
+        for (let i = 0; i < totalMonths; i++) {
+            uuids.push(uuidv4());
+        }
 
         for (let i = 0; i < totalMonths; i++) {
             const currentDate = new Date(baseDate);
@@ -511,7 +552,7 @@ async function saveItem() {
 
             const formattedDate = `${currentDate.getFullYear()}/${String(currentDate.getMonth() + 1).padStart(2, '0')}/${String(currentDate.getDate()).padStart(2, '0')}`;
             const itemName = i === 0 ? nome : incrementName(nome, i);
-            namasIncrementals.push(itemName);
+            namesIncremental.push(itemName);
 
             const item = {
                 name: itemName,
@@ -523,7 +564,7 @@ async function saveItem() {
                 paid: i === 0 ? paid : false,
                 isRecurring: isRecurring && i === 0,
                 recurringMonths: isRecurring && i === 0 ? parseInt(recurringMonths) : undefined,
-                values: [{ name: itemName, value: parseFloat(valor) }]
+                values: [{ name: itemName, value: parseFloat(valor), paid: i === 0 ? paid : false, notify: false, uuid: uuids[i] }]
             };
 
             items.push(item);
@@ -536,7 +577,6 @@ async function saveItem() {
 
         // Se for uma receita vinculada, cria também a despesa correspondente
         if (isLinkedReceita) {
-
             try {
                 // Primeiro cria a receita para obter o ID
                 const receitaResponse = await fetch(`${API_URL}/expenses`, {
@@ -548,15 +588,16 @@ async function saveItem() {
                 let receitaId = [];
                 const receitaCobrador = await receitaResponse.json();
 
-                for (i = 0; i < namasIncrementals.length; i++) {
+                for (let i = 0; i < namesIncremental.length; i++) {
                     receitaCobrador.receitas.filter(receitaFind => {
-                        if (receitaFind.idDebts === debtorId && receitaFind.name === namasIncrementals[i]) {
-                            receitaFind.values.filter((receitafilter) => {
-                                if (receitafilter.name === namasIncrementals[i] && receitafilter.value === valor)
-                                    receitaId.push({ id: receitaFind._id, name: namasIncrementals[i] });
+                        if (receitaFind.idDebts === debtorId && receitaFind.name === namesIncremental[i]) {
+                            receitaFind.values.filter((receitaFilter) => {
+                                if (receitaFilter.name === namesIncremental[i] && receitaFilter.value === valor && receitaFilter.uuid === uuids[i]) {
+                                    receitaId.push({ id: receitaFind._id, name: namesIncremental[i], uuid: uuids[i] });
+                                }
                             });
                         }
-                    })
+                    });
                 }
 
                 // Cria as despesas correspondentes para o devedor, considerando a recorrência
@@ -578,12 +619,14 @@ async function saveItem() {
                         idOrigem: idUser,
                         isDebt: idUser ? true : false,
                         notify: false,
-                        idReceita: itemName === receitaId[i].name ? receitaId[i].id : null,
+                        idReceita: receitaId.find(r => r.name === itemName)?.id || null,
                         totalPaid: i === 0 && paid ? parseFloat(valor) : 0,
                         values: [{
                             name: itemName,
                             value: parseFloat(valor),
-                            notify: false
+                            paid: false,
+                            notify: false,
+                            uuid: uuids[i] // Usa o mesmo UUID da receita correspondente
                         }],
                         isRecurring: isRecurring && i === 0,
                         recurringMonths: isRecurring && i === 0 ? parseInt(recurringMonths) : undefined
@@ -597,35 +640,41 @@ async function saveItem() {
                     despesas: despesaItems
                 };
 
-
                 const despesaResponse = await fetch(`${API_URL}/expenses`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(despesaPayload),
                 });
 
-                if (!despesaResponse.ok) throw new Error("Erro ao criar receita");
+                if (!despesaResponse.ok) throw new Error("Erro ao criar despesa");
                 const despesaId = [];
                 const despesaDevedor = await despesaResponse.json();
 
-                for (i = 0; i < namasIncrementals.length; i++) {
+                for (let i = 0; i < namesIncremental.length; i++) {
                     despesaDevedor.despesas.filter(despesaFind => {
-                        if (despesaFind.idOrigem === idUser && despesaFind.name === namasIncrementals[i]) {
-                            despesaFind.values.filter((despesafilter) => {
-                                if (despesafilter.name === namasIncrementals[i] && despesafilter.value === valor)
-                                    despesaId.push({ idUser: despesaFind.idOrigem, idReceita: despesaFind.idReceita, idDespesa: despesaFind._id, });
+                        if (despesaFind.idOrigem === idUser && despesaFind.name === namesIncremental[i]) {
+                            despesaFind.values.filter((despesaFilter) => {
+                                if (despesaFilter.name === namesIncremental[i] && despesaFilter.value === valor && despesaFilter.uuid === uuids[i]) {
+                                    despesaId.push({
+                                        idUser: despesaFind.idOrigem,
+                                        idReceita: despesaFind.idReceita,
+                                        idDespesa: despesaFind._id,
+                                    });
+                                }
                             });
                         }
-                    })
+                    });
                 }
 
-                despesaId.forEach(async (despesa) => {
+                // Atualiza as receitas com os IDs das despesas
+                for (const despesa of despesaId) {
                     await fetch(`${API_URL}/expenses/update-receita-despesa`, {
                         method: "PATCH",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(despesa),
                     });
-                })
+                }
+
                 await fetchMonthData();
                 closeModal();
                 return;
@@ -732,6 +781,9 @@ async function saveValuesItem() {
         return;
     }
 
+    // Gera um uuid único para o novo value
+    const sharedUuid = uuidv4();
+
     let payload;
 
     if (currentType === "receita") {
@@ -749,29 +801,26 @@ async function saveValuesItem() {
             isDebt: findReceitas.isDebt,
             idDespesa: findReceitas.idDespesa,
             idDebts: findReceitas.idDebts,
-            values: [...findReceitas.values, { name: nome, value: valor, paid, notify: false }],
+            values: [...findReceitas.values, { name: nome, value: valor, paid, notify: false, uuid: sharedUuid }],
         };
 
         payload = { idUser, receitas: [item] };
+
         // Se for receita vinculada, atualizar a despesa correspondente
-        if (findReceitas.isDebt && findReceitas.idDebts) {
-            await updateDespesaDevedor(findReceitas.idDebts, findReceitas.idDespesa, nome, valor, paid);
+        if (findReceitas.isDebt && findReceitas.idDebts && findReceitas.idDespesa) {
+            await updateDespesaDevedor(findReceitas.idDebts, findReceitas.idDespesa, nome, valor, paid, sharedUuid);
         }
     } else {
         const findDespesas = despesas.find(item => item.id === idItemExpense);
         let newTotalPaid = 0;
         let newTotal = 0;
 
-        if (findDespesas.isDebt == false) {
-            // Soma o novo valor ao total existente
+        if (!findDespesas.isDebt) {
             newTotal = paid ? findDespesas.total - valor : findDespesas.total + valor;
-            // Atualiza totalPaid apenas se notify for true
             newTotalPaid = notify ? (findDespesas.totalPaid || 0) + valor : findDespesas.totalPaid || 0;
         } else {
-            // Soma o novo valor ao total existente
-            newTotal = findDespesas.total
-            // Atualiza totalPaid apenas se notify for true
-            newTotalPaid = findDespesas.totalPaid
+            newTotal = findDespesas.total;
+            newTotalPaid = findDespesas.totalPaid;
         }
 
         const item = {
@@ -785,14 +834,14 @@ async function saveValuesItem() {
             isDebt: findDespesas.isDebt,
             notify: findDespesas.notify,
             idReceita: findDespesas.idReceita,
-            values: [...findDespesas.values, { name: nome, value: valor, paid: false, notify }],
+            values: [...findDespesas.values, { name: nome, value: valor, paid: false, notify, uuid: sharedUuid }],
         };
 
         payload = { idUser, despesas: [item] };
 
         // Se for despesa vinculada e notify for true, atualizar a receita do cobrador
-        if (notify && findDespesas.idOrigem) {
-            await updateReceitaCobrador(findDespesas.idOrigem, findDespesas.idReceita, nome, paid, valor);
+        if (notify && findDespesas.idOrigem && findDespesas.idReceita) {
+            await updateReceitaCobrador(findDespesas.idOrigem, findDespesas.idReceita, nome, paid, valor, sharedUuid);
         }
     }
 
@@ -829,10 +878,14 @@ async function editValuesItem() {
         return;
     }
 
-    const [parentId, itemId] = idItemExpense.split('-');
+    // Obtém o item para recuperar o uuid
+    const item = idItemExpense.includes('-') ? getInternalItem(idItemExpense) : getItemById(idItemExpense);
+    if (!item) {
+        alert("Item não encontrado.");
+        return;
+    }
 
-    console.log("currentType", currentType)
-    return
+    const [parentId, itemId] = idItemExpense.includes('-') ? idItemExpense.split('-') : [idItemExpense, null];
 
     try {
         const response = await fetch(`${API_URL}/expenses/edit-despesa-value`, {
@@ -840,12 +893,14 @@ async function editValuesItem() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 idUser,
-                itemId: parentId,
-                valueId: itemId,
+                type: currentType, // receita ou despesa
+                itemId: parentId, // ID da receita/despesa
+                valueId: itemId, // ID do value (se for item interno)
                 name: nome,
                 value: valor,
                 paid,
-                notify
+                notify,
+                uuid: item.uuid // Inclui o uuid existente
             }),
         });
 
@@ -862,86 +917,111 @@ async function editValuesItem() {
     }
 }
 
-async function updateReceitaCobrador(cobradorId, idReceita, name, paid = false, valor) {
+async function updateReceitaCobrador(idOrigem, idReceita, nome, paid, valor, uuid) {
+    const idUser = idOrigem; // idOrigem é o idUser do cobrador
+    const [expensesResponse] = await Promise.all([
+        fetch(`${API_URL}/expenses/${idOrigem}`)
+    ]);
+    const expensesData = await expensesResponse.json();
+    // Busca a receita existente
+    const receita = expensesData.receitas.find(r => r._id === idReceita);
+    if (!receita) {
+        console.error('Receita não encontrada:', idReceita);
+        return;
+    }
+
+    const newTotal = paid ? (receita.total || 0) - valor : (receita.total || 0) + valor;
+    const newTotalPaid = paid ? (receita.totalPaid || 0) + valor : (receita.totalPaid || 0);
+
+    const payload = {
+        idUser,
+        receitas: [{
+            _id: idReceita,
+            name: receita.name,
+            total: newTotal,
+            totalPaid: newTotalPaid,
+            whenPay: receita.whenPay,
+            paid: receita.paid,
+            isDebt: receita.isDebt,
+            idDespesa: receita.idDespesa,
+            idDebts: receita.idDebts,
+            notify: receita.notify,
+            values: [...receita.values, { name: nome, value: valor, paid, notify: false, uuid }]
+        }]
+    };
+
     try {
-        const response = await fetch(`${API_URL}/expenses/${cobradorId}`);
-        if (!response.ok) throw new Error("Erro ao buscar receitas do cobrador");
-        const expenseData = await response.json();
-        const receita = expenseData.receitas.find(r => r._id === idReceita);
-        if (!receita) {
-            receita = expenseData.receita[0]._id === idReceita ? expenseData.receita[0] : null;
-            console.log("receitaVazia", receita);
-        }
-        if (receita) {
-            const payload = {
-                idUser: cobradorId,
-                receitas: [{
-                    _id: receita._id,
-                    name: receita.name,
-                    total: receita.total,
-                    totalPaid: receita.totalPaid,
-                    whenPay: receita.whenPay,
-                    paid: receita.paid,
-                    isDebt: receita.isDebt,
-                    idDebts: receita.idDebts,
-                    values: [...receita.values, { name, value: valor, paid, notify: true }],
-                }],
-            };
+        const response = await fetch(`${API_URL}/expenses-item`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
 
-            const updateResponse = await fetch(`${API_URL}/expenses-item`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-            });
-
-            if (!updateResponse.ok) throw new Error("Erro ao atualizar receita do cobrador");
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Erro ao atualizar receita do cobrador: ${response.statusText} - ${errorText}`);
         }
     } catch (err) {
         console.error(err);
-        alert("Erro ao atualizar receita do cobrador.");
+        alert(err.message);
     }
 }
 
-async function updateDespesaDevedor(devedorId, idDespesa, name, valor, paid) {
+async function updateDespesaDevedor(idDebts, idDespesa, nome, valor, paid, uuid) {
+    const idUser = idDebts; // idDebts é o idUser do devedor
+    const [expensesResponse] = await Promise.all([
+        fetch(`${API_URL}/expenses/${idDebts}`)
+    ]);
+
+    const expensesData = await expensesResponse.json();
+
+    // Busca a despesa existente
+    const despesa = expensesData.despesas.find(d => d._id === idDespesa);
+    console.log("despesa", despesa)
+    console.log("valor", valor)
+    if (!despesa) {
+        console.error('Despesa não encontrada:', idDespesa);
+        return;
+    }
+
+    const newTotal = paid ? despesa.total - valor : despesa.total + valor;
+    const newTotalPaid = paid ? despesa.totalPaid + valor : despesa.totalPaid;
+
+    console.log("newTotal", newTotal)
+
+    const payload = {
+        idUser,
+        despesas: [{
+            _id: idDespesa,
+            name: despesa.name,
+            total: newTotal,
+            totalPaid: newTotalPaid,
+            whenPay: despesa.whenPay,
+            paid: despesa.paid,
+            idOrigem: despesa.idOrigem,
+            isDebt: despesa.isDebt,
+            idReceita: despesa.idReceita,
+            notify: despesa.notify,
+            values: [...despesa.values, { name: nome, value: valor, paid, notify: false, uuid }]
+        }]
+    };
+
+    console.log("payload", payload)
+
     try {
-        const response = await fetch(`${API_URL}/expenses/${devedorId}`);
-        if (!response.ok) throw new Error("Erro ao buscar despesas do devedor");
-        const expenseData = await response.json();
-        let despesa = expenseData.despesas.find(d => d._id === idDespesa);
+        const response = await fetch(`${API_URL}/expenses-item`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
 
-        if (!despesa) {
-            despesa = expenseData.despesas[0]._id === idDespesa ? expenseData.despesas[0] : null;
-            console.log("depesaVazia", despesa);
-        }
-
-        if (despesa) {
-            const newTotal = paid ? despesa.total : despesa.total + valor;
-            const newTotalPaid = paid ? despesa.totalPaid + valor : despesa.totalPaid;
-
-            const payload = {
-                idUser: devedorId,
-                despesas: [{
-                    _id: despesa._id,
-                    name: despesa.name,
-                    total: newTotal,
-                    totalPaid: newTotalPaid,
-                    whenPay: despesa.whenPay,
-                    paid: despesa.paid,
-                    idOrigem: despesa.idOrigem,
-                    values: [...despesa.values, { name, value: valor, paid, notify: false }],
-                }],
-            };
-            const updateResponse = await fetch(`${API_URL}/expenses-item`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-            });
-
-            if (!updateResponse.ok) throw new Error("Erro ao atualizar despesa do devedor");
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Erro ao atualizar despesa do devedor: ${response.statusText} - ${errorText}`);
         }
     } catch (err) {
         console.error(err);
-        alert("Erro ao atualizar despesa do devedor.");
+        alert(err.message);
     }
 }
 
@@ -974,6 +1054,7 @@ function updateLists() {
 
 function handleOptionsClick(event) {
     const trigger = event.target.closest(".options-trigger");
+
     if (trigger) {
         const id = trigger.getAttribute("data-id");
         showOptions(event, id);
@@ -1098,7 +1179,6 @@ function showOptions(event, id) {
     // Impede a propagação do evento
     event.stopPropagation();
     event.preventDefault();
-
     // Remove qualquer menu de opções existente
     const existingMenus = document.querySelectorAll('.options-menu');
     existingMenus.forEach(menu => menu.remove());
@@ -1127,7 +1207,7 @@ function showOptions(event, id) {
         optionsMenu.innerHTML = `
            <button onclick="openViewItemModal('${type}', '${id}')">Visualizar</button>
             <button onclick="openEditItemModal('${type}', '${id}')">Editar</button>
-            <button onclick="openDeleteItemModal('delete','${type}','${id}')">Deletar</button>
+            <button onclick="openDeleteItemModal('${type}','${id}')">Deletar</button>
         `;
     } else {
         optionsMenu.innerHTML = `
@@ -1182,26 +1262,30 @@ function handleInternalAction(action, fullId) {
     }
 }
 
-// Função para visualizar itens (apenas leitura)
 function openViewItemModal(type, id) {
-    const item = id.includes('-') ? getInternalItem(id) : getItemById(id);
-    if (!item) return;
-    const modal = document.getElementById("actionModalItem");
     const modalTitle = document.getElementById("modalTitleItem");
+    modalTitle.textContent = `Visualizar ${type === "receita" ? "Receita" : "Despesa"}`;
+
+    const itemInternal = getInternalItem(id);
+    const item = getItemById(id.split('-')[0]);
+
+    if (!item && !itemInternal) return;
+
+    // Preencher campos como somente leitura
+    document.getElementById("modalNomeItem").value = itemInternal.name;
+    document.getElementById("modalNomeItem").disabled = true; // Somente leitura
+    document.getElementById("modalValorItem").value = id.includes('-') ? itemInternal.value : itemInternal.total;
+    document.getElementById("modalValorItem").disabled = true; // Somente leitura
+    document.getElementById("modalPaidItem").checked = itemInternal.paid;
+    document.getElementById("modalPaidItem").disabled = true; // Somente leitura
+    document.getElementById("modalNotifyItem").style.display = "none"; // Ocultar notificação
+
     const modalButtons = document.getElementById("modalButtonsItem");
+    modalButtons.innerHTML = `
+        <button class="btn-secundary" onclick="closeModalItem()">Fechar</button>
+    `;
 
-    modalTitle.textContent = `Visualizar ${type === 'receita' ? 'Receita' : 'Despesa'}`;
-
-    // Preenche os campos (só leitura)
-    document.getElementById("modalNomeItem").value = item.name;
-    document.getElementById("modalValorItem").value = id.includes('-') ? item.value : item.total;
-
-    // Desabilita todos os campos
-    ['modalNomeItem', 'modalValorItem'].forEach(id => {
-        document.getElementById(id).disabled = true;
-    });
-
-    modalButtons.innerHTML = `<button class="btn" onclick="closeModalItem()">Fechar</button>`;
+    const modal = document.getElementById("actionModalItem");
     modal.style.display = "block";
 }
 
@@ -1214,52 +1298,314 @@ function getInternalItem(fullId) {
 
     const internalItem = parent.values.find(v => v._id === itemId);
     if (!internalItem) return null;
-
     return {
-        ...internalItem,
-        id: fullId,
-        parentId: parentId,
-        whenPay: parent.whenPay,
-        paid: parent.paid
+        id: internalItem._id,
+        name: internalItem.name,
+        value: internalItem.value,
+        paid: internalItem.paid,
+        notify: internalItem.notify
     };
 }
 
+// Função auxiliar para obter item por ID
 function getItemById(id) {
     const items = currentType === 'receita' ? receitas : despesas;
     return items.find(item => item.id === id);
 }
 
 async function confirmDelete(type, id) {
-    getItemById(id)
     const idUser = JSON.parse(localStorage.getItem("currentUser")).idUser;
+    const parentId = id.split("-")[0]; // Garante que estamos lidando com o ID do item pai
+
     try {
-        const response = await fetch(`${API_URL}/expenses?idUser=${idUser}&type=${type}s&id=${id.split("-")[0]}`, {
-            method: "DELETE",
-        });
-        if (!response.ok) throw new Error(`Erro ao deletar item: ${response.statusText}`);
+        // Define o tipo atual e busca o item pai
+        currentType = type;
+        const parentItem = getItemById(parentId);
+        if (!parentItem) {
+            throw new Error("Item pai não encontrado.");
+        }
+
+        // Deleta o item atual (receita ou despesa)
+        const response = await fetch(
+            `${API_URL}/expenses?idUser=${idUser}&type=${type}s&id=${parentId}`,
+            {
+                method: "DELETE",
+            }
+        );
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Erro ao deletar item: ${response.statusText} - ${errorText}`);
+        }
+
+        // Verifica se o item está vinculado
+        if (type === "receita" && parentItem.isDebt && parentItem.idDebts && parentItem.idDespesa) {
+            // É uma receita vinculada, deletar a despesa correspondente do devedor
+            await deleteCorrespondingDespesa(parentItem.idDebts, parentItem.idDespesa);
+        } else if (type === "despesa" && parentItem.idOrigem && parentItem.idReceita) {
+            // É uma despesa vinculada, deletar a receita correspondente do cobrador
+            await deleteCorrespondingReceita(parentItem.idOrigem, parentItem.idReceita);
+        }
+
+        // Recarrega os dados financeiros
         await fetchMonthData();
         closeModal();
     } catch (err) {
         console.error(err);
-        alert("Erro ao deletar item.");
+        alert("Erro ao deletar item: " + err.message);
+    }
+}
+
+// Função para deletar a despesa vinculada do devedor
+async function deleteCorrespondingDespesa(idUserDevedor, idDespesa) {
+    try {
+        const response = await fetch(
+            `${API_URL}/expenses?idUser=${idUserDevedor}&type=despesas&id=${idDespesa}`,
+            {
+                method: "DELETE",
+            }
+        );
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Erro ao deletar despesa vinculada: ${response.statusText} - ${errorText}`);
+        }
+    } catch (err) {
+        console.error(err);
+        throw new Error("Erro ao deletar despesa correspondente: " + err.message);
+    }
+}
+
+// Função para deletar a receita vinculada do cobrador
+async function deleteCorrespondingReceita(idUserCobrador, idReceita) {
+    try {
+        const response = await fetch(
+            `${API_URL}/expenses?idUser=${idUserCobrador}&type=receitas&id=${idReceita}`,
+            {
+                method: "DELETE",
+            }
+        );
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Erro ao deletar receita vinculada: ${response.statusText} - ${errorText}`);
+        }
+    } catch (err) {
+        console.error(err);
+        throw new Error("Erro ao deletar receita correspondente: " + err.message);
     }
 }
 
 async function confirmDeleteInternal(type, id) {
-
     const idUser = JSON.parse(localStorage.getItem("currentUser")).idUser;
     const [parentId, internalId] = id.split("-");
 
     try {
-        const response = await fetch(`${API_URL}/expenses-item?idUser=${idUser}&type=${type}s&id=${parentId}&valuesId=${internalId}`, {
-            method: "DELETE",
+        // Garante que currentType está definido corretamente
+        currentType = type;
+
+        // Busca o item pai (receita ou despesa)
+        const parentItem = getItemById(parentId);
+        if (!parentItem) {
+            throw new Error("Item pai não encontrado.");
+        }
+
+        const internalItem = parentItem.values.find(v => v._id === internalId);
+        if (!internalItem) {
+            throw new Error("Item interno não encontrado.");
+        }
+
+        const uuidToDelete = internalItem.uuid;
+
+        // Calcula o novo total e totalPaid para o item pai
+        const remainingValues = parentItem.values.filter(v => v._id !== internalId);
+        const newTotal = remainingValues.reduce((sum, v) => sum + v.value, 0);
+        const newTotalPaid = remainingValues.reduce((sum, v) => (v.paid ? sum + v.value : sum), 0);
+
+        // Deleta o item interno da receita/despesa atual e atualiza totais
+        const payload = {
+            idUser,
+            [type === "receita" ? "receitas" : "despesas"]: [
+                {
+                    _id: parentId,
+                    name: parentItem.name,
+                    total: newTotal,
+                    totalPaid: newTotalPaid,
+                    whenPay: parentItem.whenPay,
+                    paid: parentItem.paid,
+                    isDebt: parentItem.isDebt,
+                    idDespesa: parentItem.idDespesa,
+                    idDebts: parentItem.idDebts,
+                    idOrigem: parentItem.idOrigem,
+                    idReceita: parentItem.idReceita,
+                    notify: parentItem.notify,
+                    values: remainingValues,
+                },
+            ],
+        };
+
+        const response = await fetch(`${API_URL}/expenses-item`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
         });
-        if (!response.ok) throw new Error(`Erro ao deletar item: ${response.statusText}`);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Erro ao deletar item: ${response.statusText} - ${errorText}`);
+        }
+
+        // Verifica se o item está vinculado (receita com isDebt ou despesa com idOrigem)
+        if (type === "receita" && parentItem.isDebt && parentItem.idDebts && parentItem.idDespesa) {
+            // É uma receita vinculada, deletar o item correspondente na despesa do devedor
+            await deleteCorrespondingDespesaItem(
+                parentItem.idDebts, // idUser do devedor
+                parentItem.idDespesa, // ID da despesa vinculada
+                uuidToDelete // UUID do item a ser deletado
+            );
+        } else if (type === "despesa" && parentItem.idOrigem && parentItem.idReceita) {
+            // É uma despesa vinculada, deletar o item correspondente na receita do cobrador
+            await deleteCorrespondingReceitaItem(
+                parentItem.idOrigem, // idUser do cobrador
+                parentItem.idReceita, // ID da receita vinculada
+                uuidToDelete // UUID do item a ser deletado
+            );
+        }
+
+        // Recarrega os dados financeiros
         await fetchMonthData();
         closeModalItem();
     } catch (err) {
         console.error(err);
-        alert("Erro ao deletar item.");
+        alert("Erro ao deletar item: " + err.message);
+    }
+}
+
+// Função para deletar item correspondente na despesa do devedor
+async function deleteCorrespondingDespesaItem(idUserDevedor, idDespesa, uuid) {
+    try {
+        // Busca a despesa do devedor
+        const response = await fetch(`${API_URL}/expenses/${idUserDevedor}`);
+        if (!response.ok) {
+            throw new Error("Erro ao buscar despesa do devedor.");
+        }
+
+        const expensesData = await response.json();
+        const despesa = expensesData.despesas.find(d => d._id === idDespesa);
+        if (!despesa) {
+            console.warn("Despesa vinculada não encontrada:", idDespesa);
+            return;
+        }
+
+        // Encontra o item interno com o mesmo UUID
+        const valueToDelete = despesa.values.find(v => v.uuid === uuid);
+        if (!valueToDelete) {
+            console.warn("Item interno com UUID correspondente não encontrado na despesa:", uuid);
+            return;
+        }
+
+        // Calcula novos totais
+        const remainingValues = despesa.values.filter(v => v.uuid !== uuid);
+        const newTotal = remainingValues.reduce((sum, v) => sum + v.value, 0);
+        const newTotalPaid = remainingValues.reduce((sum, v) => (v.paid ? sum + v.value : sum), 0);
+
+        // Atualiza a despesa, removendo o item interno
+        const payload = {
+            idUser: idUserDevedor,
+            despesas: [
+                {
+                    _id: idDespesa,
+                    name: despesa.name,
+                    total: newTotal,
+                    totalPaid: newTotalPaid,
+                    whenPay: despesa.whenPay,
+                    paid: despesa.paid,
+                    idOrigem: despesa.idOrigem,
+                    isDebt: despesa.isDebt,
+                    idReceita: despesa.idReceita,
+                    notify: despesa.notify,
+                    values: remainingValues,
+                },
+            ],
+        };
+
+        const updateResponse = await fetch(`${API_URL}/expenses-item`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+
+        if (!updateResponse.ok) {
+            const errorText = await updateResponse.text();
+            throw new Error(`Erro ao atualizar despesa do devedor: ${updateResponse.statusText} - ${errorText}`);
+        }
+    } catch (err) {
+        console.error(err);
+        throw new Error("Erro ao deletar item correspondente na despesa: " + err.message);
+    }
+}
+
+// Função para deletar item correspondente na receita do cobrador
+async function deleteCorrespondingReceitaItem(idUserCobrador, idReceita, uuid) {
+    try {
+        // Busca a receita do cobrador
+        const response = await fetch(`${API_URL}/expenses/${idUserCobrador}`);
+        if (!response.ok) {
+            throw new Error("Erro ao buscar receita do cobrador.");
+        }
+
+        const expensesData = await response.json();
+        const receita = expensesData.receitas.find(r => r._id === idReceita);
+        if (!receita) {
+            console.warn("Receita vinculada não encontrada:", idReceita);
+            return;
+        }
+
+        // Encontra o item interno com o mesmo UUID
+        const valueToDelete = receita.values.find(v => v.uuid === uuid);
+        if (!valueToDelete) {
+            console.warn("Item interno com UUID correspondente não encontrado na receita:", uuid);
+            return;
+        }
+
+        // Calcula novos totais
+        const remainingValues = receita.values.filter(v => v.uuid !== uuid);
+        const newTotal = remainingValues.reduce((sum, v) => sum + v.value, 0);
+        const newTotalPaid = remainingValues.reduce((sum, v) => (v.paid ? sum + v.value : sum), 0);
+
+        // Atualiza a receita, removendo o item interno
+        const payload = {
+            idUser: idUserCobrador,
+            receitas: [
+                {
+                    _id: idReceita,
+                    name: receita.name,
+                    total: newTotal,
+                    totalPaid: newTotalPaid,
+                    whenPay: receita.whenPay,
+                    paid: receita.paid,
+                    isDebt: receita.isDebt,
+                    idDespesa: receita.idDespesa,
+                    idDebts: receita.idDebts,
+                    notify: receita.notify,
+                    values: remainingValues,
+                },
+            ],
+        };
+
+        const updateResponse = await fetch(`${API_URL}/expenses-item`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+
+        if (!updateResponse.ok) {
+            const errorText = await updateResponse.text();
+            throw new Error(`Erro ao atualizar receita do cobrador: ${updateResponse.statusText} - ${errorText}`);
+        }
+    } catch (err) {
+        console.error(err);
+        throw new Error("Erro ao deletar item correspondente na receita: " + err.message);
     }
 }
 
@@ -1281,7 +1627,7 @@ function calculateColors() {
     document.getElementById("border-despesas-card").style.borderColor = colorDespesa;
 
     const formatCurrency = (value) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    document.getElementById("totalPagar").textContent = formatCurrency(totalPagar - totalPago < 0 ? 0 : totalPagar - totalPago);
+    document.getElementById("totalPagar").textContent = formatCurrency(totalPagar);
     document.getElementById("totalPago").textContent = formatCurrency(totalPago);
     document.getElementById("saldoRestante").textContent = formatCurrency(saldoRestante);
     document.getElementById("saldoRecebido").textContent = formatCurrency(totalRecebido);

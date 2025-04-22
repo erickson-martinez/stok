@@ -375,6 +375,22 @@ header {
     transition: border-color 0.3s ease;
 }
 
+.list-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: start;
+}
+
+.list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-bottom: 1px solid #eee;
+    position: relative;
+}
+
 .activity-input:focus {
     border-color: #80bdff;
     outline: none;
@@ -460,34 +476,27 @@ header {
     flex-shrink: 0;
 }
 
+.options-menu {
+    background: #fff;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    padding: 10px;
+    min-width: 120px;
+    display: block !important;
+}
+
 .options-menu button {
     display: block;
     width: 100%;
-    padding: 8px 12px;
+    padding: 8px;
+    text-align: left;
     border: none;
     background: none;
-    text-align: left;
     cursor: pointer;
-    font-size: 0.9em;
-    color: #333;
-}
-
-.options-menu {
-    display: none;
-    position: absolute;
-    background-color: white;
-    border: 1px solid #ddd;
-    right: 0;
-    top: calc(100% + 5px);
-    border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    padding: 5px 0;
-    z-index: 1000;
-    min-width: 120px;
 }
 
 .options-menu button:hover {
-    background-color: #f5f5f5;
+    background: #f0f0f0;
 }
 
 .options-wrapper {

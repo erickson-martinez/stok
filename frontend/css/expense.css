@@ -131,19 +131,6 @@
     border-radius: 5px;
 }
 
-
-/* Ensure no unexpected padding/margins are affecting the layout */
-.options-menu {
-    background: white;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    padding: 8px 0;
-    min-width: 120px;
-    margin: 0;
-    /* Reset any default margins */
-}
-
 .header-value {
     font-weight: bold;
 }
@@ -334,22 +321,6 @@
         z-index: 1000;
         min-width: 120px;
         rotate: -90deg;
-    }
-
-    .options-menu button {
-        display: block;
-        width: 100%;
-        padding: 8px 12px;
-        border: none;
-        background: none;
-        text-align: left;
-        cursor: pointer;
-        font-size: 0.9em;
-        color: #333;
-    }
-
-    .options-menu button:hover {
-        background-color: #f5f5f5;
     }
 
     /* Modal ajustado */

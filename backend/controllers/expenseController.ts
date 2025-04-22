@@ -3,11 +3,10 @@ import Expense from '../models/Expense';
 import User from "../models/User";
 import crypto from "crypto";
 import mongoose from "mongoose";
-import dotenv from "dotenv"; // Supondo que você tenha um arquivo de utilitários para criptografia
+import dotenv from "dotenv";
+import { IValue, ITransaction, IExpense, ValueRequest, TransactionRequest, ExpenseRequest, UpdateReceitaDespesaRequest } from '../interfaces/expense';
 
 dotenv.config();
-import { ExpenseRequest } from '../interfaces/expense';
-import { is } from 'cypress/types/bluebird';
 
 // Carrega a ENCRYPTION_KEY do .env
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
@@ -17,6 +16,7 @@ const IV_LENGTH = 16;
 if (!ENCRYPTION_KEY) {
     throw new Error("ENCRYPTION_KEY não está definida no arquivo .env");
 }
+
 const decryptPassword = (encrypted: string): string => {
     const [iv, encryptedText] = encrypted.split(":");
     const decipher = crypto.createDecipheriv(
@@ -27,6 +27,12 @@ const decryptPassword = (encrypted: string): string => {
     let decrypted = decipher.update(encryptedText, "hex", "utf8");
     decrypted += decipher.final("utf8");
     return decrypted;
+};
+
+// Função para validar UUID
+const isValidUUID = (uuid: string): boolean => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
 };
 
 const expenseController = {
@@ -86,9 +92,7 @@ const expenseController = {
                     phone: decryptPassword(user.phone),
                     _id: user._id
                 }
-            })
-
-            const mongoose = require('mongoose'); // Certifique-se de importar o Mongoose
+            });
 
             let expense = await Expense.findOne({ idUser });
 
@@ -104,7 +108,6 @@ const expenseController = {
             }
 
             if (expense && receitas) {
-                // Valida e adiciona receitas com _id gerado
                 const validReceitas = receitas.filter(receita =>
                     receita.name &&
                     receita.whenPay &&
@@ -117,7 +120,7 @@ const expenseController = {
                 }
 
                 expense.receitas.push(...validReceitas.map(receita => ({
-                    _id: new mongoose.Types.ObjectId(), // Gera um _id único
+                    _id: new mongoose.Types.ObjectId(),
                     name: receita.name,
                     idDebts: receita.idDebts,
                     isDebt: receita.isDebt,
@@ -126,12 +129,18 @@ const expenseController = {
                     total: receita.total,
                     totalPaid: receita.totalPaid,
                     paid: receita.paid,
-                    values: receita.values || []
+                    values: (receita.values || []).map(val => ({
+                        _id: val._id || new mongoose.Types.ObjectId(),
+                        name: val.name,
+                        value: Number(val.value),
+                        paid: val.paid ?? false,
+                        notify: val.notify ?? false,
+                        uuid: val.uuid || crypto.randomUUID() // Usa o UUID fornecido ou gera um novo
+                    }))
                 })));
             }
 
             if (expense && despesas) {
-                // Valida e adiciona despesas com _id gerado
                 const validDespesas = despesas.filter(despesa =>
                     despesa.name &&
                     despesa.whenPay &&
@@ -143,20 +152,25 @@ const expenseController = {
                     console.warn("Algumas despesas foram ignoradas devido a dados inválidos.");
                 }
 
-                expense.despesas.push(...validDespesas.map(despesa => {
-                    return ({
-                        _id: new mongoose.Types.ObjectId(), // Gera um _id único
-                        name: despesa.name,
-                        idOrigem: despesa.idOrigem,
-                        idReceita: despesa.idReceita,
-                        whenPay: new Date(despesa.whenPay),
-                        isDebt: despesa.isDebt,
-                        total: despesa.total,
-                        totalPaid: despesa.totalPaid,
-                        paid: despesa.paid,
-                        values: despesa.values || []
-                    })
-                }));
+                expense.despesas.push(...validDespesas.map(despesa => ({
+                    _id: new mongoose.Types.ObjectId(),
+                    name: despesa.name,
+                    idOrigem: despesa.idOrigem,
+                    idReceita: despesa.idReceita,
+                    whenPay: new Date(despesa.whenPay),
+                    isDebt: despesa.isDebt,
+                    total: despesa.total,
+                    totalPaid: despesa.totalPaid,
+                    paid: despesa.paid,
+                    values: (despesa.values || []).map(val => ({
+                        _id: val._id || new mongoose.Types.ObjectId(),
+                        name: val.name,
+                        value: Number(val.value),
+                        paid: val.paid ?? false,
+                        notify: val.notify ?? false,
+                        uuid: val.uuid || crypto.randomUUID() // Usa o UUID fornecido ou gera um novo
+                    }))
+                })));
             }
 
             if (expense) {
@@ -178,50 +192,74 @@ const expenseController = {
                 res.status(400).json({ error: 'idUser é obrigatório' });
                 return;
             }
-            const userAll = await User.find({});
-            const users = userAll.map((user) => {
-                return {
-                    phone: decryptPassword(user.phone),
-                    _id: user._id
-                }
-            })
 
-            const expense = await Expense.findOne({ idUser });
+            const userAll = await User.find({});
+            const users = userAll.map((user) => ({
+                phone: decryptPassword(user.phone),
+                _id: (user._id as mongoose.Types.ObjectId).toString(),
+            }));
+
+            let expense = await Expense.findOne({ idUser });
             if (!expense) {
                 res.status(404).json({ error: 'Registro não encontrado' });
                 return;
             }
 
             if (idUserShared) {
-                expense.idUserShared = users.find((user) => user.phone == idUserShared)?._id as string | undefined;
+                const sharedUser = users.find((user) => user.phone === idUserShared);
+                expense.idUserShared = sharedUser?._id;
             }
 
-            if (expense && receitas) {
-                const newReceitas = receitas.map(receita => ({
+            if (receitas) {
+                expense.receitas = receitas.map(receita => ({
+                    _id: receita._id ? new mongoose.Types.ObjectId(receita._id) : new mongoose.Types.ObjectId(),
                     name: receita.name,
+                    idDebts: receita.idDebts,
+                    isDebt: receita.isDebt,
+                    idDespesa: receita.idDespesa,
                     whenPay: new Date(receita.whenPay),
                     total: receita.total,
+                    totalPaid: receita.totalPaid ?? 0,
                     paid: receita.paid,
-                    values: receita.values || []
+                    values: (receita.values || []).map(val => ({
+                        _id: val._id || new mongoose.Types.ObjectId(),
+                        name: val.name,
+                        value: Number(val.value),
+                        paid: val.paid ?? false,
+                        notify: val.notify ?? false,
+                        uuid: val.uuid || crypto.randomUUID() // Usa o UUID fornecido ou gera um novo
+                    }))
                 }));
-                expense.receitas.push(...newReceitas);
             }
 
-            if (expense && despesas) {
-                const newDespesas = despesas.map(despesa => ({
+            if (despesas) {
+                expense.despesas = despesas.map(despesa => ({
+                    _id: despesa._id ? new mongoose.Types.ObjectId(despesa._id) : new mongoose.Types.ObjectId(),
                     name: despesa.name,
+                    idOrigem: despesa.idOrigem,
+                    idReceita: despesa.idReceita,
                     whenPay: new Date(despesa.whenPay),
+                    isDebt: despesa.isDebt,
                     total: despesa.total,
+                    totalPaid: despesa.totalPaid ?? 0,
                     paid: despesa.paid,
-                    values: despesa.values || []
+                    values: (despesa.values || []).map(val => ({
+                        _id: val._id || new mongoose.Types.ObjectId(),
+                        name: val.name,
+                        value: Number(val.value),
+                        paid: val.paid ?? false,
+                        notify: val.notify ?? false,
+                        uuid: val.uuid || crypto.randomUUID() // Usa o UUID fornecido ou gera um novo
+                    }))
                 }));
-                expense.despesas.push(...newDespesas);
             }
 
             expense.updateAt = new Date();
             await expense.save();
+
             res.json(expense);
         } catch (error: any) {
+            console.error('Erro ao atualizar expense:', error);
             res.status(500).json({ error: error.message });
         }
     },
@@ -230,40 +268,34 @@ const expenseController = {
         try {
             const { idUser, idUserShared, receitas, despesas }: ExpenseRequest = req.body;
 
-            // Validação inicial
             if (!idUser) {
                 res.status(400).json({ error: 'idUser é obrigatório' });
                 return;
             }
 
-            // Busca todos os usuários para decriptar telefones, se necessário
             const userAll = await User.find({});
             const users = userAll.map((user) => ({
                 phone: decryptPassword(user.phone),
                 _id: (user._id as mongoose.Types.ObjectId).toString(),
             }));
 
-            // Busca o documento de despesas do usuário
             const expense = await Expense.findOne({ idUser });
             if (!expense) {
                 res.status(404).json({ error: 'Registro não encontrado' });
                 return;
             }
 
-            // Atualiza idUserShared, se fornecido
             if (idUserShared) {
                 const sharedUser = users.find((user) => user.phone === idUserShared);
                 expense.idUserShared = sharedUser?._id;
             }
 
-            // Atualizar Receitas
             if (receitas) {
                 for (const newReceita of receitas) {
                     const existingReceita = expense.receitas.find(
                         (item) => (item._id ?? '').toString() === newReceita._id
                     );
                     if (existingReceita) {
-                        // Atualiza os campos principais
                         existingReceita.name = newReceita.name;
                         existingReceita.whenPay = new Date(newReceita.whenPay);
                         existingReceita.total = newReceita.total;
@@ -273,29 +305,31 @@ const expenseController = {
                         existingReceita.idDebts = newReceita.idDebts ?? existingReceita.idDebts;
                         existingReceita.idDespesa = newReceita.idDespesa ?? existingReceita.idDespesa;
 
-                        // Atualiza os valores (values)
-                        existingReceita.values = (newReceita.values ?? []).map((val) => ({
-                            _id: val._id || new mongoose.Types.ObjectId(),
-                            name: val.name,
-                            value: Number(val.value), // Garante que value é número
-                            paid: val.paid,
-                            notify: val.notify ?? false,
-                        }));
-
+                        existingReceita.values = (newReceita.values ?? []).map((val) => {
+                            if (val.uuid && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val.uuid)) {
+                                throw new Error(`UUID inválido: ${val.uuid}`);
+                            }
+                            return {
+                                _id: val._id || new mongoose.Types.ObjectId(),
+                                name: val.name,
+                                value: Number(val.value),
+                                paid: val.paid ?? false,
+                                notify: val.notify ?? false,
+                                uuid: val.uuid || crypto.randomUUID()
+                            };
+                        });
                     } else {
                         console.warn(`Receita com ID ${newReceita._id} não encontrada para atualização.`);
                     }
                 }
             }
 
-            // Atualizar Despesas
             if (despesas) {
                 for (const newDespesa of despesas) {
                     const existingDespesa = expense.despesas.find(
                         (item) => (item._id ?? '').toString() === newDespesa._id
                     );
                     if (existingDespesa) {
-                        // Atualiza os campos principais
                         existingDespesa.name = newDespesa.name;
                         existingDespesa.whenPay = new Date(newDespesa.whenPay);
                         existingDespesa.total = newDespesa.total;
@@ -305,55 +339,59 @@ const expenseController = {
                         existingDespesa.idOrigem = newDespesa.idOrigem ?? existingDespesa.idOrigem;
                         existingDespesa.idReceita = newDespesa.idReceita ?? existingDespesa.idReceita;
 
-                        // Atualiza os valores (values)
-                        existingDespesa.values = (newDespesa.values ?? []).map((val) => ({
-                            _id: val._id || new mongoose.Types.ObjectId(),
-                            name: val.name,
-                            value: Number(val.value), // Garante que value é número
-                            paid: val.paid,
-                            notify: val.notify ?? false,
-                        }));
+                        existingDespesa.values = (newDespesa.values ?? []).map((val) => {
+                            if (val.uuid && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val.uuid)) {
+                                throw new Error(`UUID inválido: ${val.uuid}`);
+                            }
+                            return {
+                                _id: val._id || new mongoose.Types.ObjectId(),
+                                name: val.name,
+                                value: Number(val.value),
+                                paid: val.paid ?? false,
+                                notify: val.notify ?? false,
+                                uuid: val.uuid || crypto.randomUUID()
+                            };
+                        });
                     } else {
                         console.warn(`Despesa com ID ${newDespesa._id} não encontrada para atualização.`);
                     }
                 }
             }
 
-            // Atualiza a data de modificação
             expense.updateAt = new Date();
             await expense.save();
 
             res.json(expense);
         } catch (error: any) {
             console.error('Erro ao atualizar item:', error);
-            res.status(500).json({ error: error.message });
+            if (error.name === 'ValidationError') {
+                res.status(400).json({ error: 'Dados inválidos', details: error.message });
+            } else {
+                res.status(500).json({ error: error.message });
+            }
         }
     },
 
     async updateReceitaDespesa(req: Request, res: Response): Promise<void> {
         try {
             const { idUser, idReceita, idDespesa } = req.body;
-            // Validação
             if (!idUser || !idReceita || !idDespesa) {
                 res.status(400).json({ error: 'idUser, idReceita e idDespesa são obrigatórios' });
                 return;
             }
 
-            // Busca o documento de despesas do usuário
             const expense = await Expense.findOne({ idUser });
             if (!expense) {
                 res.status(404).json({ error: 'Registro não encontrado' });
                 return;
             }
 
-            // Encontra a receita específica
             const receita = expense.receitas.find(r => r._id?.toString() === idReceita);
             if (!receita) {
                 res.status(404).json({ error: 'Receita não encontrada' });
                 return;
             }
 
-            // Atualiza o idDespesa
             receita.idDespesa = idDespesa;
 
             expense.updateAt = new Date();
@@ -390,7 +428,6 @@ const expenseController = {
                 return;
             }
 
-            // Verifica se há usuário compartilhado e decripta os telefones
             let users: { phone: string; _id: string }[] = [];
             if (idUserShared) {
                 const userAll = await User.find({});
@@ -406,7 +443,6 @@ const expenseController = {
                 return;
             }
 
-            // Atualiza idUserShared se fornecido
             if (idUserShared) {
                 expense.idUserShared = users.find((user) => user.phone === idUserShared)?._id as string | undefined;
             }
@@ -419,27 +455,22 @@ const expenseController = {
                 return;
             }
 
-            // Atualização do status de pagamento
             if (valueId) {
-                // Atualiza um valor específico dentro do item
                 const valueIndex = items[itemIndex].values.findIndex((v: any) => v._id.toString() === valueId);
                 if (valueIndex !== -1) {
                     items[itemIndex].values[valueIndex].paid = isPaid;
 
-                    // Se for uma confirmação do cobrador em receita vinculada, atualiza o total pago
                     if (isPaid && type === 'receita' && (items[itemIndex] as any).isDebt) {
                         (items[itemIndex] as any).totalPaid += Number(items[itemIndex].values[valueIndex].value) || 0;
                     }
                 }
             } else {
-                // Atualiza o item inteiro
                 items[itemIndex].paid = isPaid;
             }
 
             expense.updateAt = new Date();
             await expense.save();
 
-            // Se for uma receita vinculada, atualiza a despesa correspondente
             if (type === 'receita' && (items[itemIndex] as any).isDebt && (items[itemIndex] as any).idOrigem) {
                 await Expense.updateOne(
                     { "despesas._id": new mongoose.Types.ObjectId((items[itemIndex] as any).idOrigem) },
@@ -467,7 +498,6 @@ const expenseController = {
                 id?: string;
             };
 
-
             if (!idUser) {
                 res.status(400).json({ error: 'Em construção' });
                 return;
@@ -488,21 +518,18 @@ const expenseController = {
             const updateField = type === 'receitas' ? 'receitas' : 'despesas';
             const objectId = new mongoose.Types.ObjectId(id);
 
-            // Verifica se o documento existe
             const expense = await Expense.findOne({ idUser });
             if (!expense) {
                 res.status(404).json({ error: 'Registro não encontrado' });
                 return;
             }
 
-            // Verifica se o item existe no array
             const itemExists = expense[updateField].some(item => item._id?.toString() === id);
             if (!itemExists) {
                 res.status(404).json({ error: 'Item não encontrado' });
                 return;
             }
 
-            // Executa a operação $pull
             const result = await Expense.updateOne(
                 { idUser },
                 {
@@ -514,9 +541,7 @@ const expenseController = {
                 { runValidators: true }
             );
 
-
             if (result.modifiedCount === 0) {
-                // Tenta uma abordagem alternativa
                 const expenseUpdated = await Expense.findOneAndUpdate(
                     { idUser },
                     {
@@ -533,7 +558,6 @@ const expenseController = {
                     return;
                 }
 
-                // Verifica se o item ainda existe
                 const stillExists = expenseUpdated[updateField].some(item => item._id?.toString() === id);
                 if (stillExists) {
                     res.status(500).json({ error: 'Falha ao remover item' });
@@ -541,14 +565,12 @@ const expenseController = {
                 }
             }
 
-            // Busca o documento atualizado
             const updatedExpense = await Expense.findOne({ idUser });
             if (!updatedExpense) {
                 res.status(404).json({ error: 'Registro não encontrado após atualização' });
                 return;
             }
 
-            // Deleta o documento se ambos os arrays estiverem vazios
             if (updatedExpense.receitas.length === 0 && updatedExpense.despesas.length === 0) {
                 await Expense.deleteOne({ idUser });
                 res.json({ message: 'Registro completo deletado' });
@@ -570,7 +592,6 @@ const expenseController = {
                 valuesId?: string;
             };
 
-            // Validações básicas
             if (!idUser || !type || !id || !valuesId) {
                 res.status(400).json({ error: 'Todos os parâmetros são obrigatórios' });
                 return;
@@ -581,7 +602,6 @@ const expenseController = {
                 return;
             }
 
-            // Validação de ObjectId
             if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(valuesId)) {
                 res.status(400).json({ error: 'IDs inválidos' });
                 return;
@@ -591,14 +611,12 @@ const expenseController = {
             const objectId = new mongoose.Types.ObjectId(id);
             const valueObjectId = new mongoose.Types.ObjectId(valuesId);
 
-            // 1. Encontra o documento
             const expense = await Expense.findOne({ idUser });
             if (!expense) {
                 res.status(404).json({ error: 'Registro não encontrado' });
                 return;
             }
 
-            // 2. Encontra o item principal
             const mainItem = expense[updateField].find(
                 (item) => item._id?.toString() === id
             );
@@ -608,7 +626,6 @@ const expenseController = {
                 return;
             }
 
-            // 3. Verifica se o valor existe
             const valueItem = mainItem.values.find((v: any) => v._id == valuesId);
 
             if (!valueItem) {
@@ -616,11 +633,9 @@ const expenseController = {
                 return;
             }
 
-            // 4. Calcula o novo total
             const valueToSubtract = typeof valueItem.value === 'number' ? valueItem.value : 0;
             const newTotal = mainItem.total - valueToSubtract;
 
-            // 5. Atualização no banco de dados
             const result = await Expense.updateOne(
                 {
                     idUser,
@@ -643,7 +658,6 @@ const expenseController = {
                 return;
             }
 
-            // 6. Retorna a resposta
             res.json({
                 success: true,
                 message: 'Item deletado com sucesso',
@@ -657,6 +671,6 @@ const expenseController = {
             });
         }
     }
-}
+};
 
 export default expenseController;
