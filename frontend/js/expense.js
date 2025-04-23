@@ -1303,10 +1303,12 @@ function createListItem(item, type) {
     return `
         <div class="list-container" data-id="${item.id}">
             <div class="list-header">
-                <span class="item-name" onclick="toggleAccordion('${item.id}')">${sharedBadge} ${item.name}</span>
-                <div class="value-container">
-                    <span class="item-value">${item.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                <div>
                     <span class="accordion-toggle" onclick="toggleAccordion('${item.id}')"><i class="fas fa-chevron-down"></i></span>
+                    <span class="item-name" onclick="toggleAccordion('${item.id}')">${sharedBadge} ${item.name}</span>
+                </div>
+                <div class="value-container-expense">
+                    <span class="item-value">${type === 'receita' ? "Há receber:" : "Há pagar:"} ${item.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
                     <span class="options-trigger" data-id="${item.id}" data-type="${type}">⋯</span>
                 </div>
             </div>
@@ -1396,6 +1398,7 @@ function showOptions(event, id) {
     // Impede a propagação do evento
     event.stopPropagation();
     event.preventDefault();
+
     // Remove qualquer menu de opções existente
     const existingMenus = document.querySelectorAll('.options-menu');
     existingMenus.forEach(menu => menu.remove());
@@ -1405,7 +1408,6 @@ function showOptions(event, id) {
 
     // Obtém o tipo (receita/despesa) do atributo data-type
     const type = trigger.getAttribute('data-type');
-
     currentType = type;
 
     // Verifica se é um item interno
@@ -1416,7 +1418,6 @@ function showOptions(event, id) {
     optionsMenu.className = 'options-menu';
     optionsMenu.style.display = 'block';
     optionsMenu.style.position = 'absolute';
-    optionsMenu.style.right = '0';
     optionsMenu.style.zIndex = '1000';
 
     // Adiciona as opções conforme o tipo de item
@@ -1438,13 +1439,18 @@ function showOptions(event, id) {
     // Adiciona o menu ao elemento que foi clicado
     trigger.appendChild(optionsMenu);
 
-    // Fecha o menu quando clicar fora
-    document.addEventListener('click', function closeMenu(e) {
-        if (!optionsMenu.contains(e.target)) {
-            optionsMenu.remove();
-            document.removeEventListener('click', closeMenu);
-        }
-    }, { once: true });
+    // Fecha o menu quando clicar fora (atrasa o listener para evitar conflito com o clique inicial)
+    setTimeout(() => {
+        const closeMenu = (e) => {
+            console.log('Clique fora detectado. Target:', e.target);
+            if (!optionsMenu.contains(e.target) && e.target !== trigger) {
+                console.log('Fechando menu');
+                optionsMenu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        };
+        document.addEventListener('click', closeMenu);
+    }, 0);
 }
 
 function handleInternalAction(action, fullId) {
@@ -1925,9 +1931,9 @@ function openReportModal() {
             // Formata o mês diretamente, garantindo UTC
             const monthYear = itemDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).replace(/^\w/, c => c.toLowerCase());
             if (despesasPorMes[monthYear] !== undefined) {
-                despesasPorMes[monthYear] += item.total;
+                despesasPorMes[monthYear] += item.total + item.totalPaid;
             } else {
-                despesasPorMes[monthYear] = item.total; // Inicializa se não existir
+                despesasPorMes[monthYear] = item.total + item.totalPaid;
             }
         }
     });
@@ -1939,9 +1945,9 @@ function openReportModal() {
             // Formata o mês diretamente, garantindo UTC
             const monthYear = itemDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).replace(/^\w/, c => c.toLowerCase());
             if (receitasPorMes[monthYear] !== undefined) {
-                receitasPorMes[monthYear] += item.total;
+                receitasPorMes[monthYear] += item.total + item.totalPaid;
             } else {
-                receitasPorMes[monthYear] = item.total; // Inicializa se não existir
+                receitasPorMes[monthYear] = item.total + item.totalPaid;
             }
         }
     });

@@ -372,11 +372,6 @@
         padding: 10px;
     }
 
-    .item-value {
-        flex: 0 0 60px;
-        /* Reduz a largura do valor em telas pequenas */
-    }
-
     .options-trigger {
         flex: 0 0 20px;
         /* Reduz o espaço dos três pontinhos */

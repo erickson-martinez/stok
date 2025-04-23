@@ -169,13 +169,8 @@
 .list-item {
     display: flex;
     align-items: center;
-    padding: 10px 12px;
     border-bottom: 1px solid #eee;
     position: relative;
-}
-
-.internal-item {
-    padding-left: 20px;
 }
 
 .sub-internal-item {
@@ -184,7 +179,6 @@
 
 .item-value {
     text-align: right;
-    margin-right: 10px;
 }
 
 .shared-badge {
@@ -294,11 +288,6 @@
         margin-left: 0px;
     }
 
-    .item-value {
-        flex: 0 0 60px;
-    }
-
-
     .header-actions {
         flex-direction: column;
         gap: 10px;
@@ -311,21 +300,6 @@
         padding: 0 8px;
         display: inline-block;
         rotate: 90deg;
-    }
-
-    .options-menu {
-        display: none;
-        position: absolute;
-        background-color: white;
-        border: 1px solid #ddd;
-        right: 0;
-        top: calc(100% + 5px);
-        border-radius: 5px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        padding: 5px 0;
-        z-index: 1000;
-        min-width: 120px;
-        rotate: -90deg;
     }
 
     /* Modal ajustado */

@@ -374,14 +374,15 @@ header {
 .list-header {
     display: flex;
     flex-direction: row;
-    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
 }
 
 .list-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 12px;
+    padding: 5px 0 5px 5px;
     border-bottom: 1px solid #eee;
     position: relative;
 }
@@ -471,9 +472,12 @@ header {
     padding: 0 8px;
     font-size: 1.2em;
     flex-shrink: 0;
+    rotate: 90deg;
 }
 
 .options-menu {
+    rotate: -90deg;
+
     background: #fff;
     border: 1px solid #ccc;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
@@ -483,6 +487,7 @@ header {
 }
 
 .options-menu button {
+
     display: block;
     width: 100%;
     padding: 8px;
@@ -521,12 +526,17 @@ header {
 
     .list-header {
         display: flex;
-        flex-direction: row;
-        align-items: center;
+        flex-direction: column;
     }
 
     .value-container {
         display: flex;
+    }
+
+    .value-container-expense {
+        width: 100%;
+        display: flex;
+        justify-content: end;
     }
 
     .menu-btn {

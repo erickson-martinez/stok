@@ -260,10 +260,6 @@
         flex-wrap: wrap;
     }
 
-    .item-value {
-        flex: 0 0 60px;
-    }
-
     .options-trigger {
         flex: 0 0 20px;
     }
