@@ -266,18 +266,12 @@ const expenseController = {
 
     async updateExpenseItem(req: Request, res: Response): Promise<void> {
         try {
-            const { idUser, idUserShared, receitas, despesas }: ExpenseRequest = req.body;
+            const { idUser, idUserShared, receitas, despesas } = req.body;
 
             if (!idUser) {
                 res.status(400).json({ error: 'idUser é obrigatório' });
                 return;
             }
-
-            const userAll = await User.find({});
-            const users = userAll.map((user) => ({
-                phone: decryptPassword(user.phone),
-                _id: (user._id as mongoose.Types.ObjectId).toString(),
-            }));
 
             const expense = await Expense.findOne({ idUser });
             if (!expense) {
@@ -285,15 +279,10 @@ const expenseController = {
                 return;
             }
 
-            if (idUserShared) {
-                const sharedUser = users.find((user) => user.phone === idUserShared);
-                expense.idUserShared = sharedUser?._id;
-            }
-
             if (receitas) {
                 for (const newReceita of receitas) {
                     const existingReceita = expense.receitas.find(
-                        (item) => (item._id ?? '').toString() === newReceita._id
+                        item => (item._id ?? '').toString() === newReceita._id
                     );
                     if (existingReceita) {
                         existingReceita.name = newReceita.name;
@@ -305,21 +294,21 @@ const expenseController = {
                         existingReceita.idDebts = newReceita.idDebts ?? existingReceita.idDebts;
                         existingReceita.idDespesa = newReceita.idDespesa ?? existingReceita.idDespesa;
 
-                        existingReceita.values = (newReceita.values ?? []).map((val) => {
-                            if (val.uuid && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val.uuid)) {
-                                throw new Error(`UUID inválido: ${val.uuid}`);
-                            }
-                            return {
-                                _id: val._id || new mongoose.Types.ObjectId(),
-                                name: val.name,
-                                value: Number(val.value),
-                                paid: val.paid ?? false,
-                                notify: val.notify ?? false,
-                                uuid: val.uuid || crypto.randomUUID()
-                            };
-                        });
-                    } else {
-                        console.warn(`Receita com ID ${newReceita._id} não encontrada para atualização.`);
+                        const updatedValues = (newReceita.values ?? []).map((val: any) => ({
+                            _id: val._id,
+                            name: val.name,
+                            value: Number(val.value),
+                            paid: val.paid,
+                            notify: val.notify ?? false,
+                            uuid: val.uuid
+                        }));
+
+                        existingReceita.values = updatedValues;
+
+                        // Verificar total e totalPaid
+                        existingReceita.total = Math.max(0, existingReceita.total);
+                        existingReceita.totalPaid = Math.max(0, existingReceita.totalPaid ?? 0);
+                        existingReceita.paid = existingReceita.totalPaid >= existingReceita.total;
                     }
                 }
             }
@@ -327,7 +316,7 @@ const expenseController = {
             if (despesas) {
                 for (const newDespesa of despesas) {
                     const existingDespesa = expense.despesas.find(
-                        (item) => (item._id ?? '').toString() === newDespesa._id
+                        item => (item._id ?? '').toString() === newDespesa._id
                     );
                     if (existingDespesa) {
                         existingDespesa.name = newDespesa.name;
@@ -339,36 +328,31 @@ const expenseController = {
                         existingDespesa.idOrigem = newDespesa.idOrigem ?? existingDespesa.idOrigem;
                         existingDespesa.idReceita = newDespesa.idReceita ?? existingDespesa.idReceita;
 
-                        existingDespesa.values = (newDespesa.values ?? []).map((val) => {
-                            if (val.uuid && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val.uuid)) {
-                                throw new Error(`UUID inválido: ${val.uuid}`);
-                            }
-                            return {
-                                _id: val._id || new mongoose.Types.ObjectId(),
-                                name: val.name,
-                                value: Number(val.value),
-                                paid: val.paid ?? false,
-                                notify: val.notify ?? false,
-                                uuid: val.uuid || crypto.randomUUID()
-                            };
-                        });
-                    } else {
-                        console.warn(`Despesa com ID ${newDespesa._id} não encontrada para atualização.`);
+                        const updatedValues = (newDespesa.values ?? []).map((val: any) => ({
+                            _id: val._id,
+                            name: val.name,
+                            value: Number(val.value),
+                            paid: val.paid,
+                            notify: val.notify ?? false,
+                            uuid: val.uuid
+                        }));
+
+                        existingDespesa.values = updatedValues;
+
+                        // Verificar total e totalPaid
+                        existingDespesa.total = Math.max(0, existingDespesa.total);
+                        existingDespesa.totalPaid = Math.max(0, existingDespesa.totalPaid ?? 0);
+                        existingDespesa.paid = existingDespesa.totalPaid >= existingDespesa.total;
                     }
                 }
             }
 
             expense.updateAt = new Date();
             await expense.save();
-
             res.json(expense);
         } catch (error: any) {
             console.error('Erro ao atualizar item:', error);
-            if (error.name === 'ValidationError') {
-                res.status(400).json({ error: 'Dados inválidos', details: error.message });
-            } else {
-                res.status(500).json({ error: error.message });
-            }
+            res.status(500).json({ error: error.message });
         }
     },
 

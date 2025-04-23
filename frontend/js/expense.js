@@ -345,9 +345,6 @@ function openEditItemModal(type, id) {
     const itemInternal = getInternalItem(id);
     const item = getItemById(id.split('-')[0]);
 
-    console.log("item", item);
-    console.log("itemInternal", itemInternal);
-
     if (!item && !itemInternal) return;
 
     // Armazenar ID e tipo
@@ -359,10 +356,11 @@ function openEditItemModal(type, id) {
     modalNomeItem.value = itemInternal.name;
     modalValorItem.value = id.includes('-') ? itemInternal.value : itemInternal.total;
     paidCheckbox.checked = itemInternal.paid;
+    notifyCheckbox.checked = itemInternal.notify;
 
     // Aplicar bloqueios para despesas
     if (type === "despesa") {
-        if (itemInternal.paid && itemInternal.notify === false) {
+        if (itemInternal.paid === false && itemInternal.notify === true) {
             modalNomeItem.disabled = true;
             modalValorItem.disabled = true;
             notifyContent.style.display = "block";
@@ -374,7 +372,7 @@ function openEditItemModal(type, id) {
             notifyCheckbox.style.display = "none";
         }
     } else {
-        paidCheckbox.disabled = false; // Cobrador pode marcar paid
+        paidCheckbox.disabled = false;
         notifyCheckbox.style.display = "none";
     }
 
@@ -382,7 +380,7 @@ function openEditItemModal(type, id) {
     const modalButtons = document.getElementById("modalButtonsItem");
     modalButtons.innerHTML = `
         <button class="btn-secundary" onclick="closeModalItem()">Cancelar</button>
-        <button class="btn" onclick="editValuesItem()" ${item?.shared ? 'disabled' : ''}>Salvar</button>
+        ${item?.shared || type === "despesa" && itemInternal.paid === false && itemInternal.notify === true ? '' : `<button class="btn" onclick="editValuesItem('${type}','${id}')">Salvar</button>`}
     `;
 
     // Exibir modal
@@ -814,12 +812,13 @@ async function saveValuesItem() {
         let newTotalPaid = 0;
         let newTotal = 0;
 
-        if (!findDespesas.isDebt) {
-            newTotal = paid ? findDespesas.total - valor : findDespesas.total + valor;
-            newTotalPaid = notify ? (findDespesas.totalPaid || 0) + valor : findDespesas.totalPaid || 0;
-        } else {
-            newTotal = findDespesas.total;
+        if (findDespesas.isDebt === true && paid === false && notify === true) {
+            newTotal = findDespesas.total
             newTotalPaid = findDespesas.totalPaid;
+        }
+        if (!findDespesas.isDebt) {
+            newTotal = paid ? findDespesas.total - valor : findDespesas.total + valor
+            newTotalPaid = paid ? findDespesas.totalPaid + valor : findDespesas.totalPaid;
         }
 
         const item = {
@@ -839,8 +838,8 @@ async function saveValuesItem() {
         payload = { idUser, despesas: [item] };
 
         // Se for despesa vinculada e notify for true, atualizar a receita do cobrador
-        if (notify && findDespesas.idOrigem && findDespesas.idReceita) {
-            await updateReceitaCobrador(findDespesas.idOrigem, findDespesas.idReceita, nome, paid, valor, sharedUuid);
+        if (findDespesas.isDebt && notify && findDespesas.idOrigem && findDespesas.idReceita) {
+            await updateReceitaCobrador(findDespesas.idOrigem, findDespesas.idReceita, nome, paid, valor, notify, sharedUuid);
         }
     }
 
@@ -864,7 +863,8 @@ async function saveValuesItem() {
     }
 }
 
-async function editValuesItem() {
+async function editValuesItem(type, id) {
+    currentType = type
     const currentUser = JSON.parse(localStorage.getItem("currentUser"));
     const idUser = currentUser.idUser;
     const nome = document.getElementById("modalNomeItem").value;
@@ -877,30 +877,171 @@ async function editValuesItem() {
         return;
     }
 
-    // Obtém o item para recuperar o uuid
-    const item = idItemExpense.includes('-') ? getInternalItem(idItemExpense) : getItemById(idItemExpense);
-    if (!item) {
-        alert("Item não encontrado.");
-        return;
+    // Obter os itens original e interno
+    const item = getItemById(editingId.split('-')[0]);
+    const itemInternal = getInternalItem(editingId);
+
+    if (!item && !itemInternal) return;
+
+    let payload;
+    const sharedUuid = itemInternal.uuid; // Mantém o mesmo UUID
+
+    if (currentType === "receita") {
+        const findReceitas = receitas.find(r => r.id === item.id);
+
+        // Encontra o item específico no array values
+        const valueIndex = findReceitas.values.findIndex(v => v.uuid === sharedUuid);
+        if (valueIndex === -1) {
+            alert("Item não encontrado para edição");
+            return;
+        }
+
+        // Calcula diferença de valor se o valor foi alterado
+        const oldValue = findReceitas.values[valueIndex].value;
+        const valueDiff = valor - oldValue;
+
+        // Atualiza totais
+        let newTotal = findReceitas.total;
+        let newTotalPaid = findReceitas.totalPaid;
+
+        if (paid) {
+            // Se estava pago e continua pago, apenas ajusta o valor
+            if (findReceitas.values[valueIndex].paid) {
+                newTotalPaid += valueDiff;
+            }
+            // Se não estava pago e agora está
+            else {
+                newTotal -= valor;
+                newTotalPaid += valor;
+            }
+        } else {
+            // Se estava pago e agora não está
+            if (findReceitas.values[valueIndex].paid) {
+                newTotal += oldValue;
+                newTotalPaid -= oldValue;
+            }
+            // Se não estava pago e continua não pago, apenas ajusta o valor
+            else {
+                newTotal += valueDiff;
+            }
+        }
+
+        // Cria cópia atualizada dos values
+        const updatedValues = [...findReceitas.values];
+        updatedValues[valueIndex] = {
+            ...updatedValues[valueIndex],
+            name: nome,
+            value: valor,
+            paid,
+            notify
+        };
+
+        const updatedItem = {
+            _id: findReceitas.id,
+            name: findReceitas.name,
+            total: newTotal,
+            totalPaid: newTotalPaid,
+            whenPay: findReceitas.whenPay,
+            paid: findReceitas.paid,
+            isDebt: findReceitas.isDebt,
+            idDespesa: findReceitas.idDespesa,
+            idDebts: findReceitas.idDebts,
+            values: updatedValues,
+        };
+
+        payload = {
+            idUser,
+            receitas: [updatedItem],
+            uuid: sharedUuid // Envia o UUID para identificar qual item atualizar
+        };
+
+        // Atualização vinculada (se necessário)
+        if (findReceitas.isDebt && findReceitas.idDebts && findReceitas.idDespesa) {
+            await updateDespesa(findReceitas.idDebts, findReceitas.idDespesa, nome, valor, paid, notify, sharedUuid);
+        }
+    } else {
+        const findDespesas = despesas.find(d => d.id === item.id);
+
+        // Encontra o item específico no array values
+        const valueIndex = findDespesas.values.findIndex(v => v.uuid === sharedUuid);
+        if (valueIndex === -1) {
+            alert("Item não encontrado para edição");
+            return;
+        }
+
+        // Calcula diferença de valor se o valor foi alterado
+        const oldValue = findDespesas.values[valueIndex].value;
+        const valueDiff = valor - oldValue;
+
+        // Atualiza totais para despesas normais
+        let newTotal = findDespesas.total;
+        let newTotalPaid = findDespesas.totalPaid;
+
+        if (!findDespesas.isDebt) {
+            if (paid) {
+                // Se estava pago e continua pago, apenas ajusta o valor
+                if (findDespesas.values[valueIndex].paid) {
+                    newTotalPaid += valueDiff;
+                }
+                // Se não estava pago e agora está
+                else {
+                    newTotal -= valor;
+                    newTotalPaid += valor;
+                }
+            } else {
+                // Se estava pago e agora não está
+                if (findDespesas.values[valueIndex].paid) {
+                    newTotal += oldValue;
+                    newTotalPaid -= oldValue;
+                }
+                // Se não estava pago e continua não pago, apenas ajusta o valor
+                else {
+                    newTotal += valueDiff;
+                }
+            }
+        }
+
+        // Cria cópia atualizada dos values
+        const updatedValues = [...findDespesas.values];
+        updatedValues[valueIndex] = {
+            ...updatedValues[valueIndex],
+            name: nome,
+            value: valor,
+            paid,
+            notify
+        };
+
+        const updatedItem = {
+            _id: findDespesas.id,
+            name: findDespesas.name,
+            total: newTotal,
+            totalPaid: newTotalPaid,
+            whenPay: findDespesas.whenPay,
+            paid: findDespesas.paid,
+            idOrigem: findDespesas.idOrigem,
+            isDebt: findDespesas.isDebt,
+            notify: findDespesas.notify,
+            idReceita: findDespesas.idReceita,
+            values: updatedValues,
+        };
+
+        payload = {
+            idUser,
+            despesas: [updatedItem],
+            uuid: sharedUuid // Envia o UUID para identificar qual item atualizar
+        };
+
+        // Atualização vinculada (se necessário)
+        if (notify && findDespesas.idOrigem && findDespesas.idReceita) {
+            await updateReceitaCobrador(findDespesas.idOrigem, findDespesas.idReceita, nome, paid, valor, notify, sharedUuid);
+        }
     }
 
-    const [parentId, itemId] = idItemExpense.includes('-') ? idItemExpense.split('-') : [idItemExpense, null];
-
     try {
-        const response = await fetch(`${API_URL}/expenses/edit-despesa-value`, {
+        const response = await fetch(`${API_URL}/expenses-item`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                idUser,
-                type: currentType, // receita ou despesa
-                itemId: parentId, // ID da receita/despesa
-                valueId: itemId, // ID do value (se for item interno)
-                name: nome,
-                value: valor,
-                paid,
-                notify,
-                uuid: item.uuid // Inclui o uuid existente
-            }),
+            body: JSON.stringify(payload),
         });
 
         if (!response.ok) {
@@ -916,7 +1057,9 @@ async function editValuesItem() {
     }
 }
 
-async function updateReceitaCobrador(idOrigem, idReceita, nome, paid, valor, uuid) {
+
+
+async function updateReceitaCobrador(idOrigem, idReceita, nome, paid, valor, notify, uuid) {
     const idUser = idOrigem; // idOrigem é o idUser do cobrador
     const [expensesResponse] = await Promise.all([
         fetch(`${API_URL}/expenses/${idOrigem}`)
@@ -929,8 +1072,8 @@ async function updateReceitaCobrador(idOrigem, idReceita, nome, paid, valor, uui
         return;
     }
 
-    const newTotal = paid ? (receita.total || 0) - valor : (receita.total || 0) + valor;
-    const newTotalPaid = paid ? (receita.totalPaid || 0) + valor : (receita.totalPaid || 0);
+    const newTotal = receita.total
+    const newTotalPaid = receita.totalPaid
 
     const payload = {
         idUser,
@@ -945,7 +1088,7 @@ async function updateReceitaCobrador(idOrigem, idReceita, nome, paid, valor, uui
             idDespesa: receita.idDespesa,
             idDebts: receita.idDebts,
             notify: receita.notify,
-            values: [...receita.values, { name: nome, value: valor, paid, notify: false, uuid }]
+            values: [...receita.values, { name: nome, value: valor, paid, notify, uuid }]
         }]
     };
 
@@ -965,6 +1108,86 @@ async function updateReceitaCobrador(idOrigem, idReceita, nome, paid, valor, uui
         alert(err.message);
     }
 }
+async function updateDespesa(idDebts, idDespesa, nome, valor, paid, notify, uuid) {
+    const idUser = idDebts; // idDebts é o idUser do devedor
+    const [expensesResponse] = await Promise.all([
+        fetch(`${API_URL}/expenses/${idDebts}`)
+    ]);
+
+    const expensesData = await expensesResponse.json();
+
+    // Busca a despesa existente
+    const findDespesas = expensesData.despesas.find(d => d._id === idDespesa);
+    // Encontra o item específico no array values
+    const valueIndex = findDespesas.values.findIndex(v => v.uuid === uuid);
+    if (valueIndex === -1) {
+        alert("Item não encontrado para edição");
+        return;
+    }
+
+    // Atualiza totais para despesas normais
+    let newTotal = findDespesas.total;
+    let newTotalPaid = findDespesas.totalPaid;
+
+    if (paid) {
+        newTotal = findDespesas.total - valor;
+        newTotalPaid = findDespesas.totalPaid + valor;
+    } else {
+        // Se estava pago e agora não está
+        if (findDespesas.values[valueIndex].paid) {
+            newTotal = findDespesas.total + valor
+            newTotalPaid = findDespesas.totalPaid - valor;
+        }
+    }
+
+    // Cria cópia atualizada dos values
+    const updatedValues = [...findDespesas.values];
+    updatedValues[valueIndex] = {
+        ...updatedValues[valueIndex],
+        name: nome,
+        value: valor,
+        paid,
+        notify: false
+    };
+
+    const updatedItem = {
+        _id: idDespesa,
+        name: findDespesas.name,
+        total: newTotal,
+        totalPaid: newTotalPaid,
+        whenPay: findDespesas.whenPay,
+        paid: findDespesas.paid,
+        idOrigem: findDespesas.idOrigem,
+        isDebt: findDespesas.isDebt,
+        notify: findDespesas.notify,
+        idReceita: findDespesas.idReceita,
+        values: updatedValues,
+    };
+
+    payload = {
+        idUser,
+        despesas: [updatedItem],
+        uuid: uuid // Envia o UUID para identificar qual item atualizar
+    };
+
+    console.log(payload)
+
+    try {
+        const response = await fetch(`${API_URL}/expenses-item`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Erro ao atualizar despesa do devedor: ${response.statusText} - ${errorText}`);
+        }
+    } catch (err) {
+        console.error(err);
+        alert(err.message);
+    }
+}
 
 async function updateDespesaDevedor(idDebts, idDespesa, nome, valor, paid, uuid) {
     const idUser = idDebts; // idDebts é o idUser do devedor
@@ -976,8 +1199,6 @@ async function updateDespesaDevedor(idDebts, idDespesa, nome, valor, paid, uuid)
 
     // Busca a despesa existente
     const despesa = expensesData.despesas.find(d => d._id === idDespesa);
-    console.log("despesa", despesa)
-    console.log("valor", valor)
     if (!despesa) {
         console.error('Despesa não encontrada:', idDespesa);
         return;
@@ -985,8 +1206,6 @@ async function updateDespesaDevedor(idDebts, idDespesa, nome, valor, paid, uuid)
 
     const newTotal = paid ? despesa.total - valor : despesa.total + valor;
     const newTotalPaid = paid ? despesa.totalPaid + valor : despesa.totalPaid;
-
-    console.log("newTotal", newTotal)
 
     const payload = {
         idUser,
@@ -1005,7 +1224,6 @@ async function updateDespesaDevedor(idDebts, idDespesa, nome, valor, paid, uuid)
         }]
     };
 
-    console.log("payload", payload)
 
     try {
         const response = await fetch(`${API_URL}/expenses-item`, {
@@ -1301,6 +1519,7 @@ function getInternalItem(fullId) {
         id: internalItem._id,
         name: internalItem.name,
         value: internalItem.value,
+        uuid: internalItem?.uuid,
         paid: internalItem.paid,
         notify: internalItem.notify
     };

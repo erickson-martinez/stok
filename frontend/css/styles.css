@@ -113,7 +113,7 @@ header {
     font-size: 1.2em;
     color: #555;
     cursor: pointer;
-    padding: 0 8px;
+    padding: 0;
     transition: color 0.3s ease;
     /* Transição suave para a cor */
 }
@@ -159,7 +159,7 @@ header {
     font-weight: bold;
     cursor: pointer;
     position: absolute;
-    margin-top: 1%;
+    margin-top: 3%;
     right: 2%;
     z-index: 1100;
 }
@@ -408,7 +408,7 @@ header {
 }
 
 .card-header {
-    padding: 15px;
+    padding: 15px 5px 15px 5px;
     background-color: #f8f9fa;
     border-bottom: 1px solid #e9ecef;
     display: flex;
@@ -419,6 +419,7 @@ header {
 
 .card-header h3 {
     margin: 0;
+    padding: 0 5px;
     font-size: 1.3em;
     color: #343a40;
 }
