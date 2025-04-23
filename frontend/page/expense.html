@@ -74,13 +74,13 @@
                             <div class="card-header" onclick="toggleAccordion('receitas')">
                                 <div class="value-container">
                                     <span class="accordion-toggle"><i class="fas fa-chevron-down"></i></span>
-                                    <h3>Receitas<span id="receitasMonth"></span></h3>
+                                    <h3>Entradas<span id="receitasMonth"></span></h3>
                                 </div>
                                 <div class="value-container">
-                                    <div>
-                                        <span>Saldo:</span><span id="saldoRestante" class="header-value"></span>
-                                        <span>Recebido:</span><span id="saldoRecebido" class="header-value"></span>
-                                        <span>Receber:</span><span id="saldoHaReceber" class="header-value"></span>
+                                    <div class="result-values">
+                                        <span>Saldo:<span id="saldoRestante" class="header-value"></span></span>
+                                        <span>Recebido:<span id="saldoRecebido" class="header-value"></span></span>
+                                        <span>Receber:<span id="saldoHaReceber" class="header-value"></span></span>
                                     </div>
                                 </div>
                             </div>
@@ -97,9 +97,9 @@
                                     <h3>Despesas<span id="despesasMonth"></span></h3>
                                 </div>
                                 <div class="value-container">
-                                    <div>
-                                        <span>Pago:</span><span id="totalPago" class="header-value"></span>
-                                        <span>Pagar:</span><span id="totalPagar" class="header-value"></span>
+                                    <div class="result-values">
+                                        <span>Já pago:<span id="totalPago" class="header-value"></span></span>
+                                        <span>Há pagar:<span id="totalPagar" class="header-value"></span></span>
                                     </div>
                                 </div>
                             </div>
@@ -124,7 +124,7 @@
                             <input type="text" id="modalNome">
                         </div>
                         <div class="form-group">
-                            <label>Valor Total</label>
+                            <label>Valor mensal</label>
                             <input type="number" id="modalValor" step="0.01">
                         </div>
                         <div class="form-group">
@@ -132,10 +132,8 @@
                             <input type="date" id="modalData">
                         </div>
                         <div class="form-group" id="paid">
-                            <label>Pago</label>
-                            <input type="checkbox" id="modalPaid">
-                            <label>Recorrente</label>
-                            <input type="checkbox" id="modalRecurring">
+                            <label>Já pagou?<input type="checkbox" id="modalPaid"></label>
+                            <label>Cadastrar proximos meses? <input type="checkbox" id="modalRecurring"></label>
                         </div>
                         <div class="form-group">
                         </div>
@@ -143,7 +141,6 @@
                             <label>Quantidade de Meses</label>
                             <input type="number" id="modalRecurringMonths" min="1" value="1">
                         </div>
-                        <!-- Campo de devedor - só aparece para receitas -->
                         <div class="form-group" id="debtorGroup" style="display: none;">
                             <label>Vincular a um devedor (opcional)</label>
                             <input type="tel" id="modalDebtorPhone" placeholder="Digite o telefone do devedor">
@@ -157,17 +154,17 @@
             <div id="actionModalItem" class="modal finance-modal">
                 <div class="modal-content">
                     <h2 id="modalTitleItem">Nova Receita/Despesa</h2>
-                    <label for="modalNomeItem">Nome:</label>
+                    <label for="modalNomeItem">Nome</label>
                     <input type="text" id="modalNomeItem" placeholder="Nome">
-                    <label for="modalValorItem">Valor:</label>
+                    <label for="modalValorItem">Valor mensal</label>
                     <input type="number" id="modalValorItem" step="0.01" placeholder="Valor">
-                    <label for="modalPaidItem">Pago:</label>
-                    <input type="checkbox" id="modalPaidItem">
-                    <div id="notify-content" style="display: none;">
-                        <label for="modalNotifyItem">Notificar:</label>
-                        <input type="checkbox" id="modalNotifyItem" style="display: none;">
+                    <div id="paid">
+                        <label for="modalPaidItem">Já pagou? <input type="checkbox" id="modalPaidItem"></label>
+                        <div id="notify-content">
+                            <label for="modalNotifyItem">Notificar cobrador:<input type="checkbox" id="modalNotifyItem"
+                                    style="display: none;"></label>
+                        </div>
                     </div>
-
                     <div id="modalButtonsItem"></div>
                 </div>
             </div>
