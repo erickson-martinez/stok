@@ -49,17 +49,6 @@
     margin-bottom: 5px;
 }
 
-/* Content Area */
-.content {
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    max-width: 800px;
-    margin: 0 auto;
-}
-
 /* Header */
 .header {
     display: flex;
@@ -147,7 +136,7 @@
 
 /* List Items */
 .list-container {
-    padding: 10px;
+    padding: 5px;
     background-color: #f9f9f9;
     margin-bottom: 5px;
     border-radius: 5px;
@@ -277,14 +266,6 @@
         top: 50px;
     }
 
-    .content {
-        max-width: 90%;
-    }
-
-    .list-item {
-        flex-wrap: wrap;
-    }
-
     .action-buttons {
         margin-left: 0px;
     }
@@ -359,9 +340,7 @@
         display: none;
     }
 
-    .main-content {
-        padding-top: 20px;
-    }
+
 }
 
 #recurringMonthsItemGroup {
@@ -459,16 +438,6 @@
     align-items: center;
 }
 
-.modal-content {
-    background-color: white;
-    padding: 20px;
-    border-radius: 5px;
-    width: 90%;
-    max-width: 500px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    position: relative;
-}
-
 .modal-content h2 {
     margin-top: 0;
 }
@@ -509,9 +478,8 @@
 /* Estilo para o conteúdo do modal */
 .modal-content {
     background-color: white;
-    padding: 20px;
     border-radius: 5px;
-    width: 90%;
+    width: 95%;
     /* Largura responsiva */
     max-width: 500px;
     /* Limite máximo */

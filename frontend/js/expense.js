@@ -13,7 +13,6 @@ const receitas = [];
 const despesas = [];
 // Função para gerar UUIDs
 if (typeof uuidv4 !== 'function') {
-    console.warn('uuidv4 não está definido. Usando função de fallback.');
     window.uuidv4 = function () {
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
             const r = Math.random() * 16 | 0;
