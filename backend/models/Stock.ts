@@ -12,4 +12,4 @@ const stockchema = new mongoose.Schema({
     idUserShared: [{ type: String }], // Lista de telefones com quem o produto é compartilhado
 });
 
-export default mongoose.model("Product", stockchema);
+export default mongoose.model("Stock", stockchema);

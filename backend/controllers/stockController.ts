@@ -9,8 +9,8 @@ class StockController {
             if (!idUser) {
                 return res.status(400).send("Parâmetro idUser é obrigatório");
             }
-            const products = await Stock.find({ $or: [{ idUser }, { sharedWith: idUser }] });
-            res.json(products);
+            const stock = await Stock.find({ $or: [{ idUser }, { sharedWith: idUser }] });
+            res.json(stock);
         } catch (error) {
             console.error("Erro ao buscar produtos:", error);
             res.status(500).send("Erro ao buscar produtos");
@@ -20,9 +20,9 @@ class StockController {
     // Cadastrar produto
     async createProduct(req: Request, res: Response) {
         try {
-            const product = new Stock(req.body);
-            await product.save();
-            res.status(201).json(product);
+            const stock = new Stock(req.body);
+            await stock.save();
+            res.status(201).json(stock);
         } catch (error) {
             console.error("Erro ao cadastrar produto:", error);
             res.status(500).send("Erro ao cadastrar produto");
@@ -32,11 +32,11 @@ class StockController {
     // Atualizar produto
     async updateProduct(req: Request, res: Response) {
         try {
-            const product = await Stock.findByIdAndUpdate(req.params.id, req.body, { new: true });
-            if (!product) {
+            const stock = await Stock.findByIdAndUpdate(req.params.id, req.body, { new: true });
+            if (!stock) {
                 return res.status(404).send("Produto não encontrado");
             }
-            res.json(product);
+            res.json(stock);
         } catch (error) {
             console.error("Erro ao atualizar produto:", error);
             res.status(500).send("Erro ao atualizar produto");
@@ -46,8 +46,8 @@ class StockController {
     // Excluir produto
     async deleteProduct(req: Request, res: Response) {
         try {
-            const product = await Stock.findByIdAndDelete(req.params.id);
-            if (!product) {
+            const stock = await Stock.findByIdAndDelete(req.params.id);
+            if (!stock) {
                 return res.status(404).send("Produto não encontrado");
             }
             res.status(204).send();
@@ -64,15 +64,15 @@ class StockController {
             if (!idUserShared) {
                 return res.status(400).send("O campo idUserShared é obrigatório");
             }
-            const product = await Stock.findById(req.params.id);
-            if (!product) {
+            const stock = await Stock.findById(req.params.id);
+            if (!stock) {
                 return res.status(404).send("Produto não encontrado");
             }
-            if (!product.idUserShared.includes(idUserShared)) {
-                product.idUserShared.push(idUserShared);
-                await product.save();
+            if (!stock.idUserShared.includes(idUserShared)) {
+                stock.idUserShared.push(idUserShared);
+                await stock.save();
             }
-            res.status(200).json(product);
+            res.status(200).json(stock);
         } catch (error) {
             console.error("Erro ao compartilhar produto:", error);
             res.status(500).send("Erro ao compartilhar produto");
