@@ -1,3 +1,6 @@
+@import url('./styles.css');
+
+
 body {
     font-family: Arial, sans-serif;
     display: flex;
@@ -105,6 +108,7 @@ button[type="submit"]:hover {
     border-radius: 8px;
     width: 300px;
     position: relative;
+    padding: 20px;
 }
 
 .modal-header {

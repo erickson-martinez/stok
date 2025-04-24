@@ -1,5 +1,3 @@
-console.log(API_URL)
-
 async function fetchApi() {
     try {
         const response = await fetch(`${API_URL}`);
@@ -96,7 +94,7 @@ async function registerUser() {
         // Após sucesso, armazena o usuário no localStorage e redireciona
         localStorage.setItem("currentUser", JSON.stringify(user));
         closeRegisterModal();
-        window.location.href = "./page/home.html";
+        window.location.href = "./login.html";
     } catch (err) {
         errorMessage.textContent = err.message;
         console.error("Erro ao processar resposta (cadastro):", err);
