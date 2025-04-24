@@ -21,11 +21,7 @@ function updateMarketList() {
         <div class="list-item">
             <span class="item-name">${market.name}</span>
             <span class="options-trigger" data-id="${market._id}">⋯</span>
-            <div id="options-${market._id}" class="options-menu">
-                <button onclick="openMarketModal('edit', '${market._id}')">Editar</button>
-                <button onclick="openMarketModal('view', '${market._id}')">Visualizar</button>
-                <button onclick="openMarketModal('delete', '${market._id}')">Deletar</button>
-            </div>
+            
         </div>
     `).join("") : "<p>Nenhum mercado cadastrado</p>";
 
@@ -37,26 +33,62 @@ function handleOptionsClick(event) {
     const trigger = event.target.closest(".options-trigger");
     if (trigger) {
         const id = trigger.getAttribute("data-id");
-        if (id) showOptions(event, id);
+        showOptions(event, id);
     }
 }
 
 function showOptions(event, id) {
-    const options = document.getElementById(`options-${id}`);
-    if (!options) return;
+    event.stopPropagation();
+    event.preventDefault();
 
-    const isVisible = options.style.display === "block";
-    document.querySelectorAll(".options-menu").forEach(menu => {
-        menu.style.display = "none";
-    });
-    options.style.display = isVisible ? "none" : "block";
+    // Fecha qualquer menu aberto anteriormente
+    const existingMenus = document.querySelectorAll('.options-menu');
+    existingMenus.forEach(menu => menu.remove());
 
-    document.addEventListener("click", function closeMenu(e) {
-        if (!options.contains(e.target) && e.target !== event.target) {
-            options.style.display = "none";
-            document.removeEventListener("click", closeMenu);
-        }
-    }, { once: true });
+    const trigger = event.target.closest('.options-trigger') || event.target;
+
+    // Cria o novo menu de opções
+    const optionsMenu = document.createElement('div');
+    optionsMenu.className = 'options-menu';
+    optionsMenu.id = `options-${id}`;
+
+    // Adiciona os botões de opções com função para fechar o menu
+    optionsMenu.innerHTML = `
+        <button onclick="handleMenuAction('edit', '${id}')">Editar</button>
+        <button onclick="handleMenuAction('view', '${id}')">Visualizar</button>
+        <button onclick="handleMenuAction('delete', '${id}')">Deletar</button>
+    `;
+
+    // Posiciona o menu
+    const rect = trigger.getBoundingClientRect();
+    optionsMenu.style.position = 'absolute';
+    optionsMenu.style.top = `${rect.bottom}px`;
+    optionsMenu.style.left = `60%`;
+    optionsMenu.style.zIndex = '1000';
+    optionsMenu.style.display = 'block';
+
+    document.body.appendChild(optionsMenu);
+
+    // Configura o fechamento ao clicar fora do menu
+    setTimeout(() => {
+        const closeMenu = (e) => {
+            if (!optionsMenu.contains(e.target)) {
+                optionsMenu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        };
+        document.addEventListener('click', closeMenu);
+    }, 10);
+}
+
+// Nova função para lidar com ações do menu
+function handleMenuAction(action, id) {
+    // Remove o menu
+    const optionsMenu = document.querySelector('.options-menu');
+    if (optionsMenu) optionsMenu.remove();
+
+    // Executa a ação correspondente
+    openMarketModal(action, id);
 }
 
 function openMarketModal(action, id = null) {

@@ -202,10 +202,6 @@
 }
 
 .finance-modal .modal-content {
-    background: white;
-    margin: 20px auto;
-    padding: 20px;
-    width: 90%;
     max-width: 500px;
     border-radius: 5px;
 }
@@ -471,18 +467,6 @@
     /* Centraliza horizontalmente */
     align-items: center;
     /* Centraliza verticalmente */
-}
-
-/* Estilo para o conteúdo do modal */
-.modal-content {
-    background-color: white;
-    border-radius: 5px;
-    width: 95%;
-    /* Largura responsiva */
-    max-width: 500px;
-    /* Limite máximo */
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    position: relative;
 }
 
 /* Estilo para o título do modal */
