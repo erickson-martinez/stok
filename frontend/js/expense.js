@@ -50,6 +50,8 @@ async function fetchMonthData() {
     const currentUser = JSON.parse(localStorage.getItem("currentUser"));
     const idUser = currentUser.idUser;
 
+    showLoading("Aguarde, estamos carregando a lista...");
+
     try {
         const [expensesResponse, sharedResponse] = await Promise.all([
             fetch(`${API_URL}/expenses/${idUser}`),
@@ -117,6 +119,9 @@ async function fetchMonthData() {
     } catch (err) {
         console.error(err);
         alert('Erro ao carregar dados. Por favor, tente novamente.');
+    } finally {
+        // Esconder o loading
+        hideLoading();
     }
 }
 
@@ -574,6 +579,7 @@ async function saveItem() {
 
         // Se for uma receita vinculada, cria também a despesa correspondente
         if (isLinkedReceita) {
+            showLoading("Aguarde, estamos salvando...")
             try {
                 // Primeiro cria a receita para obter o ID
                 const receitaResponse = await fetch(`${API_URL}/expenses`, {
@@ -679,6 +685,9 @@ async function saveItem() {
                 console.error(err);
                 alert("Erro ao vincular receita/despesa: " + err.message);
                 return;
+            } finally {
+                // Esconder o loading
+                hideLoading();
             }
         }
     }
@@ -1056,8 +1065,6 @@ async function editValuesItem(type, id) {
         alert(err.message);
     }
 }
-
-
 
 async function updateReceitaCobrador(idOrigem, idReceita, nome, paid, valor, notify, uuid) {
     const idUser = idOrigem; // idOrigem é o idUser do cobrador

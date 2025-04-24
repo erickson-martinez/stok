@@ -238,3 +238,11 @@ function setupUserEvents() {
         }
     });
 }
+
+// Função para esconder o loading
+function hideLoading() {
+    const loadingElement = document.getElementById("loading-overlay");
+    if (loadingElement) {
+        loadingElement.style.display = "none";
+    }
+}

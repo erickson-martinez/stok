@@ -47,13 +47,6 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
     }
 });
 
-// Função para esconder o loading
-function hideLoading() {
-    const loadingElement = document.getElementById("loading-overlay");
-    if (loadingElement) {
-        loadingElement.style.display = "none";
-    }
-}
 
 // Função para abrir o modal de cadastro
 document.getElementById("registerButton").addEventListener("click", () => {
@@ -117,14 +110,6 @@ async function registerUser() {
     } finally {
         // Esconder o loading
         hideLoading();
-    }
-}
-
-// Função para esconder o loading
-function hideLoading() {
-    const loadingElement = document.getElementById("loading-overlay");
-    if (loadingElement) {
-        loadingElement.style.display = "none";
     }
 }
 
