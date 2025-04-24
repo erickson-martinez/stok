@@ -78,6 +78,21 @@ function checkAuthAndLoadUser() {
     setupUserEvents();
 }
 
+// Função para mostrar o loading
+function showLoading(msg) {
+    let loadingElement = document.getElementById("loading-overlay");
+    if (!loadingElement) {
+        loadingElement = document.createElement("div");
+        loadingElement.id = "loading-overlay";
+        loadingElement.innerHTML = `
+            <div class="spinner"></div>
+            <p class="loading-message">${msg}</p>
+        `;
+        document.body.appendChild(loadingElement);
+    }
+    loadingElement.style.display = "flex";
+}
+
 // Carregar menu da sidebar
 function loadSidebarMenu() {
     const sidebarMenu = document.getElementById("sidebarMenu");

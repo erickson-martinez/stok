@@ -7,9 +7,12 @@ async function fetchApi() {
     }
 }
 
-// Função para fazer login
 document.getElementById("loginForm").addEventListener("submit", async (e) => {
     e.preventDefault();
+
+    // Mostrar o loading
+    showLoading("Aguarde, estamos autenticando...");
+
     const phone = document.getElementById("phone").value;
     const pass = document.getElementById("pass").value;
     const errorMessage = document.getElementById("error-message");
@@ -24,7 +27,7 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
         // Log da resposta bruta para depuração
         const textResponse = await response.text();
 
-        // Tenta解析 como JSON
+        // Tenta parsear como JSON
         const data = JSON.parse(textResponse);
 
         if (!response.ok) {
@@ -33,13 +36,24 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
 
         user = { name: data.name, phone: data.phone, idUser: data._id };
 
-        localStorage.setItem("currentUser", JSON.stringify(user))
+        localStorage.setItem("currentUser", JSON.stringify(user));
         window.location.href = "./page/home.html";
     } catch (err) {
         errorMessage.textContent = err.message;
         console.error("Erro ao processar resposta:", err);
+    } finally {
+        // Esconder o loading
+        hideLoading();
     }
 });
+
+// Função para esconder o loading
+function hideLoading() {
+    const loadingElement = document.getElementById("loading-overlay");
+    if (loadingElement) {
+        loadingElement.style.display = "none";
+    }
+}
 
 // Função para abrir o modal de cadastro
 document.getElementById("registerButton").addEventListener("click", () => {
@@ -61,8 +75,10 @@ document.addEventListener("click", (event) => {
     }
 });
 
-// Função para cadastrar novo usuário
 async function registerUser() {
+    // Mostrar o loading
+    showLoading("Aguarde, estamos cadastrando...");
+
     const name = document.getElementById("registerName").value;
     const phone = document.getElementById("registerPhone").value;
     const pass = document.getElementById("registerPass").value;
@@ -78,7 +94,7 @@ async function registerUser() {
         // Log da resposta bruta para depuração
         const textResponse = await response.text();
 
-        // Tenta解析 como JSON
+        // Tenta parsear como JSON
         const data = JSON.parse(textResponse);
 
         if (!response.ok) {
@@ -98,6 +114,17 @@ async function registerUser() {
     } catch (err) {
         errorMessage.textContent = err.message;
         console.error("Erro ao processar resposta (cadastro):", err);
+    } finally {
+        // Esconder o loading
+        hideLoading();
+    }
+}
+
+// Função para esconder o loading
+function hideLoading() {
+    const loadingElement = document.getElementById("loading-overlay");
+    if (loadingElement) {
+        loadingElement.style.display = "none";
     }
 }
 
