@@ -1,4 +1,4 @@
-
+//frontend/js/stock.js
 // Função para carregar a tela de estoque
 function loadStock() {
     // Verificar se os elementos da sidebar existem
@@ -65,10 +65,10 @@ function loadStock() {
 
     // Fechar modais ao clicar fora
     document.addEventListener("click", (event) => {
-        if (userModal && !userModal.contains(event.target)) {
+        if (userModal && !userModal.contains(event.target) && !userInitialsDiv.contains(event.target)) {
             userModal.classList.remove("active");
         }
-        if (sidebar && !sidebar.contains(event.target)) {
+        if (sidebar && !sidebar.contains(event.target) && !openSidebarButton.contains(event.target)) {
             sidebar.classList.remove("active");
         }
     });
@@ -86,7 +86,8 @@ async function loadProducts() {
     const productList = document.getElementById("productList");
 
     try {
-        const response = await fetch(`${API_URL}/products?ownerPhone=${currentUser.phone}`);
+        // Ajustado para usar idUser, conforme a versão anterior
+        const response = await fetch(`${API_URL}/products/${currentUser.idUser}`);
         if (!response.ok) throw new Error("Erro ao carregar produtos");
         const products = await response.json();
 
@@ -211,66 +212,94 @@ function setupStockEvents() {
     const updateProductBtn = document.getElementById("updateProductBtn");
     const confirmActionBtn = document.getElementById("confirmActionBtn");
 
+    if (!addProductBtn) {
+        console.error("Botão addProductBtn não encontrado!");
+        return;
+    }
+
+    if (!saveProductBtn) {
+        console.error("Botão saveProductBtn não encontrado!");
+    }
+
+    if (!updateProductBtn) {
+        console.error("Botão updateProductBtn não encontrado!");
+    }
+
+    if (!confirmActionBtn) {
+        console.error("Botão confirmActionBtn não encontrado!");
+    }
+
     // Adicionar produto
     addProductBtn.addEventListener("click", () => {
-        document.getElementById("productModal").classList.add("active");
+        console.log("Botão addProductBtn clicado!");
+        const productModal = document.getElementById("productModal");
+        if (productModal) {
+            productModal.classList.add("active");
+            console.log("Classe active adicionada ao productModal");
+        } else {
+            console.error("Modal productModal não encontrado!");
+        }
     });
 
     // Salvar novo produto
-    saveProductBtn.addEventListener("click", async (e) => {
-        e.preventDefault();
-        const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-        const product = {
-            name: document.getElementById("productName").value,
-            quantity: parseInt(document.getElementById("productQuantity").value),
-            brand: document.getElementById("productBrand").value,
-            unitType: document.getElementById("productUnitType").value,
-            unitQuantity: document.getElementById("productUnitQuantity").value,
-            idealQuantity: parseInt(document.getElementById("productIdealQuantity").value),
-            ownerPhone: currentUser.phone,
-        };
+    if (saveProductBtn) {
+        saveProductBtn.addEventListener("click", async (e) => {
+            e.preventDefault();
+            const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+            const product = {
+                name: document.getElementById("productName").value,
+                quantity: parseInt(document.getElementById("productQuantity").value),
+                brand: document.getElementById("productBrand").value,
+                unitType: document.getElementById("productUnitType").value,
+                unitQuantity: document.getElementById("productUnitQuantity").value,
+                idealQuantity: parseInt(document.getElementById("productIdealQuantity").value),
+                idUser: currentUser.idUser,
+            };
 
-        try {
-            const response = await fetch(`${API_URL}/products`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(product),
-            });
-            if (!response.ok) throw new Error("Erro ao adicionar produto");
-            closeProductModal();
-            loadProducts();
-            openFeedbackModal("Produto adicionado com sucesso!");
-        } catch (error) {
-            openFeedbackModal("Falha ao adicionar produto");
-        }
-    });
+            try {
+                const response = await fetch(`${API_URL}/products`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(product),
+                });
+                if (!response.ok) throw new Error("Erro ao adicionar produto");
+                closeProductModal();
+                loadProducts();
+                openFeedbackModal("Produto adicionado com sucesso!");
+            } catch (error) {
+                openFeedbackModal("Falha ao adicionar produto");
+            }
+        });
+    }
 
     // Atualizar produto
-    updateProductBtn.addEventListener("click", async (e) => {
-        e.preventDefault();
-        const productId = document.getElementById("editModal").dataset.productId;
-        const updatedProduct = {
-            quantity: parseInt(document.getElementById("editQuantity").value),
-            brand: document.getElementById("editBrand").value,
-            unitType: document.getElementById("editUnitType").value,
-            unitQuantity: document.getElementById("editUnitQuantity").value,
-            idealQuantity: parseInt(document.getElementById("editIdealQuantity").value),
-        };
+    if (updateProductBtn) {
+        updateProductBtn.addEventListener("click", async (e) => {
+            e.preventDefault();
+            const productId = document.getElementById("editModal").dataset.productId;
+            const updatedProduct = {
+                quantity: parseInt(document.getElementById("editQuantity").value),
+                brand: document.getElementById("editBrand").value,
+                unitType: document.getElementById("editUnitType").value,
+                unitQuantity: document.getElementById("editUnitQuantity").value,
+                idealQuantity: parseInt(document.getElementById("editIdealQuantity").value),
+            };
 
-        try {
-            const response = await fetch(`${API_URL}/products/${productId}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(updatedProduct),
-            });
-            if (!response.ok) throw new Error("Erro ao atualizar produto");
-            closeEditModal();
-            loadProducts();
-            openFeedbackModal("Produto atualizado com sucesso!");
-        } catch (error) {
-            openFeedbackModal("Falha ao atualizar produto");
-        }
-    });
+            try {
+                const response = await fetch(`${API_URL}/products/${productId}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(updatedProduct),
+                });
+                if (!response.ok) throw new Error("Erro ao atualizar produto");
+                closeEditModal();
+                loadProducts();
+                openFeedbackModal("Produto atualizado com sucesso!");
+            } catch (error) {
+                openFeedbackModal("Falha ao atualizar produto");
+            }
+        });
+    }
 }
 
 // Funções auxiliares para modais
@@ -278,6 +307,11 @@ function openConfirmModal(message, onConfirm) {
     const confirmModal = document.getElementById("confirmModal");
     const confirmMessage = document.getElementById("confirmMessage");
     const confirmActionBtn = document.getElementById("confirmActionBtn");
+
+    if (!confirmModal || !confirmMessage || !confirmActionBtn) {
+        console.error("Elementos do confirmModal não encontrados!");
+        return;
+    }
 
     confirmMessage.textContent = message;
     confirmModal.classList.add("active");
@@ -295,12 +329,23 @@ function openConfirmModal(message, onConfirm) {
 function openFeedbackModal(message) {
     const feedbackModal = document.getElementById("feedbackModal");
     const feedbackMessage = document.getElementById("feedbackMessage");
+
+    if (!feedbackModal || !feedbackMessage) {
+        console.error("Elementos do feedbackModal não encontrados!");
+        return;
+    }
+
     feedbackMessage.textContent = message;
     feedbackModal.classList.add("active");
 }
 
 function openEditModal(product) {
     const editModal = document.getElementById("editModal");
+    if (!editModal) {
+        console.error("Modal editModal não encontrado!");
+        return;
+    }
+
     editModal.dataset.productId = product._id;
     document.getElementById("editName").value = product.name;
     document.getElementById("editQuantity").value = product.quantity;
@@ -313,28 +358,37 @@ function openEditModal(product) {
 
 function openShareModal(product) {
     const shareModal = document.getElementById("shareModal");
+    if (!shareModal) {
+        console.error("Modal shareModal não encontrado!");
+        return;
+    }
+
     shareModal.dataset.productId = product._id;
     shareModal.classList.add("active");
 }
 
 function closeProductModal() {
-    document.getElementById("productModal").classList.remove("active");
-    document.getElementById("productForm").reset();
+    const productModal = document.getElementById("productModal");
+    const productForm = document.getElementById("productForm");
+    if (productModal) productModal.classList.remove("active");
+    if (productForm) productForm.reset();
 }
 
 function closeEditModal() {
-    document.getElementById("editModal").classList.remove("active");
+    const editModal = document.getElementById("editModal");
+    if (editModal) editModal.classList.remove("active");
 }
 
 function closeConfirmModal() {
-    document.getElementById("confirmModal").classList.remove("active");
+    const confirmModal = document.getElementById("confirmModal");
+    if (confirmModal) confirmModal.classList.remove("active");
 }
 
 // Fechar modais ao clicar fora
 document.addEventListener("click", (event) => {
     const modals = document.querySelectorAll(".modal");
     modals.forEach(modal => {
-        if (!modal.contains(event.target) && !event.target.matches("[data-target]")) {
+        if (!modal.contains(event.target) && !event.target.matches("[data-target]") && !event.target.closest("#addProductBtn")) {
             modal.classList.remove("active");
         }
     });
@@ -349,7 +403,6 @@ document.querySelectorAll(".close").forEach(btn => {
 
 // Inicialização
 document.addEventListener("DOMContentLoaded", () => {
-    if (document.getElementById("userInitials")) {
-        loadStock();
-    }
+    console.log("DOM carregado, iniciando loadStock");
+    loadStock();
 });

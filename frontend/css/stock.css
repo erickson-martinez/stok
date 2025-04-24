@@ -1,3 +1,5 @@
+/*frontend/css/stock.css
+
 /* Reutiliza os estilos de activity.css com ajustes */
 @import url('./styles.css');
 
@@ -110,19 +112,14 @@
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
+    right: 0;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.5);
     z-index: 1000;
 }
 
-.stock-modal .modal-content {
-    background: white;
-    margin: 10% auto;
-    width: 90%;
-    max-width: 400px;
-    border-radius: 5px;
-    position: relative;
+.modal {
+    padding: 0;
 }
 
 .modal-header {
@@ -130,6 +127,11 @@
     border-bottom: 1px solid #ddd;
     text-align: center;
     position: relative;
+}
+
+summary {
+    display: flex;
+    justify-content: space-between;
 }
 
 .modal-header .close {
@@ -197,11 +199,6 @@
 
     .close-btn {
         display: block;
-    }
-
-    .modal {
-        right: 10px;
-        top: 50px;
     }
 
     .content {

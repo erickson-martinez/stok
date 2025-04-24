@@ -1,15 +1,15 @@
 import { Request, Response } from "express";
-import Product from "../models/Product.ts";
+import Stock from "../models/Stock.ts";
 
-class ProductController {
+class StockController {
     // Listar produtos
     async getProducts(req: Request, res: Response) {
         try {
-            const { ownerPhone } = req.query;
-            if (!ownerPhone) {
-                return res.status(400).send("Parâmetro ownerPhone é obrigatório");
+            const { idUser } = req.params;
+            if (!idUser) {
+                return res.status(400).send("Parâmetro idUser é obrigatório");
             }
-            const products = await Product.find({ $or: [{ ownerPhone }, { sharedWith: ownerPhone }] });
+            const products = await Stock.find({ $or: [{ idUser }, { sharedWith: idUser }] });
             res.json(products);
         } catch (error) {
             console.error("Erro ao buscar produtos:", error);
@@ -20,7 +20,7 @@ class ProductController {
     // Cadastrar produto
     async createProduct(req: Request, res: Response) {
         try {
-            const product = new Product(req.body);
+            const product = new Stock(req.body);
             await product.save();
             res.status(201).json(product);
         } catch (error) {
@@ -32,7 +32,7 @@ class ProductController {
     // Atualizar produto
     async updateProduct(req: Request, res: Response) {
         try {
-            const product = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
+            const product = await Stock.findByIdAndUpdate(req.params.id, req.body, { new: true });
             if (!product) {
                 return res.status(404).send("Produto não encontrado");
             }
@@ -46,7 +46,7 @@ class ProductController {
     // Excluir produto
     async deleteProduct(req: Request, res: Response) {
         try {
-            const product = await Product.findByIdAndDelete(req.params.id);
+            const product = await Stock.findByIdAndDelete(req.params.id);
             if (!product) {
                 return res.status(404).send("Produto não encontrado");
             }
@@ -59,17 +59,17 @@ class ProductController {
 
     // Compartilhar produto
     async shareProduct(req: Request, res: Response) {
-        const { sharedWithPhone } = req.body;
+        const { idUserShared } = req.body;
         try {
-            if (!sharedWithPhone) {
-                return res.status(400).send("O campo sharedWithPhone é obrigatório");
+            if (!idUserShared) {
+                return res.status(400).send("O campo idUserShared é obrigatório");
             }
-            const product = await Product.findById(req.params.id);
+            const product = await Stock.findById(req.params.id);
             if (!product) {
                 return res.status(404).send("Produto não encontrado");
             }
-            if (!product.sharedWith.includes(sharedWithPhone)) {
-                product.sharedWith.push(sharedWithPhone);
+            if (!product.idUserShared.includes(idUserShared)) {
+                product.idUserShared.push(idUserShared);
                 await product.save();
             }
             res.status(200).json(product);
@@ -80,4 +80,4 @@ class ProductController {
     }
 }
 
-export default new ProductController();
+export default new StockController();

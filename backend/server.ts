@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 import UserController from "./controllers/userController.ts";
-import ProductController from "./controllers/productController.ts";
+import stockController from "./controllers/stockController.ts";
 import expenseController from "./controllers/expenseController.ts";
 import activityController from './controllers/activityController';
 import marketController from './controllers/marketController';
@@ -39,11 +39,11 @@ app.post("/users", UserController.createUser);
 app.post("/users/auth", UserController.authenticateUser);
 app.patch("/users/:phone", UserController.updateUser);
 
-app.get("/products", ProductController.getProducts);
-app.post("/products", ProductController.createProduct);
-app.put("/products/:id", ProductController.updateProduct);
-app.delete("/products/:id", ProductController.deleteProduct);
-app.post("/products/:id/share", ProductController.shareProduct);
+app.get("/products/:idUser", stockController.getProducts);
+app.post("/products", stockController.createProduct);
+app.put("/products/:id", stockController.updateProduct);
+app.delete("/products/:id", stockController.deleteProduct);
+app.post("/products/:id/share", stockController.shareProduct);
 
 app.get("/expenses/:idUser", expenseController.getExpenses);
 app.get("/expensesShared/:idUserShared", expenseController.getExpensesShared);
