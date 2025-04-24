@@ -48,6 +48,15 @@
     height: 100%;
 }
 
+.options-menu {
+    rotate: 0deg;
+    width: 10%;
+    background: #FFF;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    display: block !important;
+}
+
 .header {
     display: flex;
     align-items: center;

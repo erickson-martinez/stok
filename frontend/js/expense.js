@@ -1431,7 +1431,7 @@ function showOptions(event, id) {
         optionsMenu.innerHTML = `
             <button onclick="openActionModalItem('${type}', '${id}')">+ ${type === 'receita' ? 'Receita' : 'Despesa'}</button>
             <button onclick="openActionModal('view', '${type}', getItemById('${id}'))">Visualizar</button>
-            <button onclick="openActionModal('edit', '${type}', getItemById('${id}'))">Editar</button>
+            <!-- <button onclick="openActionModal('edit', '${type}', getItemById('${id}'))">Editar</button> --!>
             <button onclick="openActionModal('delete', '${type}', getItemById('${id}'))">Deletar</button>
         `;
     }
