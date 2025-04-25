@@ -5,6 +5,7 @@ let markets = [];
 let shoppingLists = [];
 let currentListId = null;
 let editingProductId = null;
+let openAccordions = new Set();
 
 document.getElementById('marketSelectAdd').addEventListener('change', function () {
     const marketId = this.value;
@@ -175,6 +176,12 @@ function updateShoppingList() {
                 </div>
             `).join("") : "<p>Nenhum produto cadastrado</p>";
 
+        // Define se o accordion deve estar aberto com base em openAccordions
+        const isOpen = openAccordions.has(list._id);
+        const accordionStyle = isOpen ? 'style="display: block;"' : '';
+        const toggleIcon = isOpen ? '<i class="fas fa-chevron-up"></i>' : '<i class="fas fa-chevron-down"></i>';
+        const toggleClass = isOpen ? 'open' : '';
+
         return `
             <div class="list-container" data-list-id="${list._id}">
                 <div class="list-header" onclick="toggleAccordion('${list._id}')">
@@ -182,7 +189,7 @@ function updateShoppingList() {
                     <div class="value-container">
                         <span class="item-value">${total > 0 ? total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "R$ 0,00"}</span>
                         <div class="header-actions">
-                            <span class="accordion-toggle"><i class="fas fa-chevron-down"></i></span>
+                            <span class="accordion-toggle ${toggleClass}">${toggleIcon}</span>
                             <div class="options-wrapper">
                                 <span class="options-trigger" data-id="${list._id}" onclick="event.stopPropagation(); showOptions(event, '${list._id}')">⋯</span>
                                 <div id="options-${list._id}" class="options-menu">
@@ -207,7 +214,7 @@ function updateShoppingList() {
                     </div>
                 </div>
                 <div class="accordion" id="accordion-${list._id}">
-                    <div class="accordion-content">
+                    <div class="accordion-content" ${accordionStyle}>
                         ${productsHTML}
                     </div>
                 </div>
@@ -227,6 +234,7 @@ function toggleAccordion(listId) {
         content.style.display = "none";
         toggle.innerHTML = '<i class="fas fa-chevron-down"></i>';
         toggle.classList.remove("open");
+        openAccordions.delete(listId); // Remove do conjunto de abertos
     } else {
         document.querySelectorAll(".accordion-content").forEach(c => c.style.display = "none");
         document.querySelectorAll(".accordion-toggle").forEach(t => {
@@ -236,6 +244,7 @@ function toggleAccordion(listId) {
         content.style.display = "block";
         toggle.innerHTML = '<i class="fas fa-chevron-up"></i>';
         toggle.classList.add("open");
+        openAccordions.add(listId); // Adiciona ao conjunto de abertos
     }
 }
 
@@ -437,7 +446,6 @@ async function openEditListModal(listId) {
 
     const modal = document.getElementById("listModalEdit");
 
-    console.log(modal)
     if (modal) modal.style.display = "block";
 
     // Altera o botão para chamar updateList em vez de saveList
@@ -641,7 +649,6 @@ async function setupProductAutocomplete() {
 
             productSuggestions.innerHTML = products.map(p => {
 
-                console.log(p)
                 const isDisabled = selectedMarketId && p.marketId?._id !== selectedMarketId;
                 const tooltipText = isDisabled || !selectedMarketId ?
                     'title="Valor apenas para comparação"' : '';
