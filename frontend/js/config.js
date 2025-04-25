@@ -9,7 +9,7 @@ const menuItems = [
     // { name: "Mercados", route: "./markets.html" },
     { name: "Lista de Compras", route: "./shopping.html" },
     // { name: "Livros", route: "./book.html" },
-    // { name: "Planning livros", route: "./planning.html" },
+    { name: "Planning livros", route: "./planning.html" },
     { name: "Meditação", route: "./meditation.html" },
 ];
 
