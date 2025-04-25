@@ -9,12 +9,9 @@ let editingProductId = null;
 document.getElementById('marketSelectAdd').addEventListener('change', function () {
     const marketId = this.value;
     const market = markets.find(m => m._id === marketId);
-    const preview = document.getElementById('listNamePreview');
-
+    const preview = document.getElementById('listNamePreview')
     if (market) {
         preview.textContent = `${market.name} - ${new Date().toLocaleDateString('pt-BR')}`;
-    } else {
-        preview.textContent = `Lista de compras - ${new Date().toLocaleDateString('pt-BR')}`;
     }
 });
 
@@ -75,6 +72,8 @@ async function fetchShoppingLists() {
 }
 
 function updateMarketSelect() {
+    const preview = document.getElementById('listNamePreview')
+    preview.textContent = `Lista de compras - ${new Date().toLocaleDateString('pt-BR')}`
     const addSelect = document.getElementById("marketSelectAdd");
     const options = "<option value=''>Nenhum mercado selecionado</option>" +
         markets.filter(m => m.status === "active").map(m =>
@@ -544,6 +543,7 @@ async function openProductModal(action, listId, productId = null) {
     const isEditable = action === "edit" || action === "add";
 
     document.getElementById("productName").value = product?.name || "";
+    document.getElementById("productBrand").value = product?.brand || "";
     document.getElementById("productType").value = product?.type || "quilo";
     document.getElementById("productQuantity").value = product?.quantity?.toString() || "";
     document.getElementById("packQuantity").value = product?.packQuantity?.toString() || "";
@@ -568,11 +568,11 @@ async function openProductModal(action, listId, productId = null) {
             <button class="btn" onclick="saveProduct()">Salvar</button>
         `;
     } else if (action === "view") {
-        buttons.innerHTML = `<button onclick="closeProductModal()">Fechar</button>`;
+        buttons.innerHTML = `<button class="btn-secundary" onclick="closeProductModal()">Fechar</button>`;
     } else if (action === "delete" && productId) {
         buttons.innerHTML = `
-            <button onclick="closeProductModal()">Cancelar</button>
-            <button onclick="deleteProduct('${listId}', '${productId}')">Confirmar</button>
+            <button class="btn-secundary" onclick="closeProductModal()">Cancelar</button>
+            <button class="btn" onclick="deleteProduct('${listId}', '${productId}')">Confirmar</button>
         `;
     }
 
@@ -598,12 +598,13 @@ function updatePackQuantityVisibility() {
 
 async function setupProductAutocomplete() {
     const productNameInput = document.getElementById("productName");
+    const productBrandInput = document.getElementById("productBrand");
     const productTypeSelect = document.getElementById("productType");
     const productValueInput = document.getElementById("productValue");
     const productSuggestions = document.getElementById("productSuggestions");
 
     productNameInput.addEventListener("input", async function () {
-        const searchTerm = this.value.trim().toLowerCase();
+        const searchTerm = decodeURIComponent(this.value.trim());
 
         if (searchTerm.length < 2) {
             productSuggestions.innerHTML = "";
@@ -612,7 +613,7 @@ async function setupProductAutocomplete() {
         }
 
         try {
-            const response = await fetch(`${API_URL}/product/${searchTerm}/${daysFindPrice}`);
+            const response = await fetch(`${API_URL}/product-price/${searchTerm}/${daysFindPrice}`);
             if (!response.ok) throw new Error("Erro na busca");
 
             const products = await response.json();
@@ -639,6 +640,8 @@ async function setupProductAutocomplete() {
             }
 
             productSuggestions.innerHTML = products.map(p => {
+
+                console.log(p)
                 const isDisabled = selectedMarketId && p.marketId?._id !== selectedMarketId;
                 const tooltipText = isDisabled || !selectedMarketId ?
                     'title="Valor apenas para comparação"' : '';
@@ -646,12 +649,13 @@ async function setupProductAutocomplete() {
                 return `
                     <div class="suggestion-item ${isDisabled ? 'disabled' : ''}" 
                          data-name="${p.productName}"
+                         data-brand="${p.brand}"
                          data-price="${p.currentPrice}"
                          data-type="${p.type}"
                          data-market="${p.marketId?._id || ''}"
                          data-disabled="${isDisabled}"
                          ${tooltipText}>
-                        ${p.productName} - R$ ${p.currentPrice?.toFixed(2) || '0.00'} - ${p.marketId?.name || ''}
+                        ${p.productName} - ${p.brand} - R$ ${p.currentPrice?.toFixed(2) || '0.00'} - ${p.marketId?.name || ''}
                     </div>
                 `;
             }).join("");
@@ -665,6 +669,7 @@ async function setupProductAutocomplete() {
                         return;
                     }
                     productNameInput.value = this.getAttribute("data-name");
+                    productBrandInput.value = this.getAttribute("data-brand");
                     productValueInput.value = this.getAttribute("data-price");
                     productTypeSelect.value = this.getAttribute("data-type");
                     productSuggestions.innerHTML = "";
@@ -723,6 +728,7 @@ async function saveProduct() {
     const product = {
         _id: editingProductId || undefined,
         name: document.getElementById("productName").value,
+        brand: document.getElementById("productBrand").value,
         type: document.getElementById("productType").value,
         quantity: parseFloat(document.getElementById("productQuantity").value),
         packQuantity: (document.getElementById("productType").value === "pacote" ||
@@ -812,20 +818,4 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Adiciona os event listeners
     document.getElementById("addListBtn")?.addEventListener("click", openListModal);
-
-    // Adiciona o listener para o botão de salvar lista
-    const saveListBtn = document.getElementById("saveListBtn");
-    if (saveListBtn) {
-        saveListBtn.addEventListener("click", saveList);
-    } else {
-        console.error("Botão saveListBtn não encontrado no HTML");
-    }
-
-    document.getElementById("addProductBtn")?.addEventListener("click", () => {
-        if (!currentListId) {
-            openListModal();
-        } else {
-            openProductModal("add", currentListId);
-        }
-    });
 });

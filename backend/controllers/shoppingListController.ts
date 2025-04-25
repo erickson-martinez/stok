@@ -169,11 +169,10 @@ const shoppingController = {
             }
 
             const updatedList = await shoppingList.save();
-
             if (shoppingList.marketId && product.name && product.value) {
                 await ProductPrice.findOneAndUpdate(
-                    { productName: product.name.toLowerCase(), marketId: shoppingList.marketId },
-                    { currentPrice: product.value, type: product.type, lastUpdated: new Date(), updatedBy: idUser },
+                    { productName: product.name, marketId: shoppingList.marketId },
+                    { currentPrice: product.value, brand: product.brand, type: product.type, lastUpdated: new Date(), updatedBy: idUser },
                     { upsert: true, new: true }
                 );
             }

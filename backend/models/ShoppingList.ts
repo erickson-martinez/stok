@@ -5,6 +5,7 @@ export interface IProduct {
     name: string;
     type: 'quilo' | 'unidade' | 'pacote' | 'caixa' | 'litro';
     quantity: number;
+    brand: string;
     packQuantity?: number | null;
     value: number;
     total: number;
@@ -26,7 +27,8 @@ const productSchema: Schema = new Schema({
     name: { type: String, required: true, trim: true },
     type: { type: String, enum: ['quilo', 'unidade', 'pacote', 'caixa', 'litro'] },
     quantity: { type: Number, min: 0 },
-    packQuantity: { type: Number, default: null, min: 1 },
+    brand: { type: String },
+    packQuantity: { type: Number, default: null, min: 0 },
     value: { type: Number, min: 0 },
     total: { type: Number, min: 0 }
 });

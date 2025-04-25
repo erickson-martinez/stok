@@ -77,10 +77,10 @@ app.put('/shopping-lists/:listId', shoppingListController.updateList);
 app.put('/shopping-lists/:listId/complete', shoppingListController.completeList);
 app.delete('/shopping-lists/:listId', shoppingListController.deleteList);
 
-app.post("/product", productPriceController.saveProductPrice);
-app.get("/product/:productName/:days", productPriceController.getRecentProductPrices);
-app.get("/product/:productName/:marketId", productPriceController.getMarketProductPrice);
-app.post("/product/compare", productPriceController.comparePrices);
+app.post("/product-price", productPriceController.saveProductPrice);
+app.get("/product-price/:productName/:days", productPriceController.getRecentProductPrices);
+app.get("/product-price/:productName/:marketId", productPriceController.getMarketProductPrice);
+app.post("/product-price/compare", productPriceController.comparePrices);
 
 app.get('/books/:idUser', bookController.getBooks);
 app.get('/books/:id', bookController.getBookById);

@@ -84,7 +84,7 @@ body {
 /* Main Content Styles */
 .main-content {
     flex: 1;
-    padding: 20px;
+    padding: 10px;
     overflow-y: auto;
     position: relative;
     z-index: 1;
@@ -184,7 +184,6 @@ header {
 /* Content Area */
 .content {
     background: white;
-    width: 95%;
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     max-width: 800px;
@@ -424,7 +423,7 @@ header {
     background-color: white;
     border-radius: 8px;
     padding: 20px;
-    width: 90%;
+    width: 85%;
     max-width: 500px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     z-index: 1001;
@@ -625,10 +624,6 @@ header {
 
     .options-menu {
         width: 140px;
-    }
-
-    .modal-content {
-        width: 95%;
     }
 }
 

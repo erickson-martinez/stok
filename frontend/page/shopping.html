@@ -80,7 +80,6 @@
             <div class="modal-buttons">
                 <button class="btn-secondary" onclick="closeListModal()">Cancelar</button>
                 <button class="btn" id="saveListBtn" onclick="saveList()">Criar lista</button>
-                <button onclick="saveList()">Cadastrar apenas lista com produtos</button>
             </div>
         </div>
     </div>
@@ -135,6 +134,10 @@
                 <input type="text" id="productName" autocomplete="off"
                     placeholder="Digite para buscar produtos existentes">
                 <div id="productSuggestions" class="product-suggestions"></div>
+            </div>
+            <div class="form-group">
+                <label>Marca</label>
+                <input type="text" id="productBrand" placeholder="Digite a marca do produto">
             </div>
             <div class="form-group">
                 <label>Tipo</label>

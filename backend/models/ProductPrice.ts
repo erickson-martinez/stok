@@ -4,6 +4,7 @@ export interface IProductPrice extends Document {
     productName: string;
     marketId: mongoose.Types.ObjectId;
     currentPrice: number;
+    brand: string;
     type: 'quilo' | 'unidade' | 'pacote' | 'caixa' | 'litro';
     lastUpdated: Date;
     updatedBy: string;
@@ -27,6 +28,10 @@ const productPriceSchema: Schema = new Schema({
         type: Number,
         required: true,
         min: 0
+    },
+    brand: {
+        type: String,
+        require: true
     },
     type: {
         type: String,
