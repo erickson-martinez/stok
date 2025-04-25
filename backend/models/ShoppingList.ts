@@ -14,8 +14,8 @@ export interface IProduct {
 export interface IShoppingList extends Document {
     name: string;
     marketId?: mongoose.Types.ObjectId | null;
-    phone: string;
-    phoneShared?: string; // Novo campo para compartilhar com outro telefone
+    idUser: string;
+    idUserShared?: string; // Novo campo para compartilhar com outro telefone
     products: IProduct[];
     completed: boolean;
     createdAt?: Date;
@@ -34,8 +34,8 @@ const productSchema: Schema = new Schema({
 const shoppingListSchema: Schema = new Schema({
     name: { type: String, required: true, trim: true },
     marketId: { type: Schema.Types.ObjectId, ref: 'Market', default: null },
-    phone: { type: String, required: true, index: true },
-    phoneShared: { type: String, index: true }, // Campo opcional para compartilhamento
+    idUser: { type: String, required: true, index: true },
+    idUserShared: { type: String, index: true }, // Campo opcional para compartilhamento
     products: [productSchema],
     completed: { type: Boolean, default: false }
 }, {

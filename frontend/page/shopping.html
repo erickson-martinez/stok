@@ -30,26 +30,23 @@
             </header>
 
             <!-- Profile Modal -->
-            <div class="modal" id="userModal">
-                <div class="modal-content">
-                    <p id="userFullName"></p>
-                    <div class="user-info">
-                        <span id="userPhone"></span>
-                        <button class="logout-btn" id="logout">Sair</button>
-                    </div>
+            <div id="userModal" class="modal modal-content">
+                <p id="userFullName"></p>
+                <div class="user-info">
+                    <span id="userPhone"></span>
+                    <button class="logout-btn" id="logout">Sair</button>
                 </div>
             </div>
 
             <div class="content">
                 <div class="header">
-                    <h2>Lista de Compras</h2>
                     <button class="btn" id="addListBtn"><i class="fas fa-plus"></i> Cadastrar Lista</button>
                 </div>
 
                 <div class="card">
                     <div class="card-border">
                         <div class="card-header">
-                            <h3>Listas</h3>
+                            <h3>Lista de Compras</h3>
                         </div>
                         <div class="card-content" id="shoppingList">
                             <p>Nenhuma lista cadastrada</p>
@@ -60,135 +57,127 @@
         </div>
 
         <!-- Add List Modal -->
-        <div class="modal finance-modal" id="listModal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>Criar nova lista de compras</h2>
-                    <p class="modal-subtitle">Selecione mercado para vincular ou deixe sem mercado</p>
-                    <span class="close" onclick="closeListModal()">×</span>
-                </div>
-                <div id="modalBody">
-                    <div class="form-group">
-                        <div class="select-button-wrapper">
-                            <select id="marketSelectAdd">
-                                <option value="">Sem mercado (lista genérica)</option>
-                            </select>
-                            <button class="btn" id="saveListBtn" onclick="saveListBtn()">Criar lista</button>
-                        </div>
-                    </div>
+        <div id="listModal" class="modal-content">
+            <div class="modal-header">
+                <h2>Criar nova lista de compras</h2>
+                <span class="close" onclick="closeListModal()">×</span>
+            </div>
 
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Selecione o mercado (opcional)</label>
+                    <select id="marketSelectAdd">
+                        <option value="">Nenhum mercado selecionado</option>
+                        <!-- Opções serão preenchidas via JavaScript -->
+                    </select>
                 </div>
 
                 <div class="list-name-preview">
                     <span id="listNamePreview"></span>
                 </div>
+            </div>
 
+            <div class="modal-buttons">
+                <button class="btn-secondary" onclick="closeListModal()">Cancelar</button>
+                <button class="btn" id="saveListBtn" onclick="saveList()">Criar lista</button>
+                <button onclick="saveList()">Cadastrar apenas lista com produtos</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="listModalEdit" class="modal modal-content">
+        <div class="modal-header">
+            <h3 id="listModalTitle">Editar Lista</h2>
+                <span class="close" onclick="closeListModalEdit()">×</span>
+        </div>
+        <div class="form-group">
+            <label>Selecione o Mercado</label>
+            <div class="select-button-wrapper">
+                <select id="marketSelectEdit">
+                    <option value="">Nenhum mercado selecionado</option>
+                </select>
                 <div class="modal-buttons">
-                    <button class="btn-secondary" onclick="closeListModal()">Cancelar</button>
-
-                    <button class="text-button" id="addProductBtn" onclick="addProductBtn()">Cadastrar apenas lista com
-                        produtos</button>
+                    <button class="btn-secondary" onclick="closeListModalEdit()">Cancelar</button>
+                    <button class="btn" id="saveEditListBtn">Salvar</button>
                 </div>
+
             </div>
         </div>
+    </div>
 
-        <div id="listModalEdit" class="modal finance-modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3 id="listModalTitle">Editar Lista</h2>
-                        <span class="close" onclick="closeListModalEdit()">×</span>
-                </div>
-                <div class="form-group">
-                    <label>Selecione o Mercado</label>
-                    <div class="select-button-wrapper">
-                        <select id="marketSelectEdit">
-                            <option value="">Nenhum mercado selecionado</option>
-                        </select>
-                        <button class="btn" id="saveEditListBtn">Salvar</button>
-                    </div>
-                </div>
+    <!-- Share List Modal -->
+    <div id="shareListModal" class="modal modal-content">
+        <div class="modal-header">
+            <h3>Compartilhar Lista</h3>
+            <span class="close" onclick="closeShareModal()">×</span>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Telefone do usuário para compartilhar</label>
+                <input type="text" id="sharePhoneInput" placeholder="Digite o telefone com DDD">
             </div>
         </div>
+        <div class="modal-buttons">
+            <button class="btn-secondary" onclick="closeShareModal()">Cancelar</button>
+            <button class="btn" onclick="confirmShareList()">Compartilhar</button>
+        </div>
+    </div>
 
-        <!-- Share List Modal -->
-        <div id="shareListModal" class="modal finance-modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Compartilhar Lista</h3>
-                    <span class="close" onclick="closeShareModal()">×</span>
-                </div>
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label>Telefone do usuário para compartilhar</label>
-                        <input type="text" id="sharePhoneInput" placeholder="Digite o telefone com DDD">
-                    </div>
-                </div>
-                <div class="modal-buttons">
-                    <button class="btn-secondary" onclick="closeShareModal()">Cancelar</button>
-                    <button class="btn" onclick="confirmShareList()">Compartilhar</button>
-                </div>
+    <!-- Product Modal -->
+    <div id="productModal" class="modal-content">
+        <div class="modal-header">
+            <h3 id="productModalTitle">Cadastrar Produto</h3>
+            <span class="close" onclick="closeProductModal()">×</span>
+        </div>
+        <div id="productModalBody">
+            <div class="form-group product-input-group">
+                <label>Nome</label>
+                <input type="text" id="productName" autocomplete="off"
+                    placeholder="Digite para buscar produtos existentes">
+                <div id="productSuggestions" class="product-suggestions"></div>
+            </div>
+            <div class="form-group">
+                <label>Tipo</label>
+                <select id="productType">
+                    <option value="quilo">Quilo</option>
+                    <option value="unidade">Unidade</option>
+                    <option value="pacote">Pacote</option>
+                    <option value="caixa">Caixa</option>
+                    <option value="litro">Litro</option>
+                </select>
+            </div>
+            <div class="form-group" id="quantityGroup">
+                <label id="quantityLabel">Quantidade</label>
+                <input type="number" id="productQuantity" step="0.01" min="0">
+            </div>
+            <div class="form-group" id="packQuantityGroup" style="display: none;">
+                <label id="packQuantityLabel">Quantidade no Pacote/Caixa</label>
+                <input type="number" id="packQuantity" min="1">
+            </div>
+            <div class="form-group">
+                <label>Valor Unitário</label>
+                <input type="number" id="productValue" step="0.01" min="0">
+            </div>
+            <div class="form-group">
+                <label>Total</label>
+                <input type="number" id="productTotal" step="0.01" disabled>
             </div>
         </div>
+        <div id="productModalButtons" class="modal-buttons"></div>
+    </div>
 
-        <!-- Product Modal -->
-        <div id="productModal" class="modal finance-modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3 id="productModalTitle">Cadastrar Produto</h3>
-                    <span class="close" onclick="closeProductModal()">×</span>
-                </div>
-                <div id="productModalBody">
-                    <div class="form-group product-input-group">
-                        <label>Nome</label>
-                        <input type="text" id="productName" autocomplete="off"
-                            placeholder="Digite para buscar produtos existentes">
-                        <div id="productSuggestions" class="product-suggestions"></div>
-                    </div>
-                    <div class="form-group">
-                        <label>Tipo</label>
-                        <select id="productType">
-                            <option value="quilo">Quilo</option>
-                            <option value="unidade">Unidade</option>
-                            <option value="pacote">Pacote</option>
-                            <option value="caixa">Caixa</option>
-                            <option value="litro">Litro</option>
-                        </select>
-                    </div>
-                    <div class="form-group" id="quantityGroup">
-                        <label id="quantityLabel">Quantidade</label>
-                        <input type="number" id="productQuantity" step="0.01" min="0">
-                    </div>
-                    <div class="form-group" id="packQuantityGroup" style="display: none;">
-                        <label id="packQuantityLabel">Quantidade no Pacote/Caixa</label>
-                        <input type="number" id="packQuantity" min="1">
-                    </div>
-                    <div class="form-group">
-                        <label>Valor Unitário</label>
-                        <input type="number" id="productValue" step="0.01" min="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Total</label>
-                        <input type="number" id="productTotal" step="0.01" disabled>
-                    </div>
-                </div>
-                <div id="productModalButtons" class="modal-buttons"></div>
-            </div>
+    <!-- List Options Modal -->
+    <div id="listOptionsModal" class="modal-content">
+        <div class="modal-header">
+            <h3>Opções da Lista</h3>
+            <span class="close" onclick="closeListOptionsModal()">×</span>
         </div>
-
-        <!-- List Options Modal -->
-        <div id="listOptionsModal" class="modal finance-modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Opções da Lista</h3>
-                    <span class="close" onclick="closeListOptionsModal()">×</span>
-                </div>
-                <div class="modal-body">
-                    <button class="btn modal-option" onclick="openEditListModal()">Editar</button>
-                    <button class="btn modal-option" onclick="completeList()">Concluir</button>
-                    <button class="btn modal-option delete-btn" onclick="deleteList()">Deletar</button>
-                </div>
-            </div>
+        <div class="modal-body">
+            <button class="btn modal-option" onclick="openEditListModal()">Editar</button>
+            <button class="btn modal-option" onclick="completeList()">Concluir</button>
+            <button class="btn modal-option delete-btn" onclick="deleteList()">Deletar</button>
         </div>
+    </div>
     </div>
 
     <script src="../js/config.js"></script>

@@ -6,37 +6,37 @@ import ProductPrice from '../models/ProductPrice';
 import mongoose from 'mongoose';
 
 interface ISaveProductRequest {
-    phone: string;
+    idUser: string;
     product: IProduct;
 }
 
 interface IDeleteProductRequest {
-    phone: string;
+    idUser: string;
     productId: string;
 }
 
 interface IUpdateListRequest {
-    phone: string;
+    idUser: string;
     marketId?: string;
     name?: string;
 }
 
 interface ICompleteListRequest {
-    phone: string;
+    idUser: string;
     completed: boolean;
 }
 
 interface IShareListRequest {
-    ownerPhone: string;
-    sharedWithPhone: string;
+    owneridUser: string;
+    sharedWithidUser: string;
 }
 
 const shoppingController = {
     // Listar listas de compras por usuário (proprietário)
-    async getShoppingLists(req: Request<{ phone: string }>, res: Response): Promise<void> {
+    async getShoppingLists(req: Request<{ idUser: string }>, res: Response): Promise<void> {
         try {
-            const { phone } = req.params;
-            const lists: IShoppingList[] = await ShoppingList.find({ phone });
+            const { idUser } = req.params;
+            const lists: IShoppingList[] = await ShoppingList.find({ idUser });
             res.status(200).json(lists);
         } catch (error: unknown) {
             const err = error as Error;
@@ -45,15 +45,15 @@ const shoppingController = {
     },
 
     // Listar listas compartilhadas com o usuário
-    async getSharedShoppingLists(req: Request<{ phone: string }>, res: Response): Promise<void> {
+    async getSharedShoppingLists(req: Request<{ idUser: string }>, res: Response): Promise<void> {
         try {
-            const { phone } = req.params;
-            if (!phone) {
+            const { idUser } = req.params;
+            if (!idUser) {
                 res.status(400).json({ message: 'Telefone é obrigatório' });
                 return;
             }
 
-            const lists = await ShoppingList.find({ phoneShared: phone });
+            const lists = await ShoppingList.find({ idUserShared: idUser });
             if (!lists || lists.length === 0) {
                 res.status(200).json([]);
                 return;
@@ -67,9 +67,9 @@ const shoppingController = {
     },
 
     // Criar nova lista de compras
-    async createShoppingList(req: Request<{}, {}, { marketId?: string; phone: string }>, res: Response): Promise<void> {
+    async createShoppingList(req: Request<{}, {}, { marketId?: string; idUser: string }>, res: Response): Promise<void> {
         try {
-            const { marketId, phone } = req.body;
+            const { marketId, idUser } = req.body;
             let name: string;
 
             if (marketId) {
@@ -86,7 +86,7 @@ const shoppingController = {
             const shoppingList: IShoppingList = new ShoppingList({
                 name,
                 marketId: marketId ? new mongoose.Types.ObjectId(marketId) : null,
-                phone,
+                idUser,
                 products: [],
                 completed: false
             });
@@ -103,20 +103,20 @@ const shoppingController = {
     async shareShoppingList(req: Request<{ listId: string }, {}, IShareListRequest>, res: Response): Promise<void> {
         try {
             const { listId } = req.params;
-            const { ownerPhone, sharedWithPhone } = req.body;
+            const { owneridUser, sharedWithidUser } = req.body;
 
-            if (!ownerPhone || !sharedWithPhone) {
+            if (!owneridUser || !sharedWithidUser) {
                 res.status(400).json({ message: 'Telefones do proprietário e destinatário são obrigatórios' });
                 return;
             }
 
-            const shoppingList = await ShoppingList.findOne({ _id: listId, phone: ownerPhone });
+            const shoppingList = await ShoppingList.findOne({ _id: listId, idUser: owneridUser });
             if (!shoppingList) {
                 res.status(404).json({ message: 'Lista não encontrada ou não pertence ao usuário' });
                 return;
             }
 
-            shoppingList.phoneShared = sharedWithPhone;
+            shoppingList.idUserShared = sharedWithidUser;
             shoppingList.updatedAt = new Date();
 
             await shoppingList.save();
@@ -130,7 +130,7 @@ const shoppingController = {
     async saveProduct(req: Request<{ listId: string }, {}, ISaveProductRequest>, res: Response): Promise<void> {
         try {
             const { listId } = req.params;
-            const { phone, product } = req.body;
+            const { idUser, product } = req.body;
 
             if (!product?.name) {
                 res.status(400).json({ message: 'Nome do produto é obrigatório' });
@@ -141,8 +141,8 @@ const shoppingController = {
             const shoppingList = await ShoppingList.findOne({
                 _id: listId,
                 $or: [
-                    { phone: phone },         // Usuário é o proprietário
-                    { phoneShared: phone }    // Usuário é um compartilhado
+                    { idUser: idUser },         // Usuário é o proprietário
+                    { idUserShared: idUser }    // Usuário é um compartilhado
                 ]
             });
 
@@ -173,7 +173,7 @@ const shoppingController = {
             if (shoppingList.marketId && product.name && product.value) {
                 await ProductPrice.findOneAndUpdate(
                     { productName: product.name.toLowerCase(), marketId: shoppingList.marketId },
-                    { currentPrice: product.value, type: product.type, lastUpdated: new Date(), updatedBy: phone },
+                    { currentPrice: product.value, type: product.type, lastUpdated: new Date(), updatedBy: idUser },
                     { upsert: true, new: true }
                 );
             }
@@ -189,14 +189,14 @@ const shoppingController = {
     async deleteProduct(req: Request<{ listId: string }, {}, IDeleteProductRequest>, res: Response): Promise<void> {
         try {
             const { listId } = req.params;
-            const { phone, productId } = req.body;
+            const { idUser, productId } = req.body;
 
             if (!mongoose.Types.ObjectId.isValid(productId)) {
                 res.status(400).json({ message: 'ID do produto inválido' });
                 return;
             }
 
-            const shoppingList = await ShoppingList.findOne({ _id: listId, phone });
+            const shoppingList = await ShoppingList.findOne({ _id: listId, idUser });
             if (!shoppingList) {
                 res.status(404).json({ message: 'Lista não encontrada' });
                 return;
@@ -226,7 +226,7 @@ const shoppingController = {
     // Atualizar uma lista
     async updateList(req: Request<{ listId: string }, {}, IUpdateListRequest>, res: Response): Promise<void> {
         const { listId } = req.params;
-        const { phone, marketId, name } = req.body;
+        const { idUser, marketId, name } = req.body;
 
         if (!mongoose.Types.ObjectId.isValid(listId)) {
             res.status(400).json({ message: 'ID da lista inválido' });
@@ -234,7 +234,7 @@ const shoppingController = {
         }
 
         try {
-            const shoppingList = await ShoppingList.findOne({ _id: listId, phone });
+            const shoppingList = await ShoppingList.findOne({ _id: listId, idUser });
             if (!shoppingList) {
                 res.status(404).json({ message: 'Lista não encontrada ou não pertence ao usuário' });
                 return;
@@ -277,9 +277,9 @@ const shoppingController = {
     async completeList(req: Request<{ listId: string }, {}, ICompleteListRequest>, res: Response): Promise<void> {
         try {
             const { listId } = req.params;
-            const { phone, completed } = req.body;
+            const { idUser, completed } = req.body;
 
-            const shoppingList = await ShoppingList.findOne({ _id: listId, phone });
+            const shoppingList = await ShoppingList.findOne({ _id: listId, idUser });
             if (!shoppingList) {
                 res.status(404).json({ message: 'Lista não encontrada' });
                 return;
@@ -295,12 +295,12 @@ const shoppingController = {
     },
 
     // Deletar uma lista
-    async deleteList(req: Request<{ listId: string }, {}, { phone: string }>, res: Response): Promise<void> {
+    async deleteList(req: Request<{ listId: string }, {}, { idUser: string }>, res: Response): Promise<void> {
         try {
             const { listId } = req.params;
-            const { phone } = req.body;
+            const { idUser } = req.body;
 
-            const shoppingList = await ShoppingList.findOneAndDelete({ _id: listId, phone });
+            const shoppingList = await ShoppingList.findOneAndDelete({ _id: listId, idUser });
             if (!shoppingList) {
                 res.status(404).json({ message: 'Lista não encontrada' });
                 return;

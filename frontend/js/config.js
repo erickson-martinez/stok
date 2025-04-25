@@ -1,13 +1,13 @@
 //frontend/js/config.js
-const API_URL = true ? "https://stok-5ytv.onrender.com" : "http://192.168.1.67:3000";
+const API_URL = false ? "https://stok-5ytv.onrender.com" : "http://192.168.1.67:3000";
 
 const menuItems = [
     { name: "Home", route: "./home.html" },
     { name: "Financeiro", route: "./expense.html" },
-    // { name: "Estoque", route: "./stock.html" },
+    { name: "Estoque", route: "./stock.html" },
     // { name: "Atividade", route: "./activity.html" },
     // { name: "Mercados", route: "./markets.html" },
-    // { name: "Lista de Compras", route: "./shopping.html" },
+    { name: "Lista de Compras", route: "./shopping.html" },
     // { name: "Livros", route: "./book.html" },
     // { name: "Planning livros", route: "./planning.html" },
     { name: "Meditação", route: "./meditation.html" },

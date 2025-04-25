@@ -67,8 +67,8 @@ app.delete("/markets", marketController.deleteMarket);
 app.patch("/markets/:id", marketController.updateMarket);
 
 // Rotas de Shopping List (ajustadas e completadas)
-app.get('/shopping-lists/:phone', shoppingListController.getShoppingLists);
-app.get('/shopping-lists/shared/:phone', shoppingListController.getSharedShoppingLists); // Nova rota para listas compartilhadas
+app.get('/shopping-lists/:idUser', shoppingListController.getShoppingLists);
+app.get('/shopping-lists/shared/:idUser', shoppingListController.getSharedShoppingLists); // Nova rota para listas compartilhadas
 app.post('/shopping-lists', shoppingListController.createShoppingList);
 app.post('/shopping-lists/:listId/share', shoppingListController.shareShoppingList); // Nova rota para compartilhar
 app.put('/shopping-lists/:listId/products', shoppingListController.saveProduct); // Corrigido "incumbent"
