@@ -1315,7 +1315,7 @@ function createListItem(item, type) {
                     <span class="item-name" onclick="toggleAccordion('${item.id}')">${sharedBadge} ${item.name}</span>
                 </div>
                 <div class="value-container-expense">
-                    <span class="item-value">${type === 'receita' ? "Há receber:" : "Há pagar:"} ${item.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                    <span class="item-value">${type === 'receita' ? item.total == 0 ? "Pago: " + item.totalPaid.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "Há receber:" + item.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : item.total == 0 ? "Pago: " + item.totalPaid.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "Há pagar: " + item.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} </span>
                     <span class="options-trigger" data-id="${item.id}" data-type="${type}">⋯</span>
                 </div>
             </div>

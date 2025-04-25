@@ -13,6 +13,25 @@
     margin: 0 auto;
 }
 
+details {
+    padding: 10px;
+    width: 100%;
+}
+
+/* Fundo cinza para linhas ímpares */
+details:nth-child(odd) {
+    background-color: #f8f8f8;
+}
+
+.stock-content {
+    width: 100%;
+}
+
+/* Fundo branco (ou transparente) para linhas pares */
+details:nth-child(even) {
+    background-color: #ffffff;
+}
+
 .header {
     display: flex;
     align-items: center;
