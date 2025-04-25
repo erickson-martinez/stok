@@ -161,7 +161,7 @@ function updateShoppingList() {
         const productsHTML = list.products.length ?
             list.products.map(product => `
                 <div class="list-item">
-                    <span class="item-name">${product.name} (${product.quantity} ${product.type}${product.packQuantity ? `, ${product.packQuantity} un` : ""})</span>
+                    <span class="item-name">${product.name} - ${product.brand} (${product.quantity} ${product.type}${product.packQuantity ? `, ${product.packQuantity} un` : ""})</span>
                     <span class="item-value">${(product.total || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
                     ${list.completed ? '' : `
                         <div class="options-wrapper">

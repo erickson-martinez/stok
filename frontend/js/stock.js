@@ -80,13 +80,45 @@ function loadStock() {
     setupStockEvents();
 }
 
+async function fetchLowestPrices(product) {
+    const daysFindPrice = 5;
+    try {
+        showLoading(`Buscando preços para ${product.name}...`);
+        const response = await fetch(
+            `${API_URL}/product-price/${encodeURIComponent(product.name)}/${daysFindPrice}`
+        );
+        if (!response.ok) throw new Error("Erro ao carregar preços");
+        const prices = await response.json();
+
+        // Mapear a estrutura retornada para a esperada e ordenar por preço
+        const mappedPrices = prices
+            .map(price => ({
+                name: price.productName || 'Desconhecido',
+                brand: price.brand || 'Sem marca',
+                unitType: price.type || 'Sem unidade',
+                price: typeof price.currentPrice === 'number' ? price.currentPrice : 0,
+                market: price.marketId?.name || 'Sem mercado',
+                date: price.createdAt ? new Date(price.createdAt).toLocaleDateString('pt-BR') : 'Sem data'
+            }))
+            .filter(price => price.price > 0) // Filtrar preços inválidos
+            .sort((a, b) => a.price - b.price) // Ordenar por preço crescente
+            .slice(0, 5); // Limitar a 5 itens
+
+        return mappedPrices;
+    } catch (error) {
+        console.error(`Erro ao buscar preços para ${product.name}:`, error);
+        return [];
+    } finally {
+        hideLoading();
+    }
+}
+
 // Função para carregar produtos
 async function loadProducts() {
     const currentUser = JSON.parse(localStorage.getItem("currentUser"));
     const productList = document.getElementById("productList");
 
     try {
-        // Ajustado para usar idUser, conforme a versão anterior
         const response = await fetch(`${API_URL}/products/${currentUser.idUser}`);
         if (!response.ok) throw new Error("Erro ao carregar produtos");
         const products = await response.json();
@@ -101,7 +133,7 @@ async function loadProducts() {
             return;
         }
 
-        products.forEach(product => {
+        for (const product of products) {
             const details = document.createElement("details");
             const summary = document.createElement("summary");
             const content = document.createElement("div");
@@ -188,6 +220,33 @@ async function loadProducts() {
             table.appendChild(tbody);
             content.appendChild(table);
 
+            const prices = await fetchLowestPrices(product);
+            if (prices.length > 0) {
+                const priceList = document.createElement("div");
+                priceList.classList.add("price-list");
+                const priceHeader = document.createElement("h4");
+                priceHeader.textContent = "Menores Preços (Últimos 5 Dias)";
+                priceList.appendChild(priceHeader);
+
+                const priceUl = document.createElement("ul");
+                prices.forEach(price => {
+                    // Validar se price.price é um número válido
+                    if (typeof price.price !== 'number' || price.price <= 0) {
+                        console.warn(`Preço inválido para ${price.name}:`, price);
+                        return; // Pular este preço
+                    }
+                    const li = document.createElement("li");
+                    li.textContent = `${price.name} - ${price.brand} - ${price.unitType} - R$ ${price.price.toFixed(2)} - ${price.market} - ${price.date}`;
+                    priceUl.appendChild(li);
+                });
+                priceList.appendChild(priceUl);
+                content.appendChild(priceList);
+            } else {
+                const noPrice = document.createElement("p");
+                noPrice.textContent = "Nenhum preço encontrado nos últimos 5 dias.";
+                content.appendChild(noPrice);
+            }
+
             const consumptionPerWeek = daysInMonth / product.idealQuantity;
             for (let index = 0; index < product.idealQuantity; index++) {
                 if (dayOfMonth < (index * consumptionPerWeek) && product.quantity < (product.idealQuantity - index)) {
@@ -198,7 +257,7 @@ async function loadProducts() {
             details.appendChild(summary);
             details.appendChild(content);
             productList.appendChild(details);
-        });
+        }
     } catch (error) {
         productList.innerHTML = "<p>Erro ao carregar produtos</p>";
         console.error("Erro ao carregar produtos:", error);
@@ -231,11 +290,9 @@ function setupStockEvents() {
 
     // Adicionar produto
     addProductBtn.addEventListener("click", () => {
-        console.log("Botão addProductBtn clicado!");
         const productModal = document.getElementById("productModal");
         if (productModal) {
             productModal.classList.add("active");
-            console.log("Classe active adicionada ao productModal");
         } else {
             console.error("Modal productModal não encontrado!");
         }
@@ -403,6 +460,5 @@ document.querySelectorAll(".close").forEach(btn => {
 
 // Inicialização
 document.addEventListener("DOMContentLoaded", () => {
-    console.log("DOM carregado, iniciando loadStock");
     loadStock();
 });

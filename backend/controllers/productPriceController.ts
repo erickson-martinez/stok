@@ -71,7 +71,7 @@ const productPriceController = {
             }
 
             const prices = await ProductPrice.find({
-                productName: { $in: products.map(p => p.toLowerCase()) }
+                productName: { $in: products.map(p => p) }
             }).populate('marketId', 'name');
 
             // Organizar por produto
@@ -114,7 +114,7 @@ const productPriceController = {
             const dateLimit = new Date(Date.now() - parseInt(days as string) * 24 * 60 * 60 * 1000);
 
             // Criar uma regex para buscar variações do nome do produto
-            const productRegex = new RegExp(productName.toLowerCase()
+            const productRegex = new RegExp(productName
                 .replace("arroz", "(arroz|roz|arro)")
                 .replace("macar", "(macar|macarão)")
                 .replace("caf", "(caf|café)"), "i");
@@ -137,7 +137,7 @@ const productPriceController = {
             const { productName, marketId } = req.params;
 
             const price = await ProductPrice.findOne({
-                productName: productName.toLowerCase(),
+                productName: productName,
                 marketId
             }).populate('marketId', 'name');
 

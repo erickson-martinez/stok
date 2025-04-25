@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 const stockchema = new mongoose.Schema({
     name: { type: String, required: true },
     quantity: { type: Number, required: true },
-    brand: { type: String, required: true },
+    brand: { type: String },
     unitType: { type: String, required: true },
     unitQuantity: { type: String, required: true },
     idealQuantity: { type: Number, required: true },

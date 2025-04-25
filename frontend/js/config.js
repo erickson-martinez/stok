@@ -1,5 +1,5 @@
 //frontend/js/config.js
-const API_URL = true ? "https://stok-5ytv.onrender.com" : "http://192.168.1.67:3000";
+const API_URL = false ? "https://stok-5ytv.onrender.com" : "http://192.168.1.67:3000";
 
 const menuItems = [
     { name: "Home", route: "./home.html" },
@@ -91,6 +91,15 @@ function showLoading(msg) {
         document.body.appendChild(loadingElement);
     }
     loadingElement.style.display = "flex";
+}
+
+
+// Função para esconder o loading
+function hideLoading() {
+    const loadingElement = document.getElementById("loading-overlay");
+    if (loadingElement) {
+        loadingElement.style.display = "none";
+    }
 }
 
 // Carregar menu da sidebar
@@ -237,12 +246,4 @@ function setupUserEvents() {
             sidebar.classList.remove("active");
         }
     });
-}
-
-// Função para esconder o loading
-function hideLoading() {
-    const loadingElement = document.getElementById("loading-overlay");
-    if (loadingElement) {
-        loadingElement.style.display = "none";
-    }
 }
