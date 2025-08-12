@@ -8,6 +8,7 @@ const menuItems = [
     // { name: "Atividade", route: "./activity.html" },
     // { name: "Mercados", route: "./markets.html" },
     { name: "Lista de Compras", route: "./shopping.html" },
+    { name: "Compromissos", route: "./schedules.html" },
     // { name: "Livros", route: "./book.html" },
     { name: "Planning livros", route: "./planning.html" },
     { name: "Meditação", route: "./meditation.html" },

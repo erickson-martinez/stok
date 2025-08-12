@@ -1,4 +1,3 @@
-
 //frontend/js/expense.js
 let currentDate = new Date();
 let currentType = '';
@@ -106,22 +105,20 @@ async function fetchMonthData() {
             }
         };
 
-        if (expensesData?.receitas?.length > 0 || expensesData?.despesas?.length > 0) {
-            processItems(expensesData);
-        }
-
-        if (sharedData?.length > 0 && (sharedData[0]?.receitas?.length > 0 || sharedData[0]?.despesas?.length > 0)) {
-            processItems(sharedData[0], true, sharedData[0]?.idUser);
+        processItems(expensesData);
+        if (sharedData?.length > 0) {
+            sharedData.forEach(sd => processItems(sd, true, sd.sharedBy));
         }
 
         updateLists();
         calculateColors();
-    } catch (err) {
-        console.error(err);
-        alert('Erro ao carregar dados. Por favor, tente novamente.');
-    } finally {
-        // Esconder o loading
         hideLoading();
+
+        // Chama o modal dos itens do dia após carregar os dados
+        showTodayItemsModal();
+    } catch (error) {
+        hideLoading();
+        alert(error.message);
     }
 }
 
@@ -467,9 +464,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const checkbox = document.getElementById('modalDebtorCheckbox');
     const phoneContainer = document.getElementById('debtorPhoneContainer');
 
-    checkbox.addEventListener('change', () => {
-        phoneContainer.style.display = checkbox.checked ? 'block' : 'none';
-    });
+    if (checkbox && phoneContainer) {
+        checkbox.addEventListener('change', () => {
+            phoneContainer.style.display = checkbox.checked ? 'block' : 'none';
+        });
+    }
 });
 
 async function saveItem() {
@@ -711,6 +710,52 @@ async function saveItem() {
         console.error(err);
         alert(err.message);
     }
+}
+
+// Exibe modal com itens do dia atual
+function showTodayItemsModal() {
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10); // formato YYYY-MM-DD
+    const currentMonth = today.getMonth() + 1;
+    const currentYear = today.getFullYear();
+    const todayItems = [];
+
+    // Verifica apenas despesas atrasadas e não pagas do mês atual (apenas itens principais)
+    despesas.forEach(item => {
+        let itemDate = item.whenPay.replace(/\//g, '-').slice(0, 10);
+        let itemYear = parseInt(itemDate.split('-')[0]);
+        let itemMonth = parseInt(itemDate.split('-')[1]);
+        // Considera atrasado se data <= hoje, não pago e do mês/ano atual
+        if (itemYear === currentYear && itemMonth === currentMonth && itemDate <= todayStr && !item.paid) {
+            todayItems.push({
+                name: item.name,
+                value: item.total
+            });
+        }
+    });
+
+    // Evita abrir o modal mais de uma vez
+    if (document.getElementById('todayItemsModal')) return;
+
+    if (todayItems.length > 0) {
+        let html = `<div id="todayItemsModal" class="modal" style="display:block;z-index:2000;">
+            <div class="modal-content">
+                <h2>Despesas atrasadas e não pagas do mês atual</h2>
+                <ul>`;
+        todayItems.forEach(i => {
+            html += `<li><span class='item-name'>${i.name}</span> - <span class='item-value'>${i.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></li>`;
+        });
+        html += `</ul>
+                <button onclick="closeTodayItemsModal()">Fechar</button>
+            </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', html);
+    }
+}
+
+function closeTodayItemsModal() {
+    const modal = document.getElementById('todayItemsModal');
+    if (modal) modal.remove();
 }
 
 // Adicione esta função para atualizar o status de pagamento
@@ -1066,237 +1111,32 @@ async function editValuesItem(type, id) {
     }
 }
 
-async function updateReceitaCobrador(idOrigem, idReceita, nome, paid, valor, notify, uuid) {
-    const idUser = idOrigem; // idOrigem é o idUser do cobrador
-    const [expensesResponse] = await Promise.all([
-        fetch(`${API_URL}/expenses/${idOrigem}`)
-    ]);
-    const expensesData = await expensesResponse.json();
-    // Busca a receita existente
-    const receita = expensesData.receitas.find(r => r._id === idReceita);
-    if (!receita) {
-        console.error('Receita não encontrada:', idReceita);
-        return;
-    }
-
-    const newTotal = receita.total
-    const newTotalPaid = receita.totalPaid
-
-    const payload = {
-        idUser,
-        receitas: [{
-            _id: idReceita,
-            name: receita.name,
-            total: newTotal,
-            totalPaid: newTotalPaid,
-            whenPay: receita.whenPay,
-            paid: receita.paid,
-            isDebt: receita.isDebt,
-            idDespesa: receita.idDespesa,
-            idDebts: receita.idDebts,
-            notify: receita.notify,
-            values: [...receita.values, { name: nome, value: valor, paid, notify, uuid }]
-        }]
-    };
-
-    try {
-        const response = await fetch(`${API_URL}/expenses-item`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Erro ao atualizar receita do cobrador: ${response.statusText} - ${errorText}`);
-        }
-    } catch (err) {
-        console.error(err);
-        alert(err.message);
-    }
-}
-async function updateDespesa(idDebts, idDespesa, nome, valor, paid, notify, uuid) {
-    const idUser = idDebts; // idDebts é o idUser do devedor
-    const [expensesResponse] = await Promise.all([
-        fetch(`${API_URL}/expenses/${idDebts}`)
-    ]);
-
-    const expensesData = await expensesResponse.json();
-
-    // Busca a despesa existente
-    const findDespesas = expensesData.despesas.find(d => d._id === idDespesa);
-    // Encontra o item específico no array values
-    const valueIndex = findDespesas.values.findIndex(v => v.uuid === uuid);
-    if (valueIndex === -1) {
-        alert("Item não encontrado para edição");
-        return;
-    }
-
-    // Atualiza totais para despesas normais
-    let newTotal = findDespesas.total;
-    let newTotalPaid = findDespesas.totalPaid;
-
-    if (paid) {
-        newTotal = findDespesas.total - valor;
-        newTotalPaid = findDespesas.totalPaid + valor;
-    } else {
-        // Se estava pago e agora não está
-        if (findDespesas.values[valueIndex].paid) {
-            newTotal = findDespesas.total + valor
-            newTotalPaid = findDespesas.totalPaid - valor;
-        }
-    }
-
-    // Cria cópia atualizada dos values
-    const updatedValues = [...findDespesas.values];
-    updatedValues[valueIndex] = {
-        ...updatedValues[valueIndex],
-        name: nome,
-        value: valor,
-        paid,
-        notify: false
-    };
-
-    const updatedItem = {
-        _id: idDespesa,
-        name: findDespesas.name,
-        total: newTotal,
-        totalPaid: newTotalPaid,
-        whenPay: findDespesas.whenPay,
-        paid: findDespesas.paid,
-        idOrigem: findDespesas.idOrigem,
-        isDebt: findDespesas.isDebt,
-        notify: findDespesas.notify,
-        idReceita: findDespesas.idReceita,
-        values: updatedValues,
-    };
-
-    payload = {
-        idUser,
-        despesas: [updatedItem],
-        uuid: uuid // Envia o UUID para identificar qual item atualizar
-    };
-
-    console.log(payload)
-
-    try {
-        const response = await fetch(`${API_URL}/expenses-item`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Erro ao atualizar despesa do devedor: ${response.statusText} - ${errorText}`);
-        }
-    } catch (err) {
-        console.error(err);
-        alert(err.message);
-    }
-}
-
-async function updateDespesaDevedor(idDebts, idDespesa, nome, valor, paid, uuid) {
-    const idUser = idDebts; // idDebts é o idUser do devedor
-    const [expensesResponse] = await Promise.all([
-        fetch(`${API_URL}/expenses/${idDebts}`)
-    ]);
-
-    const expensesData = await expensesResponse.json();
-
-    // Busca a despesa existente
-    const despesa = expensesData.despesas.find(d => d._id === idDespesa);
-    if (!despesa) {
-        console.error('Despesa não encontrada:', idDespesa);
-        return;
-    }
-
-    const newTotal = paid ? despesa.total - valor : despesa.total + valor;
-    const newTotalPaid = paid ? despesa.totalPaid + valor : despesa.totalPaid;
-
-    const payload = {
-        idUser,
-        despesas: [{
-            _id: idDespesa,
-            name: despesa.name,
-            total: newTotal,
-            totalPaid: newTotalPaid,
-            whenPay: despesa.whenPay,
-            paid: despesa.paid,
-            idOrigem: despesa.idOrigem,
-            isDebt: despesa.isDebt,
-            idReceita: despesa.idReceita,
-            notify: despesa.notify,
-            values: [...despesa.values, { name: nome, value: valor, paid, notify: false, uuid }]
-        }]
-    };
-
-
-    try {
-        const response = await fetch(`${API_URL}/expenses-item`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Erro ao atualizar despesa do devedor: ${response.statusText} - ${errorText}`);
-        }
-    } catch (err) {
-        console.error(err);
-        alert(err.message);
-    }
-}
-
-function updateLists() {
-    const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.getMonth() + 1;
-
-    const filterByMonth = (items) => items.filter(item => {
-        return parseInt(item.whenPay.split("-")[0]) === currentYear && parseInt(item.whenPay.split("-")[1]) === currentMonth;
-    });
-
-    const receitasFiltradas = filterByMonth(receitas);
-    const despesasFiltradas = filterByMonth(despesas);
-
-    totalRecebido = receitasFiltradas.reduce((sum, r) => sum + r.totalPaid, 0);
-    totalPagar = despesasFiltradas.reduce((sum, d) => sum + d.total, 0);
-    totalReceber = receitasFiltradas.reduce((sum, r) => sum + r.total, 0);
-    totalPago = despesasFiltradas.reduce((sum, d) => sum + d.totalPaid, 0);
-    document.getElementById("receitasList").innerHTML = receitasFiltradas.length ?
-        receitasFiltradas.map(item => createListItem(item, "receita", totalRecebido)).join("") :
-        "<p>Nenhuma receita cadastrada</p>";
-
-    document.getElementById("despesasList").innerHTML = despesasFiltradas.length ?
-        despesasFiltradas.map(item => createListItem(item, "despesa", totalPagar)).join("") :
-        "<p>Nenhuma despesa cadastrada</p>";
-
-    document.getElementById("receitasList").addEventListener("click", handleOptionsClick);
-    document.getElementById("despesasList").addEventListener("click", handleOptionsClick);
-}
-
-function handleOptionsClick(event) {
-    const trigger = event.target.closest(".options-trigger");
-
-    if (trigger) {
-        const id = trigger.getAttribute("data-id");
-        showOptions(event, id);
-    }
-}
-
 function createListItem(item, type) {
     const sharedBadge = item.shared ? `
         <span class="shared-badge" title="Compartilhado por: ${item.sharedBy || 'Número desconhecido'}">
             <i class="fas fa-share-alt"></i>
         </span>` : '';
 
+    // Define cor de fundo para o container principal
+    let containerBackground = '';
+    if (item.paid) {
+        containerBackground = 'background-color: #d4f7d4'; // verde claro
+    } else {
+        containerBackground = 'background-color: #fff9c4'; // amarelo claro
+    }
+
     const internalItemsHTML = item.values?.length ? `
         <div class="accordion-content">
             ${item.values.map(v => {
-        const borderStyle = v.notify && !v.paid ? 'border: 2px solid yellow' : '';
-        return `
-                    <div class="list-item internal-item" data-id="${item.id}-${v._id}" style="${borderStyle}">
+                let backgroundStyle = '';
+                if (v.paid) {
+                    backgroundStyle = 'background-color: #d4f7d4'; // verde claro
+                } else {
+                    backgroundStyle = 'background-color: #fff9c4'; // amarelo claro
+                }
+                const borderStyle = v.notify && !v.paid ? 'border: 2px solid yellow' : '';
+                return `
+                    <div class="list-item internal-item" data-id="${item.id}-${v._id}" style="${backgroundStyle};${borderStyle}">
                         <span class="item-name-accordion" onclick="toggleAccordion('${item.id}-${v._id}')">${v.name}</span>
                         <div class="value-container">
                             <span class="item-value">${v.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
@@ -1304,11 +1144,11 @@ function createListItem(item, type) {
                         </div>
                     </div>
                 `;
-    }).join("")}
-        </div>` : "";
+            }).join("")}
+        </div>` : "<p>Nenhum item interno cadastrado</p>";
 
     return `
-        <div class="list-container" data-id="${item.id}">
+        <div class="list-container" data-id="${item.id}" style="${containerBackground}">
             <div class="list-header">
                 <div>
                     <span class="accordion-toggle" onclick="toggleAccordion('${item.id}')"><i class="fas fa-chevron-down"></i></span>
@@ -1689,14 +1529,14 @@ async function confirmDeleteInternal(type, id) {
         // Verifica se o item está vinculado (receita com isDebt ou despesa com idOrigem)
         if (type === "receita" && parentItem.isDebt && parentItem.idDebts && parentItem.idDespesa) {
             // É uma receita vinculada, deletar o item correspondente na despesa do devedor
-            await deleteCorrespondingDespesaItem(
+            await deleteCorrespondingDespesa(
                 parentItem.idDebts, // idUser do devedor
                 parentItem.idDespesa, // ID da despesa vinculada
                 uuidToDelete // UUID do item a ser deletado
             );
         } else if (type === "despesa" && parentItem.idOrigem && parentItem.idReceita) {
             // É uma despesa vinculada, deletar o item correspondente na receita do cobrador
-            await deleteCorrespondingReceitaItem(
+            await deleteCorrespondingReceita(
                 parentItem.idOrigem, // idUser do cobrador
                 parentItem.idReceita, // ID da receita vinculada
                 uuidToDelete // UUID do item a ser deletado
@@ -1840,6 +1680,42 @@ async function deleteCorrespondingReceitaItem(idUserCobrador, idReceita, uuid) {
     }
 }
 
+function updateLists() {
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1;
+
+    const filterByMonth = (items) => items.filter(item => {
+        return parseInt(item.whenPay.split("-")[0]) === currentYear && parseInt(item.whenPay.split("-")[1]) === currentMonth;
+    });
+
+    const receitasFiltradas = filterByMonth(receitas);
+    const despesasFiltradas = filterByMonth(despesas);
+
+    totalRecebido = receitasFiltradas.reduce((sum, r) => sum + r.totalPaid, 0);
+    totalPagar = despesasFiltradas.reduce((sum, d) => sum + d.total, 0);
+    totalReceber = receitasFiltradas.reduce((sum, r) => sum + r.total, 0);
+    totalPago = despesasFiltradas.reduce((sum, d) => sum + d.totalPaid, 0);
+    document.getElementById("receitasList").innerHTML = receitasFiltradas.length ?
+        receitasFiltradas.map(item => createListItem(item, "receita", totalRecebido)).join("") :
+        "<p>Nenhuma receita cadastrada</p>";
+
+    document.getElementById("despesasList").innerHTML = despesasFiltradas.length ?
+        despesasFiltradas.map(item => createListItem(item, "despesa", totalPagar)).join("") :
+        "<p>Nenhuma despesa cadastrada</p>";
+
+    document.getElementById("receitasList").addEventListener("click", handleOptionsClick);
+    document.getElementById("despesasList").addEventListener("click", handleOptionsClick);
+}
+
+function handleOptionsClick(event) {
+    const trigger = event.target.closest(".options-trigger");
+
+    if (trigger) {
+        const id = trigger.getAttribute("data-id");
+        showOptions(event, id);
+    }
+}
+
 function calculateColors() {
     const currentYear = currentDate.getFullYear();
     const currentMonth = currentDate.getMonth() + 1;
@@ -1939,6 +1815,7 @@ function openReportModal() {
             const monthYear = itemDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).replace(/^\w/, c => c.toLowerCase());
             if (despesasPorMes[monthYear] !== undefined) {
                 despesasPorMes[monthYear] += item.total + item.totalPaid;
+
             } else {
                 despesasPorMes[monthYear] = item.total + item.totalPaid;
             }
@@ -1948,7 +1825,7 @@ function openReportModal() {
     // Agrega receitas
     receitas.forEach(item => {
         const itemDate = parseDate(item.whenPay);
-        if (itemDate >= startDate && itemDate <= endDate) {
+        if ( itemDate >= startDate && itemDate <= endDate) {
             // Formata o mês diretamente, garantindo UTC
             const monthYear = itemDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).replace(/^\w/, c => c.toLowerCase());
             if (receitasPorMes[monthYear] !== undefined) {
@@ -2002,6 +1879,7 @@ if (document.getElementById("userInitials")) {
 window.toggleAccordion = toggleAccordion;
 window.openActionModal = openActionModal;
 window.openActionModalItem = openActionModalItem;
+
 window.closeModal = closeModal;
 window.saveItem = saveItem;
 window.confirmDelete = confirmDelete;

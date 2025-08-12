@@ -10,6 +10,7 @@ import marketController from './controllers/marketController';
 import shoppingListController from './controllers/shoppingListController.ts';
 import productPriceController from './controllers/productPriceController';
 import bookController from "./controllers/bookControllers.ts";
+import scheduleController from "./controllers/scheduleController.ts";
 
 dotenv.config();
 const app: Express = express();
@@ -88,6 +89,11 @@ app.post('/books/:idUser', bookController.createBook);
 app.put('/books/:id', bookController.updateBook);
 app.delete('/books/:id', bookController.deleteBook);
 app.post('/books/:id/transfer', bookController.transferBook);
+
+app.get('/schedules/:idUser', scheduleController.getSchedules);
+app.post('/schedules', scheduleController.createSchedule);
+app.put('/schedules/:id', scheduleController.updateSchedule);
+app.delete('/schedules/:id', scheduleController.deleteSchedule);
 
 const PORT: number = Number(process.env.PORT) || 3000;
 app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
