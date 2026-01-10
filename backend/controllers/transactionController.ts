@@ -300,9 +300,9 @@ const transactionController = {
         }
     },
 
-    async markAsPaid(req: Request, res: Response): Promise<void> {
+    async markStatus(req: Request, res: Response): Promise<void> {
         try {
-            const { transactionId, ownerPhone } = req.body;
+            const { transactionId, ownerPhone, status } = req.body;
 
             if (!transactionId || !ownerPhone) {
                 res.status(400).json({ error: 'Campos obrigatórios: transactionId, ownerPhone' });
@@ -323,7 +323,7 @@ const transactionController = {
             }
 
             // Marcar como pago
-            transaction.status = 'pago';
+            transaction.status = status;
             transaction.paidAmount = transaction.amount;
             transaction.updatedAt = new Date();
             await transaction.save();
