@@ -81,7 +81,7 @@ app.post("/transactions/simple", transactionController.createSimple);
 app.post("/transactions/controlled", transactionController.createControlled);
 app.patch("/transactions/payment", transactionController.updatePaymentStatus);
 app.get("/transactions", transactionController.listTransactions);
-app.patch("/transactions/mark-as-paid", transactionController.markStatus);
+app.patch("/transactions/status", transactionController.markStatus);
 app.post("/transactions/follow", transactionController.followUser);
 app.delete("/transactions", transactionController.deleteTransaction);
 
