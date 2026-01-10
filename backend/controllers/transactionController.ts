@@ -1,0 +1,451 @@
+// src/controllers/transactionController.ts
+import { Request, Response } from 'express';
+import Transaction from '../models/Transaction';
+import User from '../models/User';
+import crypto from 'crypto';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
+const IV_LENGTH = 16;
+
+if (!ENCRYPTION_KEY) {
+    throw new Error("ENCRYPTION_KEY não está definida no arquivo .env");
+}
+
+const encryptPhone = (text: string): string => {
+    const iv = crypto.randomBytes(IV_LENGTH);
+    const cipher = crypto.createCipheriv(
+        "aes-256-cbc",
+        Buffer.from(ENCRYPTION_KEY, "hex"),
+        iv
+    );
+    let encrypted = cipher.update(text, "utf8", "hex");
+    encrypted += cipher.final("hex");
+    return `${iv.toString("hex")}:${encrypted}`;
+};
+
+const decryptPhone = (encrypted: string): string => {
+    const [iv, encryptedText] = encrypted.split(":");
+    const decipher = crypto.createDecipheriv(
+        "aes-256-cbc",
+        Buffer.from(ENCRYPTION_KEY, "hex"),
+        Buffer.from(iv, "hex")
+    );
+    let decrypted = decipher.update(encryptedText, "hex", "utf8");
+    decrypted += decipher.final("utf8");
+    return decrypted;
+};
+
+const transactionController = {
+    async createSimple(req: Request, res: Response): Promise<void> {
+        try {
+            const {
+                ownerPhone,
+                type,
+                name,
+                amount,
+                date,
+                status,
+                notes,
+            } = req.body;
+
+            if (!ownerPhone || !type || !name || amount == null || !date) {
+                res.status(400).json({ error: 'Campos obrigatórios: ownerPhone, type, name, amount, date' });
+                return;
+            }
+
+            if (!['revenue', 'expense'].includes(type)) {
+                res.status(400).json({ error: 'type deve ser "revenue" ou "expense"' });
+                return;
+            }
+
+            if (Number(amount) <= 0) {
+                res.status(400).json({ error: 'O valor (amount) deve ser maior que zero' });
+                return;
+            }
+            const targetPhone = String(ownerPhone).trim();
+
+            // Buscar todos usuários e descriptografar
+            const userMap = new Map<string, string>();
+            // Verificar existência do usuário
+            const users = await User.find({}).lean();
+            const userExists = users.some(u => decryptPhone(u.phone) === ownerPhone);
+
+            users.forEach(user => {
+                const plainPhone = decryptPhone(user.phone);
+                userMap.set(plainPhone, user.phone); // plain → encrypted
+            });
+
+            const encryptedPhone = userMap.get(targetPhone);
+            if (!userExists) {
+                res.status(404).json({ error: 'Usuário proprietário não encontrado' });
+                return;
+            }
+
+            const transaction = new Transaction({
+                ownerPhone: encryptedPhone,
+                type,
+                name: name.trim(),
+                amount: Number(amount),
+                date: new Date(date),
+                isControlled: false,
+                status,
+                paidAmount: 0,
+                notes: notes ? String(notes).trim() : undefined,
+            });
+
+            await transaction.save();
+
+            // Descriptografar para resposta
+            const responseTransaction = {
+                ...transaction.toObject(),
+                ownerPhone: decryptPhone(transaction.ownerPhone),
+                counterpartyPhone: transaction.counterpartyPhone ? decryptPhone(transaction.counterpartyPhone) : undefined,
+                sharerPhone: transaction.sharerPhone ? decryptPhone(transaction.sharerPhone) : undefined,
+            };
+
+            res.status(201).json({
+                message: 'Transação simples criada com sucesso',
+                transaction: responseTransaction,
+            });
+        } catch (error: any) {
+            console.error('Erro ao criar transação simples:', error);
+            res.status(500).json({ error: error.message || 'Erro interno no servidor' });
+        }
+    },
+
+    async createControlled(req: Request, res: Response): Promise<void> {
+        try {
+            const {
+                ownerPhone,
+                counterpartyPhone,
+                name,
+                amount,
+                date,
+                notes,
+            } = req.body;
+
+            if (!ownerPhone || !counterpartyPhone || !name || amount == null || !date) {
+                res.status(400).json({
+                    error: 'Campos obrigatórios: ownerPhone, counterpartyPhone, name, amount, date'
+                });
+                return;
+            }
+
+            if (ownerPhone === counterpartyPhone) {
+                res.status(400).json({ error: 'Não é permitido criar cobrança para o mesmo usuário' });
+                return;
+            }
+
+            if (Number(amount) <= 0) {
+                res.status(400).json({ error: 'O valor deve ser maior que zero' });
+                return;
+            }
+
+            // Verificar existência dos usuários
+
+            const targetPhone = String(ownerPhone).trim();
+            const counterpartyPhoneStr = String(counterpartyPhone).trim();
+
+            // Buscar todos usuários e descriptografar
+            const userMap = new Map<string, string>();
+            // Verificar existência do usuário
+            const users = await User.find({}).lean();
+            const userExists = users.some(u => decryptPhone(u.phone) === ownerPhone);
+
+            users.forEach(user => {
+                const plainPhone = decryptPhone(user.phone);
+                userMap.set(plainPhone, user.phone); // plain → encrypted
+            });
+
+            const credtorExists = userMap.get(targetPhone);
+            const debtorExists = userMap.get(counterpartyPhoneStr);
+
+            if (!userExists) {
+                res.status(404).json({ error: 'Usuário proprietário não encontrado' });
+                return;
+            }
+
+            if (!credtorExists || !debtorExists) {
+                res.status(404).json({ error: 'Um ou ambos os usuários não foram encontrados' });
+                return;
+            }
+
+            const controlId = `ctrl-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+            const transactionDate = new Date(date);
+
+            const mySide = new Transaction({
+                ownerPhone: credtorExists,
+                type: 'revenue',
+                name: name.trim(),
+                amount: Number(amount),
+                date: transactionDate,
+                isControlled: true,
+                controlId,
+                counterpartyPhone: debtorExists,
+                status: 'nao_pago',
+                paidAmount: 0,
+                notes: notes ? String(notes).trim() : undefined,
+            });
+
+            const counterpartySide = new Transaction({
+                ownerPhone: debtorExists,
+                type: 'expense',
+                name: name.trim(),
+                amount: Number(amount),
+                date: transactionDate,
+                isControlled: true,
+                controlId,
+                counterpartyPhone: credtorExists,
+                status: 'nao_pago',
+                paidAmount: 0,
+                notes: notes ? String(notes).trim() : undefined,
+            });
+
+            await Promise.all([mySide.save(), counterpartySide.save()]);
+
+            const responseMySide = {
+                ...mySide.toObject(),
+                ownerPhone: decryptPhone(mySide.ownerPhone),
+                counterpartyPhone: decryptPhone(mySide.counterpartyPhone || ''),
+            };
+
+            const responseCounterSide = {
+                ...counterpartySide.toObject(),
+                ownerPhone: decryptPhone(counterpartySide.ownerPhone),
+                counterpartyPhone: decryptPhone(counterpartySide.counterpartyPhone || ''),
+            };
+
+            res.status(201).json({
+                message: 'Cobrança criada com sucesso',
+                controlId,
+                mySide: responseMySide,
+                counterpartySide: responseCounterSide,
+            });
+        } catch (error: any) {
+            console.error('Erro ao criar transação controlada:', error);
+            res.status(500).json({ error: error.message || 'Erro interno no servidor' });
+        }
+    },
+
+    async updatePaymentStatus(req: Request, res: Response): Promise<void> {
+        try {
+            const { transactionId, ownerPhone, status, paidAmount } = req.body;
+
+            if (!transactionId || !ownerPhone || !status) {
+                res.status(400).json({ error: 'Campos obrigatórios: transactionId, ownerPhone, status' });
+                return;
+            }
+
+            const encryptedOwnerPhone = encryptPhone(ownerPhone);
+
+            const transaction = await Transaction.findById(transactionId);
+            if (!transaction) {
+                res.status(404).json({ error: 'Transação não encontrada' });
+                return;
+            }
+
+            if (transaction.ownerPhone !== encryptedOwnerPhone) {
+                res.status(403).json({ error: 'Você não tem permissão para alterar esta transação' });
+                return;
+            }
+
+            transaction.status = status;
+
+            if (paidAmount !== undefined) {
+                transaction.paidAmount = Math.max(0, Number(paidAmount));
+
+                if (transaction.paidAmount >= transaction.amount) {
+                    transaction.status = 'pago';
+                    transaction.paidAmount = transaction.amount;
+                } else if (transaction.paidAmount > 0) {
+                    transaction.status = 'parcial';
+                } else {
+                    transaction.status = 'nao_pago';
+                }
+            }
+
+            transaction.updatedAt = new Date();
+            await transaction.save();
+
+            if (transaction.isControlled && transaction.controlId) {
+                const oppositeType = transaction.type === 'revenue' ? 'expense' : 'revenue';
+
+                await Transaction.updateOne(
+                    { controlId: transaction.controlId, type: oppositeType },
+                    {
+                        status: transaction.status,
+                        paidAmount: transaction.paidAmount,
+                        updatedAt: new Date(),
+                    }
+                );
+            }
+
+            const response = {
+                ...transaction.toObject(),
+                ownerPhone: decryptPhone(transaction.ownerPhone),
+                counterpartyPhone: transaction.counterpartyPhone ? decryptPhone(transaction.counterpartyPhone) : undefined,
+                sharerPhone: transaction.sharerPhone ? decryptPhone(transaction.sharerPhone) : undefined,
+            };
+
+            res.json({
+                message: 'Status atualizado com sucesso',
+                transaction: response,
+            });
+        } catch (error: any) {
+            console.error('Erro ao atualizar status:', error);
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    async listTransactions(req: Request, res: Response): Promise<void> {
+        try {
+            const { phone, includeShared, status, startDate, endDate } = req.query;
+
+            if (!phone) {
+                res.status(400).json({ error: 'Parâmetro phone é obrigatório' });
+                return;
+            }
+
+            const targetPhone = String(phone).trim();
+
+            // Buscar todos usuários e descriptografar
+            const users = await User.find({}).lean();
+            const userMap = new Map<string, string>();
+
+            users.forEach(user => {
+                const plainPhone = decryptPhone(user.phone);
+                userMap.set(plainPhone, user.phone); // plain → encrypted
+            });
+
+            const encryptedPhone = userMap.get(targetPhone);
+
+            if (!encryptedPhone) {
+                res.status(404).json({ error: 'Nenhum usuário encontrado com este telefone' });
+                return;
+            }
+
+            const query: any = { ownerPhone: encryptedPhone };
+
+            if (status) query.status = status;
+            if (startDate) query.date = { $gte: new Date(String(startDate)) };
+            if (endDate) {
+                query.date = query.date || {};
+                query.date.$lte = new Date(String(endDate));
+            }
+
+            let transactions = await Transaction.find(query)
+                .sort({ date: -1 })
+                .lean();
+            // Transações compartilhadas
+            if (includeShared) {
+                const shared = await Transaction.find({
+                    sharerPhone: encryptedPhone
+                })
+                    .sort({ date: -1 })
+                    .lean();
+
+                transactions = [...transactions, ...shared];
+            }
+
+            // Descriptografar todos os telefones nas respostas
+            const responseTransactions = transactions.map(tx => ({
+                ...tx,
+                ownerPhone: decryptPhone(tx.ownerPhone),
+                counterpartyPhone: tx.counterpartyPhone ? decryptPhone(tx.counterpartyPhone) : undefined,
+                sharerPhone: tx.sharerPhone ? decryptPhone(tx.sharerPhone) : undefined,
+            }));
+
+            res.json({
+                count: responseTransactions.length,
+                transactions: responseTransactions,
+            });
+        } catch (error: any) {
+            console.error('Erro ao listar transações:', error);
+            res.status(500).json({ error: error.message || 'Erro ao listar transações' });
+        }
+    },
+
+    async followUser(req: Request, res: Response): Promise<void> {
+        try {
+            const { myPhone, targetPhone, aggregate } = req.body;
+
+            if (!myPhone || !targetPhone) {
+                res.status(400).json({ error: 'myPhone e targetPhone são obrigatórios' });
+                return;
+            }
+
+            if (myPhone === targetPhone) {
+                res.status(400).json({ error: 'Não é possível seguir a si mesmo' });
+                return;
+            }
+
+            const users = await User.find({}).lean();
+            const userMap = new Map<string, string>();
+
+            users.forEach(user => {
+                userMap.set(decryptPhone(user.phone), user.phone);
+            });
+
+            if (!userMap.has(myPhone) || !userMap.has(targetPhone)) {
+                res.status(404).json({ error: 'Um ou ambos os usuários não encontrados' });
+                return;
+            }
+
+            const encryptedMy = userMap.get(myPhone)!;
+            const encryptedTarget = userMap.get(targetPhone)!;
+
+            const result = await Transaction.updateMany(
+                { ownerPhone: encryptedTarget },
+                { $set: { sharerPhone: encryptedMy, aggregate } }
+            );
+
+            res.json({
+                message: `Agora você acompanha as transações de ${targetPhone}`,
+                modifiedCount: result.modifiedCount,
+            });
+        } catch (error: any) {
+            console.error('Erro ao seguir usuário:', error);
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    async deleteTransaction(req: Request, res: Response): Promise<void> {
+        try {
+            const { transactionId, ownerPhone } = req.body;
+
+            if (!transactionId || !ownerPhone) {
+                res.status(400).json({ error: 'transactionId e ownerPhone são obrigatórios' });
+                return;
+            }
+
+            const encryptedOwner = encryptPhone(ownerPhone);
+
+            const transaction = await Transaction.findById(transactionId);
+            if (!transaction) {
+                res.status(404).json({ error: 'Transação não encontrada' });
+                return;
+            }
+
+            if (transaction.ownerPhone !== encryptedOwner) {
+                res.status(403).json({ error: 'Não autorizado' });
+                return;
+            }
+
+            if (transaction.isControlled && transaction.controlId) {
+                await Transaction.deleteMany({ controlId: transaction.controlId });
+                res.json({ message: 'Transação controlada e sua contraparte foram removidas' });
+            } else {
+                await Transaction.findByIdAndDelete(transactionId);
+                res.json({ message: 'Transação removida com sucesso' });
+            }
+        } catch (error: any) {
+            console.error('Erro ao deletar transação:', error);
+            res.status(500).json({ error: error.message });
+        }
+    },
+};
+
+export default transactionController;
