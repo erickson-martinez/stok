@@ -300,16 +300,87 @@ const transactionController = {
         }
     },
 
+    async markAsPaid(req: Request, res: Response): Promise<void> {
+        try {
+            const { transactionId, ownerPhone } = req.body;
+
+            if (!transactionId || !ownerPhone) {
+                res.status(400).json({ error: 'Campos obrigatórios: transactionId, ownerPhone' });
+                return;
+            }
+
+            const encryptedOwnerPhone = encryptPhone(ownerPhone);
+
+            const transaction = await Transaction.findById(transactionId);
+            if (!transaction) {
+                res.status(404).json({ error: 'Transação não encontrada' });
+                return;
+            }
+
+            if (transaction.ownerPhone !== encryptedOwnerPhone) {
+                res.status(403).json({ error: 'Você não tem permissão para alterar esta transação' });
+                return;
+            }
+
+            // Marcar como pago
+            transaction.status = 'pago';
+            transaction.paidAmount = transaction.amount;
+            transaction.updatedAt = new Date();
+            await transaction.save();
+
+            // Se é controlada, atualizar a transação oposta também
+            if (transaction.isControlled && transaction.controlId) {
+                const oppositeType = transaction.type === 'revenue' ? 'expense' : 'revenue';
+
+                await Transaction.updateOne(
+                    { controlId: transaction.controlId, type: oppositeType },
+                    {
+                        status: 'pago',
+                        paidAmount: transaction.amount,
+                        updatedAt: new Date(),
+                    }
+                );
+            }
+
+            const response = {
+                ...transaction.toObject(),
+                ownerPhone: decryptPhone(transaction.ownerPhone),
+                counterpartyPhone: transaction.counterpartyPhone ? decryptPhone(transaction.counterpartyPhone) : undefined,
+                sharerPhone: transaction.sharerPhone ? decryptPhone(transaction.sharerPhone) : undefined,
+            };
+
+            res.json({
+                message: 'Transação marcada como paga com sucesso',
+                transaction: response,
+            });
+        } catch (error: any) {
+            console.error('Erro ao marcar como pago:', error);
+            res.status(500).json({ error: error.message });
+        }
+    },
+
     async listTransactions(req: Request, res: Response): Promise<void> {
         try {
-            const { phone, includeShared, status, startDate, endDate } = req.query;
+            const { phone, includeShared, status, month, year } = req.query;
 
             if (!phone) {
                 res.status(400).json({ error: 'Parâmetro phone é obrigatório' });
                 return;
             }
 
+            if (!month || !year) {
+                res.status(400).json({ error: 'Parâmetros month e year são obrigatórios' });
+                return;
+            }
+
             const targetPhone = String(phone).trim();
+            const monthNum = parseInt(String(month)) - 1; // JavaScript usa 0-11
+            const yearNum = parseInt(String(year));
+
+            if (monthNum < 0 || monthNum > 11 || isNaN(yearNum)) {
+                res.status(400).json({ error: 'month deve estar entre 1-12 e year deve ser válido' });
+                return;
+            }
 
             // Buscar todos usuários e descriptografar
             const users = await User.find({}).lean();
@@ -327,22 +398,26 @@ const transactionController = {
                 return;
             }
 
-            const query: any = { ownerPhone: encryptedPhone };
+            // Definir intervalo de datas para o mês selecionado
+            const startDate = new Date(yearNum, monthNum, 1);
+            const endDate = new Date(yearNum, monthNum + 1, 0, 23, 59, 59, 999);
+
+            const query: any = {
+                ownerPhone: encryptedPhone,
+                date: { $gte: startDate, $lte: endDate }
+            };
 
             if (status) query.status = status;
-            if (startDate) query.date = { $gte: new Date(String(startDate)) };
-            if (endDate) {
-                query.date = query.date || {};
-                query.date.$lte = new Date(String(endDate));
-            }
 
             let transactions = await Transaction.find(query)
                 .sort({ date: -1 })
                 .lean();
+
             // Transações compartilhadas
             if (includeShared) {
                 const shared = await Transaction.find({
-                    sharerPhone: encryptedPhone
+                    sharerPhone: encryptedPhone,
+                    date: { $gte: startDate, $lte: endDate }
                 })
                     .sort({ date: -1 })
                     .lean();
@@ -358,7 +433,59 @@ const transactionController = {
                 sharerPhone: tx.sharerPhone ? decryptPhone(tx.sharerPhone) : undefined,
             }));
 
+            // Calcular somas
+            // Total de receitas (todas, independente do status)
+            const totalRevenue = transactions
+                .filter(tx => tx.type === 'revenue')
+                .reduce((sum, tx) => sum + (tx.amount || 0), 0);
+
+            // Total de despesas (todas, independente do status)
+            const totalExpense = transactions
+                .filter(tx => tx.type === 'expense')
+                .reduce((sum, tx) => sum + (tx.amount || 0), 0);
+
+            // Saldo do mês = receitas PAGAS - despesas PAGAS
+            const paidRevenue = transactions
+                .filter(tx => tx.type === 'revenue' && tx.status === 'pago')
+                .reduce((sum, tx) => sum + (tx.amount || 0), 0);
+
+            const paidExpense = transactions
+                .filter(tx => tx.type === 'expense' && tx.status === 'pago')
+                .reduce((sum, tx) => sum + (tx.amount || 0), 0);
+
+            const monthlyBalance = paidRevenue - paidExpense;
+
+            // Calcular saldo acumulado (somando todos os meses anteriores)
+            const accumulatedQuery = {
+                ownerPhone: encryptedPhone,
+                date: { $lt: startDate }
+            };
+
+            const previousTransactions = await Transaction.find(accumulatedQuery).lean();
+
+            const previousPaidRevenue = previousTransactions
+                .filter(tx => tx.type === 'revenue' && tx.status === 'pago')
+                .reduce((sum, tx) => sum + (tx.amount || 0), 0);
+
+            const previousPaidExpense = previousTransactions
+                .filter(tx => tx.type === 'expense' && tx.status === 'pago')
+                .reduce((sum, tx) => sum + (tx.amount || 0), 0);
+
+            const accumulatedBalance = (previousPaidRevenue - previousPaidExpense) + monthlyBalance;
+
             res.json({
+                period: {
+                    month: parseInt(String(month)),
+                    year: yearNum,
+                    startDate: startDate.toISOString(),
+                    endDate: endDate.toISOString()
+                },
+                summary: {
+                    totalRevenue,
+                    totalExpense,
+                    monthlyBalance,
+                    accumulatedBalance
+                },
                 count: responseTransactions.length,
                 transactions: responseTransactions,
             });
