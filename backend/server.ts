@@ -16,6 +16,7 @@ import bookController from "./controllers/bookControllers";
 import scheduleController from "./controllers/scheduleController";
 import companyController from "./controllers/companyController";
 import permissionController from "./controllers/permissionController";
+import rhController from "./controllers/rhController";
 
 dotenv.config();
 
@@ -142,6 +143,12 @@ app.post("/permissions", permissionController.createPermission);
 app.get("/permissions", permissionController.getPermissions);
 app.patch("/permissions/:userPhone", permissionController.updatePermissions);
 app.delete("/permissions/:userPhone", permissionController.deletePermissions);
+
+app.post("/rh/link-user", rhController.linkUserToCompany);
+app.get("/rh/company/:empresaId/employees", rhController.listEmployeesByCompany);
+app.delete("/rh/link/:linkId", rhController.unlinkUser);
+app.patch("/rh/link/:linkId/status", rhController.updateLinkStatus);
+app.get("/rh/user/companies", rhController.getUserCompanies);
 
 // Iniciar servidor
 const PORT = Number(process.env.PORT) || 3000;

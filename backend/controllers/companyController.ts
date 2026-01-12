@@ -155,7 +155,6 @@ class CompanyController {
             });
 
             const encryptedPhone = userMap.get(targetPhone);
-            console.log("Buscando empresas para o telefone (criptografado):", encryptedPhone);
 
             const companies = await Company.find({ owner: encryptedPhone });
             res.status(200).json({
