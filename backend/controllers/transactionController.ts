@@ -561,7 +561,17 @@ const transactionController = {
                 return;
             }
 
-            const encryptedOwner = encryptPhone(ownerPhone);
+            const targetPhone = String(ownerPhone).trim();
+            const users = await User.find({}).lean();
+            const userMap = new Map<string, string>();
+
+            users.forEach(user => {
+                const plainPhone = decryptPhone(user.phone);
+                userMap.set(plainPhone, user.phone); // plain → encrypted
+            });
+
+            const encryptedOwner = userMap.get(targetPhone);
+
 
             const transaction = await Transaction.findById(transactionId);
             if (!transaction) {
