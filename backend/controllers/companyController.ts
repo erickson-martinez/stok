@@ -1,5 +1,36 @@
 import { Request, Response } from "express";
+import mongoose from "mongoose";
+import crypto from "crypto";
+import bcrypt from "bcrypt";
 import Company, { ICompany } from "../models/Company";
+import User from "../models/User";
+import Permission from "../models/Permission";
+
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+
+const decryptPhone = (encrypted: string): string => {
+    const [iv, encryptedText] = encrypted.split(":");
+    const decipher = crypto.createDecipheriv(
+        "aes-256-cbc",
+        Buffer.from(ENCRYPTION_KEY, "hex"),
+        Buffer.from(iv, "hex")
+    );
+    let decrypted = decipher.update(encryptedText, "hex", "utf8");
+    decrypted += decipher.final("utf8");
+    return decrypted;
+};
+
+const encryptPhone = (phone: string): string => {
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv(
+        "aes-256-cbc",
+        Buffer.from(ENCRYPTION_KEY, "hex"),
+        iv
+    );
+    let encrypted = cipher.update(phone, "utf8", "hex");
+    encrypted += cipher.final("hex");
+    return iv.toString("hex") + ":" + encrypted;
+};
 
 class CompanyController {
     // Criar nova empresa
@@ -14,8 +45,50 @@ class CompanyController {
             }
 
             if (!owner) {
-                res.status(400).json({ error: "Proprietário da empresa é obrigatório" });
+                res.status(400).json({ error: "Telefone do proprietário é obrigatório" });
                 return;
+            }
+
+            // Buscar todos usuários e descriptografar para encontrar o proprietário
+            const targetPhone = String(owner).trim();
+            const users = await User.find({}).lean();
+            let ownerId: string | null = null;
+            let ownerUser: any = null;
+
+            users.forEach(user => {
+                const plainPhone = decryptPhone(user.phone);
+                if (plainPhone === targetPhone) {
+                    ownerId = user._id.toString();
+                    ownerUser = user;
+                }
+            });
+
+            // Se o proprietário não existe, criar um novo usuário
+            if (!ownerId) {
+                try {
+                    const defaultPassword = "Teste@9898@9898";
+                    const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+                    const encryptedPhone = encryptPhone(targetPhone);
+
+                    const newUser = new User({
+                        name: "Proprietário",
+                        phone: encryptedPhone,
+                        password: hashedPassword,
+                    });
+
+                    const savedUser = await newUser.save();
+                    ownerId = (savedUser._id as mongoose.Types.ObjectId).toString();
+                    ownerUser = {
+                        _id: savedUser._id,
+                        phone: encryptedPhone,
+                    };
+
+                    console.log(`Novo usuário criado automaticamente: ${targetPhone}`);
+                } catch (userCreateError: any) {
+                    console.error("Erro ao criar usuário proprietário:", userCreateError);
+                    res.status(500).json({ error: "Erro ao criar usuário proprietário" });
+                    return;
+                }
             }
 
             // Verificar se CNPJ já existe (se fornecido)
@@ -37,10 +110,31 @@ class CompanyController {
                 state,
                 zipCode,
                 status: status || 'ativo',
-                owner,
+                owner: ownerId,
             });
 
             await newCompany.save();
+
+            // Criar permissões automáticas para o owner
+            try {
+                if (ownerUser) {
+                    const encryptedPhone = ownerUser.phone;
+                    
+                    // Verificar se já existe permissão
+                    const existingPermission = await Permission.findOne({ userPhone: encryptedPhone });
+                    
+                    if (!existingPermission) {
+                        const defaultPermissions = ["rh", "aprovarHoras", "chamados"];
+                        await Permission.create({
+                            userPhone: encryptedPhone,
+                            permissions: defaultPermissions,
+                        });
+                    }
+                }
+            } catch (permError: any) {
+                console.error("Aviso: Erro ao criar permissões automáticas:", permError);
+                // Não bloqueia a criação da empresa se houver erro na permissão
+            }
 
             res.status(201).json({
                 success: true,

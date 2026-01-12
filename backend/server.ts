@@ -15,6 +15,7 @@ import productPriceController from "./controllers/productPriceController";
 import bookController from "./controllers/bookControllers";
 import scheduleController from "./controllers/scheduleController";
 import companyController from "./controllers/companyController";
+import permissionController from "./controllers/permissionController";
 
 dotenv.config();
 
@@ -135,6 +136,12 @@ app.get("/companies/details/:id", companyController.getCompanyById);
 app.put("/companies/:id", companyController.updateCompany);
 app.patch("/companies/:id/status", companyController.updateStatus);
 app.delete("/companies/:id", companyController.deleteCompany);
+
+// Permissões (Configurações de Acesso)
+app.post("/permissions", permissionController.createPermission);
+app.get("/permissions", permissionController.getPermissions);
+app.patch("/permissions/:userPhone", permissionController.updatePermissions);
+app.delete("/permissions/:userPhone", permissionController.deletePermissions);
 
 // Iniciar servidor
 const PORT = Number(process.env.PORT) || 3000;
