@@ -308,8 +308,21 @@ const transactionController = {
                 res.status(400).json({ error: 'Campos obrigatórios: transactionId, ownerPhone' });
                 return;
             }
+            const targetPhone = String(ownerPhone).trim();
+            const users = await User.find({}).lean();
+            const userMap = new Map<string, string>();
 
-            const encryptedOwnerPhone = encryptPhone(ownerPhone);
+            users.forEach(user => {
+                const plainPhone = decryptPhone(user.phone);
+                userMap.set(plainPhone, user.phone); // plain → encrypted
+            });
+
+            const encryptedPhone = userMap.get(targetPhone);
+
+            if (!encryptedPhone) {
+                res.status(404).json({ error: 'Nenhum usuário encontrado com este telefone' });
+                return;
+            }
 
             const transaction = await Transaction.findById(transactionId);
             if (!transaction) {
@@ -317,7 +330,7 @@ const transactionController = {
                 return;
             }
 
-            if (transaction.ownerPhone !== encryptedOwnerPhone) {
+            if (transaction.ownerPhone !== encryptedPhone) {
                 res.status(403).json({ error: 'Você não tem permissão para alterar esta transação' });
                 return;
             }
@@ -335,7 +348,7 @@ const transactionController = {
                 await Transaction.updateOne(
                     { controlId: transaction.controlId, type: oppositeType },
                     {
-                        status: 'pago',
+                        status: status,
                         paidAmount: transaction.amount,
                         updatedAt: new Date(),
                     }
@@ -350,7 +363,7 @@ const transactionController = {
             };
 
             res.json({
-                message: 'Transação marcada como paga com sucesso',
+                message: `Transação marcada como ${status} com sucesso`,
                 transaction: response,
             });
         } catch (error: any) {
