@@ -52,23 +52,22 @@ class CompanyController {
             // Buscar todos usuários e descriptografar para encontrar o proprietário
             const targetPhone = String(owner).trim();
             const users = await User.find({}).lean();
-            let ownerId: string | null = null;
-            let ownerUser: any = null;
+            const userMap = new Map<string, string>();
+            const userExists = users.some(u => decryptPhone(u.phone) === targetPhone);
 
             users.forEach(user => {
                 const plainPhone = decryptPhone(user.phone);
-                if (plainPhone === targetPhone) {
-                    ownerId = user._id.toString();
-                    ownerUser = user;
-                }
+                userMap.set(plainPhone, user.phone); // plain → encrypted
             });
 
+            const encryptedPhone = userMap.get(targetPhone);
+            console.log("Telefone proprietário (criptografado):", encryptedPhone);
+
             // Se o proprietário não existe, criar um novo usuário
-            if (!ownerId) {
+            if (!userExists) {
                 try {
                     const defaultPassword = "Teste@9898@9898";
                     const hashedPassword = await bcrypt.hash(defaultPassword, 10);
-                    const encryptedPhone = encryptPhone(targetPhone);
 
                     const newUser = new User({
                         name: "Proprietário",
@@ -77,11 +76,7 @@ class CompanyController {
                     });
 
                     const savedUser = await newUser.save();
-                    ownerId = (savedUser._id as mongoose.Types.ObjectId).toString();
-                    ownerUser = {
-                        _id: savedUser._id,
-                        phone: encryptedPhone,
-                    };
+                    (savedUser._id as mongoose.Types.ObjectId).toString();
 
                     console.log(`Novo usuário criado automaticamente: ${targetPhone}`);
                 } catch (userCreateError: any) {
@@ -110,15 +105,14 @@ class CompanyController {
                 state,
                 zipCode,
                 status: status || 'ativo',
-                owner: ownerId,
+                owner: encryptedPhone,
             });
 
             await newCompany.save();
 
             // Criar permissões automáticas para o owner
             try {
-                if (ownerUser) {
-                    const encryptedPhone = ownerUser.phone;
+                if (encryptedPhone) {
 
                     // Verificar se já existe permissão
                     const existingPermission = await Permission.findOne({ userPhone: encryptedPhone });
@@ -150,10 +144,20 @@ class CompanyController {
     // Listar todas as empresas de um usuário
     async getCompanies(req: Request, res: Response): Promise<void> {
         try {
-            const { ownerPhone } = req.params;
+            const { phone } = req.query;
+            const targetPhone = String(phone).trim();
+            const users = await User.find({}).lean();
+            const userMap = new Map<string, string>();
 
-            const companies = await Company.find({ "phone": ownerPhone }).populate("phone", "name phone email")
-            console.log(companies)
+            users.forEach(user => {
+                const plainPhone = decryptPhone(user.phone);
+                userMap.set(plainPhone, user.phone); // plain → encrypted
+            });
+
+            const encryptedPhone = userMap.get(targetPhone);
+            console.log("Buscando empresas para o telefone (criptografado):", encryptedPhone);
+
+            const companies = await Company.find({ owner: encryptedPhone });
             res.status(200).json({
                 success: true,
                 companies,
