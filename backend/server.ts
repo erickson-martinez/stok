@@ -14,6 +14,7 @@ import shoppingListController from "./controllers/shoppingListController";
 import productPriceController from "./controllers/productPriceController";
 import bookController from "./controllers/bookControllers";
 import scheduleController from "./controllers/scheduleController";
+import companyController from "./controllers/companyController";
 
 dotenv.config();
 
@@ -126,6 +127,14 @@ app.get("/schedules/:idUser", scheduleController.getSchedules);
 app.post("/schedules", scheduleController.createSchedule);
 app.put("/schedules/:id", scheduleController.updateSchedule);
 app.delete("/schedules/:id", scheduleController.deleteSchedule);
+
+// Empresas
+app.post("/companies", companyController.createCompany);
+app.get("/companies/:ownerId", companyController.getCompanies);
+app.get("/companies/details/:id", companyController.getCompanyById);
+app.put("/companies/:id", companyController.updateCompany);
+app.patch("/companies/:id/status", companyController.updateStatus);
+app.delete("/companies/:id", companyController.deleteCompany);
 
 // Iniciar servidor
 const PORT = Number(process.env.PORT) || 3000;
