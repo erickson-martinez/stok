@@ -119,10 +119,10 @@ class CompanyController {
             try {
                 if (ownerUser) {
                     const encryptedPhone = ownerUser.phone;
-                    
+
                     // Verificar se já existe permissão
                     const existingPermission = await Permission.findOne({ userPhone: encryptedPhone });
-                    
+
                     if (!existingPermission) {
                         const defaultPermissions = ["rh", "aprovarHoras", "chamados"];
                         await Permission.create({
@@ -150,10 +150,10 @@ class CompanyController {
     // Listar todas as empresas de um usuário
     async getCompanies(req: Request, res: Response): Promise<void> {
         try {
-            const { ownerId } = req.params;
+            const { ownerPhone } = req.params;
 
-            const companies = await Company.find({ owner: ownerId }).populate("owner", "name phone");
-
+            const companies = await Company.find({ "phone": ownerPhone }).populate("phone", "name phone email")
+            console.log(companies)
             res.status(200).json({
                 success: true,
                 companies,
