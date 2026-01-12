@@ -172,7 +172,7 @@ class CompanyController {
         try {
             const { id } = req.params;
 
-            const company = await Company.findById(id).populate("owner", "name phone email");
+            const company = await Company.findById(id)
 
             if (!company) {
                 res.status(404).json({ error: "Empresa não encontrada" });

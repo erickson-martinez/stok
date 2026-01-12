@@ -117,16 +117,44 @@ class RhController {
     }
 
     // GET /rh/company/:empresaId/employees
-    async listEmployeesByCompany(req: Request, res: Response): Promise<void> {
+    async listEmployees(req: Request, res: Response): Promise<void> {
         try {
-            const { empresaId } = req.params;
+            const employees = await Employee.find({})
+                .lean();
+
+            res.status(200).json({
+                success: true,
+                employees
+            });
+        } catch (error) {
+            console.error("Erro ao listar funcionários da empresa:", error);
+            res.status(500).json({ error: "Erro ao listar funcionários" });
+        }
+    }
+
+    async listCompanyByEmployee(req: Request, res: Response): Promise<void> {
+        try {
+            const { empresaId, phone } = req.params;
 
             if (!empresaId) {
                 res.status(400).json({ error: "ID da empresa é obrigatório" });
                 return;
             }
 
-            const employees = await Employee.find({ company: empresaId })
+            const targetPhone = String(phone).trim();
+
+            const users = await User.find({}).lean();
+            const userMap = new Map<string, string>(); // plain → encrypted
+
+
+            users.forEach(user => {
+                const plainPhone = decryptPhone(user.phone);
+                userMap.set(plainPhone, user.phone);
+            });
+
+            const encryptedPhone = userMap.get(targetPhone);
+
+            const employees = await Employee.find({ userPhone: encryptedPhone })
                 .lean();
 
             // Descriptografar phones para resposta (opcional, mas útil para frontend)

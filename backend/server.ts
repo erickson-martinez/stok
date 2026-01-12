@@ -145,8 +145,9 @@ app.patch("/permissions/:userPhone", permissionController.updatePermissions);
 app.delete("/permissions/:userPhone", permissionController.deletePermissions);
 
 app.post("/rh/link-user", rhController.linkUserToCompany);
-app.get("/rh/company/:empresaId/employees", rhController.listEmployeesByCompany);
-app.delete("/rh/link/:linkId", rhController.unlinkUser);
+app.get("/rh/company/employees", rhController.listEmployees);
+app.get("/rh/company/:empresaId/:phone", rhController.listCompanyByEmployee);
+app.delete("/rh/unlink/:linkId", rhController.unlinkUser);
 app.patch("/rh/link/:linkId/status", rhController.updateLinkStatus);
 app.get("/rh/user/companies", rhController.getUserCompanies);
 
