@@ -118,13 +118,35 @@ class RhController {
 
     // GET /rh/company/:empresaId/employees
     async listEmployees(req: Request, res: Response): Promise<void> {
+
+        const { empresaId } = req.params;
+        if (!empresaId) {
+            res.status(400).json({ error: "ID da empresa é obrigatório" });
+            return;
+        }
         try {
-            const employees = await Employee.find({})
-                .lean();
+            const employees = await Employee.find({ company: empresaId })
+            const listEmployeesPromises = employees.map(async (emp: any) => {
+                const user = await User.findOne({ phone: emp.userPhone }).lean();
+                if (!user) {
+                    res.status(400).json({ error: "ID da empresa é obrigatório" });
+                    return;
+                }
+
+                return {
+                    name: decryptPhone(user.name),
+                    empId: emp._id.toString(),
+                    role: emp.role,
+                    status: emp.status,
+                    userPhone: decryptPhone(emp.userPhone),
+                };
+            });
+
+            const listEmployees = await Promise.all(listEmployeesPromises);
 
             res.status(200).json({
                 success: true,
-                employees
+                listEmployees
             });
         } catch (error) {
             console.error("Erro ao listar funcionários da empresa:", error);
