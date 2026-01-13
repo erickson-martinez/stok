@@ -144,7 +144,7 @@ class CompanyController {
     // Listar todas as empresas de um usuário
     async getCompanies(req: Request, res: Response): Promise<void> {
         try {
-            const { phone } = req.query;
+            const phone = req.params.phone || req.query.phone;
             const targetPhone = String(phone).trim();
             const users = await User.find({}).lean();
             const userMap = new Map<string, string>();

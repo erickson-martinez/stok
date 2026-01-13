@@ -132,7 +132,7 @@ app.delete("/schedules/:id", scheduleController.deleteSchedule);
 
 // Empresas
 app.post("/companies", companyController.createCompany);
-app.get("/companies", companyController.getCompanies);
+app.get("/companies/:phone?", companyController.getCompanies);
 app.get("/companies/details/:id", companyController.getCompanyById);
 app.put("/companies/:id", companyController.updateCompany);
 app.patch("/companies/:id/status", companyController.updateStatus);
