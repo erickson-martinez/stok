@@ -5,6 +5,7 @@ import crypto from "crypto";
 
 import dotenv from "dotenv";
 import { console } from "inspector";
+import { isPhoneIdentifier } from "firebase-admin/lib/auth/identifier";
 
 // Carrega as variáveis de ambiente
 dotenv.config();
@@ -139,10 +140,11 @@ const updateUser = async (req: Request, res: Response) => {
     }
 };
 
-// Buscar usuário por telefone
+// Buscar usuário por telefon
+
 const getUser = async (req: Request, res: Response) => {
     try {
-        const { phone } = req.params;
+        const { phone } = req.query;
         const userAll = await User.find({});
         const users = userAll.map((user) => {
             return {
@@ -153,13 +155,16 @@ const getUser = async (req: Request, res: Response) => {
         })
 
 
-        let user = users.find((user) => user.phone == phone);
+        if (phone) {
+            const user = users.find((user) => user.phone == phone);
+            if (!user) {
+                return res.status(404).json({ error: "Usuário não encontrado" });
+            }
+            res.json({ name: user.name, _id: user._id });
 
-        if (!user) {
-            return res.status(404).json({ error: "Usuário não encontrado" });
+        } else {
+            res.json(users);
         }
-
-        res.json({ name: user.name, _id: user._id });
     } catch (error) {
         res.status(500).json({ error: "Erro ao buscar usuário", details: (error as Error).message });
     }

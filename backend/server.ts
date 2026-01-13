@@ -56,7 +56,7 @@ mongoose.connect(mongoUri)
     .catch((err) => console.error("✗ Falha ao conectar no MongoDB:", err));
 
 // ── Usuários ─────────────────────────────────────────────────────────
-app.get("/users/:phone", UserController.getUser);
+app.get("/users/:phone?", UserController.getUser);
 app.post("/users", UserController.createUser);
 app.post("/users/auth", UserController.authenticateUser);
 app.patch("/users/:phone", UserController.updateUser);
