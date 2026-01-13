@@ -4,8 +4,6 @@ import User, { IUser } from "../models/User";
 import crypto from "crypto";
 
 import dotenv from "dotenv";
-import { console } from "inspector";
-import { isPhoneIdentifier } from "firebase-admin/lib/auth/identifier";
 
 // Carrega as variáveis de ambiente
 dotenv.config();
