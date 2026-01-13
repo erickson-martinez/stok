@@ -17,6 +17,7 @@ import scheduleController from "./controllers/scheduleController";
 import companyController from "./controllers/companyController";
 import permissionController from "./controllers/permissionController";
 import rhController from "./controllers/rhController";
+import workRecordController from "./controllers/workRecordController";
 
 dotenv.config();
 
@@ -143,6 +144,12 @@ app.post("/permissions", permissionController.createPermission);
 app.get("/permissions", permissionController.getPermissions);
 app.patch("/permissions/:userPhone", permissionController.updatePermissions);
 app.delete("/permissions/:userPhone", permissionController.deletePermissions);
+
+app.post("/work-records", workRecordController.create);
+app.get("/work-records", workRecordController.list);
+app.patch("/work-records/:id/approve", workRecordController.approve);
+app.patch("/work-records/:id/reject", workRecordController.reject);
+app.delete("/work-records/:id", workRecordController.delete); // opcional
 
 app.post("/rh/link-user", rhController.linkUserToCompany);
 app.get("/rh/:empresaId/employees", rhController.listEmployees);
