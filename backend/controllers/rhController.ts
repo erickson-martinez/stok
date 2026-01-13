@@ -61,6 +61,8 @@ class RhController {
             const existingLink = await Employee.findOne({
                 userPhone: encryptedPhone,
                 company: empresaId,
+                companyName: company.name,
+
             });
 
             if (existingLink) {
@@ -87,6 +89,7 @@ class RhController {
             // ── Cria novo vínculo ───────────────────────────────────────────
             const newLink = await Employee.create({
                 userPhone: encryptedPhone,
+                companyName: company.name,
                 company: empresaId,
                 role: "funcionario",           // ou vem do body se quiser
                 status: "ativo",               // ou "pendente" se preferir aprovação
@@ -132,10 +135,10 @@ class RhController {
                     res.status(400).json({ error: "ID da empresa é obrigatório" });
                     return;
                 }
-
                 return {
                     name: decryptPhone(user.name),
                     empId: emp._id.toString(),
+                    companyName: emp.companyName,
                     role: emp.role,
                     status: emp.status,
                     userPhone: decryptPhone(emp.userPhone),
@@ -156,10 +159,10 @@ class RhController {
 
     async listCompanyByEmployee(req: Request, res: Response): Promise<void> {
         try {
-            const { empresaId, phone } = req.params;
+            const { phone } = req.params;
 
-            if (!empresaId) {
-                res.status(400).json({ error: "ID da empresa é obrigatório" });
+            if (!phone) {
+                res.status(400).json({ error: "Telefone do usuário é obrigatório" });
                 return;
             }
 
@@ -179,15 +182,10 @@ class RhController {
             const employees = await Employee.find({ userPhone: encryptedPhone })
                 .lean();
 
-            // Descriptografar phones para resposta (opcional, mas útil para frontend)
-            const employeesWithPlain = employees.map(emp => ({
-                ...emp,
-                plainPhone: decryptPhone(emp.userPhone),
-            }));
 
             res.status(200).json({
                 success: true,
-                employees: employeesWithPlain,
+                employees
             });
         } catch (error) {
             console.error("Erro ao listar funcionários da empresa:", error);
