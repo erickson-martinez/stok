@@ -143,6 +143,170 @@ const workRecordController = {
             res.status(500).json({ error: error.message || 'Erro interno ao registrar ponto' });
         }
     },
+    async clockIn(req: Request, res: Response): Promise<void> {
+        try {
+            const { employeePhone, entryTime, notes, companyId } = req.body;
+
+            if (!employeePhone || !entryTime) {
+                res.status(400).json({ error: 'Campos obrigatórios: employeePhone, entryTime' });
+                return;
+            }
+
+            const targetPhone = String(employeePhone).trim();
+
+            // (Reaproveite a lógica de busca e descriptografia do telefone)
+            const users = await User.find({}).lean();
+            const userMap = new Map<string, string>();
+            users.forEach(user => {
+                const plainPhone = decryptPhone(user.phone);
+                userMap.set(plainPhone, user.phone);
+            });
+
+            const encryptedPhone = userMap.get(targetPhone);
+            if (!encryptedPhone) {
+                res.status(404).json({ error: 'Funcionário não encontrado' });
+                return;
+            }
+
+            // Determinar companyId (igual ao seu código atual)
+            let targetCompanyId: mongoose.Types.ObjectId;
+            if (companyId) {
+                const company = await Company.findById(companyId);
+                if (!company) {
+                    res.status(404).json({ error: 'Empresa não encontrada' });
+                    return;
+                }
+                targetCompanyId = new mongoose.Types.ObjectId(companyId);
+            } else {
+                const RhLink = mongoose.model('RhLink'); // ajuste o nome real
+                const link = await RhLink.findOne({ userPhone: encryptedPhone });
+                if (!link || !link.companyId) {
+                    res.status(403).json({ error: 'Funcionário sem vínculo. Informe companyId.' });
+                    return;
+                }
+                targetCompanyId = link.companyId;
+            }
+
+            // Tratamento de data (UTC)
+            let entryDate: Date;
+            try {
+                const entryStr = String(entryTime).trim();
+                entryDate = new Date(
+                    entryStr.endsWith('Z') || entryStr.includes('+') || entryStr.includes('-')
+                        ? entryStr
+                        : entryStr + 'Z'
+                );
+            } catch {
+                res.status(400).json({ error: 'Formato de entryTime inválido. Use ISO 8601.' });
+                return;
+            }
+
+            // Verificar se o funcionário já tem um ponto aberto (opcional, mas recomendado)
+            const openRecord = await WorkRecord.findOne({
+                employeePhone: encryptedPhone,
+                companyId: targetCompanyId,
+                exitTime: { $exists: false }, // ou status: 'em andamento'
+            });
+
+            if (openRecord) {
+                res.status(409).json({
+                    error: 'Já existe um expediente aberto para este funcionário. Finalize-o primeiro.',
+                    openRecordId: openRecord._id
+                });
+                return;
+            }
+
+            const record = new WorkRecord({
+                employeePhone: encryptedPhone,
+                companyId: targetCompanyId,
+                entryTime: entryDate,
+                exitTime: undefined,
+                durationMinutes: undefined,
+                notes: notes ? String(notes).trim() : undefined,
+                status: 'em andamento', // ou 'pendente'
+            });
+
+            await record.save();
+
+            const response = {
+                ...record.toObject(),
+                employeePhone: targetPhone, // devolve plano
+            };
+
+            res.status(201).json({
+                message: 'Expediente iniciado com sucesso (clock-in)',
+                record: response,
+            });
+        } catch (error: any) {
+            console.error('Erro no clock-in:', error);
+            res.status(500).json({ error: error.message || 'Erro interno' });
+        }
+    },
+    async clockOut(req: Request, res: Response): Promise<void> {
+        try {
+            const { id } = req.params; // :id do registro
+            const { exitTime, notes } = req.body;
+
+            if (!exitTime) {
+                res.status(400).json({ error: 'Campo obrigatório: exitTime' });
+                return;
+            }
+
+            const record = await WorkRecord.findById(id);
+            if (!record) {
+                res.status(404).json({ error: 'Registro de ponto não encontrado' });
+                return;
+            }
+
+            if (record.exitTime) {
+                res.status(400).json({ error: 'Este expediente já foi finalizado' });
+                return;
+            }
+
+            // Tratamento de data (UTC)
+            let exitDate: Date;
+            try {
+                const exitStr = String(exitTime).trim();
+                exitDate = new Date(
+                    exitStr.endsWith('Z') || exitStr.includes('+') || exitStr.includes('-')
+                        ? exitStr
+                        : exitStr + 'Z'
+                );
+            } catch {
+                res.status(400).json({ error: 'Formato de exitTime inválido. Use ISO 8601.' });
+                return;
+            }
+
+            if (exitDate <= record.entryTime) {
+                res.status(400).json({ error: 'Hora de saída deve ser posterior à entrada' });
+                return;
+            }
+
+            const diffMs = exitDate.getTime() - record.entryTime.getTime();
+            const durationMinutes = Math.round(diffMs / 60000);
+
+            // Atualizar
+            record.exitTime = exitDate;
+            record.durationMinutes = durationMinutes;
+            record.status = 'pendente'; // ou 'concluído', dependendo da regra de aprovação
+            if (notes) record.notes = (record.notes ? record.notes + ' | ' : '') + String(notes).trim();
+
+            await record.save();
+
+            const response = {
+                ...record.toObject(),
+                // Se quiser, pode buscar o telefone plano novamente e devolver
+            };
+
+            res.status(200).json({
+                message: 'Expediente finalizado com sucesso (clock-out)',
+                record: response,
+            });
+        } catch (error: any) {
+            console.error('Erro no clock-out:', error);
+            res.status(500).json({ error: error.message || 'Erro interno' });
+        }
+    },
 
     // GET /work-records
     async list(req: Request, res: Response): Promise<void> {

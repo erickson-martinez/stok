@@ -145,7 +145,8 @@ app.get("/permissions", permissionController.getPermissions);
 app.patch("/permissions/:userPhone", permissionController.updatePermissions);
 app.delete("/permissions/:userPhone", permissionController.deletePermissions);
 
-app.post("/work-records", workRecordController.create);
+app.post('/work-records/clock-in', workRecordController.clockIn);
+app.patch('/work-records/:id/clock-out', workRecordController.clockOut);
 app.get("/work-records", workRecordController.list);
 app.patch("/work-records/:id/approve", workRecordController.approve);
 app.patch("/work-records/:id/reject", workRecordController.reject);
