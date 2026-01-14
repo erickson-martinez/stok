@@ -385,15 +385,19 @@ const workRecordController = {
 
 
             records.map(record => {
-                const usersRecord = { plainPhone: '', plainName: '' };
+                const usersRecord = { plainPhone: '', plainName: '', plainApprove: '' };
                 users.filter(user => {
                     if (user.phone === record.employeePhone) {
                         usersRecord.plainPhone = `${decryptPhone(user.phone)}`;
                         usersRecord.plainName = `${decryptPhone(user.name)}`;
                     }
+                    if (user.phone === record.approvedBy) {
+                        usersRecord.plainApprove = `${decryptPhone(user.name)}`;
+                    }
                 });
                 record.employeePhone = usersRecord.plainPhone;
                 record.employeeName = usersRecord.plainName;
+                record.approvedBy = usersRecord.plainApprove;
             });
             // Resposta
             res.json({
