@@ -386,7 +386,8 @@ const workRecordController = {
                 const userRecord = users.find(user => {
                     if (user.phone === record.employeePhone) {
                         return {
-                            name: user.name, phone: decryptPhone(user.phone)
+                            name: decryptPhone(user.name),
+                            phone: decryptPhone(user.phone)
                         }
                     }
                 });
