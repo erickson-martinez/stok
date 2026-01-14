@@ -147,7 +147,7 @@ const workRecordController = {
     // GET /work-records
     async list(req: Request, res: Response): Promise<void> {
         try {
-            const { companyId, employeePhone, status, month, year, includeDecrypted = 'true' } = req.query;
+            const { companyId, employeePhone, status, month, year } = req.query;
 
             if (!companyId) {
                 res.status(400).json({ error: 'Parâmetro companyId é obrigatório para listar registros' });
@@ -157,11 +157,6 @@ const workRecordController = {
             const query: any = {
                 companyId: new mongoose.Types.ObjectId(companyId as string),
             };
-
-            if (employeePhone) {
-                const plain = String(employeePhone).trim();
-                query.employeePhone = encryptPhone(plain);
-            }
 
             if (status) {
                 if (!['pendente', 'aprovado', 'rejeitado', 'cancelado'].includes(status as string)) {
@@ -190,7 +185,7 @@ const workRecordController = {
 
             const decryptedRecords = records.map(record => ({
                 ...record,
-                employeePhone: includeDecrypted === 'true' ? decryptPhone(record.employeePhone) : '[encrypted]',
+                employeePhone: record.employeePhone,
             }));
 
             res.json({
