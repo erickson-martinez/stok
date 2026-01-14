@@ -26,7 +26,7 @@ const encryptPhone = (text: string): string => {
     return `${iv.toString("hex")}:${encrypted}`;
 };
 
-const decryptPhone = (encrypted: string): string => {
+const decryptPassword = (encrypted: string): string => {
     const [iv, encryptedText] = encrypted.split(":");
     const decipher = crypto.createDecipheriv(
         "aes-256-cbc",
@@ -71,10 +71,10 @@ const transactionController = {
             const userMap = new Map<string, string>();
             // Verificar existência do usuário
             const users = await User.find({}).lean();
-            const userExists = users.some(u => decryptPhone(u.phone) === ownerPhone);
+            const userExists = users.some(u => decryptPassword(u.phone) === ownerPhone);
 
             users.forEach(user => {
-                const plainPhone = decryptPhone(user.phone);
+                const plainPhone = decryptPassword(user.phone);
                 userMap.set(plainPhone, user.phone); // plain → encrypted
             });
 
@@ -101,9 +101,9 @@ const transactionController = {
             // Descriptografar para resposta
             const responseTransaction = {
                 ...transaction.toObject(),
-                ownerPhone: decryptPhone(transaction.ownerPhone),
-                counterpartyPhone: transaction.counterpartyPhone ? decryptPhone(transaction.counterpartyPhone) : undefined,
-                sharerPhone: transaction.sharerPhone ? decryptPhone(transaction.sharerPhone) : undefined,
+                ownerPhone: decryptPassword(transaction.ownerPhone),
+                counterpartyPhone: transaction.counterpartyPhone ? decryptPassword(transaction.counterpartyPhone) : undefined,
+                sharerPhone: transaction.sharerPhone ? decryptPassword(transaction.sharerPhone) : undefined,
             };
 
             res.status(201).json({
@@ -153,10 +153,10 @@ const transactionController = {
             const userMap = new Map<string, string>();
             // Verificar existência do usuário
             const users = await User.find({}).lean();
-            const userExists = users.some(u => decryptPhone(u.phone) === ownerPhone);
+            const userExists = users.some(u => decryptPassword(u.phone) === ownerPhone);
 
             users.forEach(user => {
-                const plainPhone = decryptPhone(user.phone);
+                const plainPhone = decryptPassword(user.phone);
                 userMap.set(plainPhone, user.phone); // plain → encrypted
             });
 
@@ -208,14 +208,14 @@ const transactionController = {
 
             const responseMySide = {
                 ...mySide.toObject(),
-                ownerPhone: decryptPhone(mySide.ownerPhone),
-                counterpartyPhone: decryptPhone(mySide.counterpartyPhone || ''),
+                ownerPhone: decryptPassword(mySide.ownerPhone),
+                counterpartyPhone: decryptPassword(mySide.counterpartyPhone || ''),
             };
 
             const responseCounterSide = {
                 ...counterpartySide.toObject(),
-                ownerPhone: decryptPhone(counterpartySide.ownerPhone),
-                counterpartyPhone: decryptPhone(counterpartySide.counterpartyPhone || ''),
+                ownerPhone: decryptPassword(counterpartySide.ownerPhone),
+                counterpartyPhone: decryptPassword(counterpartySide.counterpartyPhone || ''),
             };
 
             res.status(201).json({
@@ -285,9 +285,9 @@ const transactionController = {
 
             const response = {
                 ...transaction.toObject(),
-                ownerPhone: decryptPhone(transaction.ownerPhone),
-                counterpartyPhone: transaction.counterpartyPhone ? decryptPhone(transaction.counterpartyPhone) : undefined,
-                sharerPhone: transaction.sharerPhone ? decryptPhone(transaction.sharerPhone) : undefined,
+                ownerPhone: decryptPassword(transaction.ownerPhone),
+                counterpartyPhone: transaction.counterpartyPhone ? decryptPassword(transaction.counterpartyPhone) : undefined,
+                sharerPhone: transaction.sharerPhone ? decryptPassword(transaction.sharerPhone) : undefined,
             };
 
             res.json({
@@ -313,7 +313,7 @@ const transactionController = {
             const userMap = new Map<string, string>();
 
             users.forEach(user => {
-                const plainPhone = decryptPhone(user.phone);
+                const plainPhone = decryptPassword(user.phone);
                 userMap.set(plainPhone, user.phone); // plain → encrypted
             });
 
@@ -357,9 +357,9 @@ const transactionController = {
 
             const response = {
                 ...transaction.toObject(),
-                ownerPhone: decryptPhone(transaction.ownerPhone),
-                counterpartyPhone: transaction.counterpartyPhone ? decryptPhone(transaction.counterpartyPhone) : undefined,
-                sharerPhone: transaction.sharerPhone ? decryptPhone(transaction.sharerPhone) : undefined,
+                ownerPhone: decryptPassword(transaction.ownerPhone),
+                counterpartyPhone: transaction.counterpartyPhone ? decryptPassword(transaction.counterpartyPhone) : undefined,
+                sharerPhone: transaction.sharerPhone ? decryptPassword(transaction.sharerPhone) : undefined,
             };
 
             res.json({
@@ -400,7 +400,7 @@ const transactionController = {
             const userMap = new Map<string, string>();
 
             users.forEach(user => {
-                const plainPhone = decryptPhone(user.phone);
+                const plainPhone = decryptPassword(user.phone);
                 userMap.set(plainPhone, user.phone); // plain → encrypted
             });
 
@@ -441,9 +441,9 @@ const transactionController = {
             // Descriptografar todos os telefones nas respostas
             const responseTransactions = transactions.map(tx => ({
                 ...tx,
-                ownerPhone: decryptPhone(tx.ownerPhone),
-                counterpartyPhone: tx.counterpartyPhone ? decryptPhone(tx.counterpartyPhone) : undefined,
-                sharerPhone: tx.sharerPhone ? decryptPhone(tx.sharerPhone) : undefined,
+                ownerPhone: decryptPassword(tx.ownerPhone),
+                counterpartyPhone: tx.counterpartyPhone ? decryptPassword(tx.counterpartyPhone) : undefined,
+                sharerPhone: tx.sharerPhone ? decryptPassword(tx.sharerPhone) : undefined,
             }));
 
             // Calcular somas
@@ -526,7 +526,7 @@ const transactionController = {
             const userMap = new Map<string, string>();
 
             users.forEach(user => {
-                userMap.set(decryptPhone(user.phone), user.phone);
+                userMap.set(decryptPassword(user.phone), user.phone);
             });
 
             if (!userMap.has(myPhone) || !userMap.has(targetPhone)) {
@@ -566,7 +566,7 @@ const transactionController = {
             const userMap = new Map<string, string>();
 
             users.forEach(user => {
-                const plainPhone = decryptPhone(user.phone);
+                const plainPhone = decryptPassword(user.phone);
                 userMap.set(plainPhone, user.phone); // plain → encrypted
             });
 

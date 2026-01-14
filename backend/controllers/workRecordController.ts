@@ -7,10 +7,11 @@ import User from '../models/User';
 import Transaction from '../models/Transaction';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
+import { console } from 'inspector';
 
 dotenv.config();
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || "0123456789abcdef0123456789abcdef0123456789abcdef";
 const IV_LENGTH = 16;
 
 if (!ENCRYPTION_KEY) {
@@ -382,18 +383,17 @@ const workRecordController = {
                 .populate('companyId', 'name fantasyName cnpj')
                 .lean(); // mais rápido, sem documentos mongoose
 
+
             records.map(record => {
-                const userRecord = users.find(user => {
+                const usersRecord = { plainPhone: '', plainName: '' };
+                users.filter(user => {
                     if (user.phone === record.employeePhone) {
-                        return {
-                            name: decryptPhone(user.name),
-                            phone: decryptPhone(user.phone)
-                        }
+                        usersRecord.plainPhone = `${decryptPhone(user.phone)}`;
+                        usersRecord.plainName = `${decryptPhone(user.name)}`;
                     }
                 });
-
-                record.employeePhone = `${userRecord?.phone}`;
-                record.employeeName = `${userRecord?.name}`;
+                record.employeePhone = usersRecord.plainPhone;
+                record.employeeName = usersRecord.plainName;
             });
             // Resposta
             res.json({
