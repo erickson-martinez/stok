@@ -143,7 +143,7 @@ app.delete("/companies/:id", companyController.deleteCompany);
 // Permissões (Configurações de Acesso)
 app.post("/permissions", permissionController.createPermission);
 app.get("/permissions", permissionController.getPermissions);
-app.patch("/permissions/:userPhone", permissionController.updatePermissions);
+app.patch("/permissions", permissionController.updatePermissions);
 app.delete("/permissions/:userPhone", permissionController.deletePermissions);
 
 app.post('/work-records/clock-in', workRecordController.clockIn);
