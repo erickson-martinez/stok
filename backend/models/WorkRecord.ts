@@ -4,6 +4,7 @@ export type WorkRecordStatus = 'pendente' | 'aprovado' | 'rejeitado' | 'cancelad
 
 export interface IWorkRecord extends Document {
     employeePhone: string;          // funcionário que registrou
+    employeeName: string;           // nome do funcionário (opcional)
     companyId: Types.ObjectId;      // empresa vinculada (referência ao model Company)
     entryTime: Date;                // data + hora de entrada
     exitTime?: Date;                // data + hora de saída (opcional)

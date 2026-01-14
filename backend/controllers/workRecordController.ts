@@ -383,7 +383,16 @@ const workRecordController = {
                 .lean(); // mais rápido, sem documentos mongoose
 
             records.map(record => {
-                record.employeePhone = `${employeePhone}`;
+                const userRecord = users.find(user => {
+                    if (user.phone === record.employeePhone) {
+                        return {
+                            name: user.name, phone: decryptPhone(user.phone)
+                        }
+                    }
+                });
+
+                record.employeePhone = `${userRecord?.phone}`;
+                record.employeeName = `${userRecord?.name}`;
             });
             // Resposta
             res.json({
