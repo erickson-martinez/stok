@@ -149,52 +149,86 @@ const workRecordController = {
         try {
             const { companyId, employeePhone, status, month, year } = req.query;
 
+            // Validação obrigatória
             if (!companyId) {
                 res.status(400).json({ error: 'Parâmetro companyId é obrigatório para listar registros' });
                 return;
             }
 
+            const targetPhone = String(employeePhone).trim();
+            const users = await User.find({}).lean();
+            const userMap = new Map<string, string>();
+
+            users.forEach(user => {
+                const plainPhone = decryptPhone(user.phone);
+                userMap.set(plainPhone, user.phone); // plain → encrypted
+            });
+
+            const encryptedPhone = userMap.get(targetPhone);
+            // Construção da query
             const query: any = {
                 companyId: new mongoose.Types.ObjectId(companyId as string),
             };
 
+            // Filtro por telefone do funcionário (agora sem criptografia)
+            if (encryptedPhone) {
+
+                if (encryptedPhone.length >= 10) { // validação mínima (ex: 11 dígitos com DDD)
+                    query.employeePhone = encryptedPhone;
+                } else {
+                    res.status(400).json({ error: 'Telefone inválido (use pelo menos 10 dígitos)' });
+                    return;
+                }
+            }
+
+            // Filtro por status
             if (status) {
-                if (!['pendente', 'aprovado', 'rejeitado', 'cancelado'].includes(status as string)) {
-                    res.status(400).json({ error: 'Status inválido' });
+                const validStatuses = ['pendente', 'aprovado', 'rejeitado', 'cancelado'];
+                if (!validStatuses.includes(status as string)) {
+                    res.status(400).json({ error: `Status inválido. Valores permitidos: ${validStatuses.join(', ')}` });
                     return;
                 }
                 query.status = status;
             }
 
+            // Filtro por mês e ano
             if (month && year) {
-                const m = parseInt(month as string) - 1;
-                const y = parseInt(year as string);
-                if (isNaN(m) || isNaN(y) || m < 0 || m > 11) {
-                    res.status(400).json({ error: 'Mês ou ano inválido' });
+                const m = parseInt(month as string, 10);
+                const y = parseInt(year as string, 10);
+
+                if (isNaN(m) || isNaN(y) || m < 1 || m > 12) {
+                    res.status(400).json({ error: 'Mês deve estar entre 1 e 12' });
                     return;
                 }
-                const start = new Date(y, m, 1);
-                const end = new Date(y, m + 1, 0, 23, 59, 59, 999);
+                if (y < 2000 || y > 2100) { // faixa razoável para evitar bugs
+                    res.status(400).json({ error: 'Ano inválido' });
+                    return;
+                }
+
+                // Ajuste: mês vem de 1 a 12, mas Date usa 0 a 11
+                const start = new Date(y, m - 1, 1, 0, 0, 0, 0);
+                const end = new Date(y, m, 0, 23, 59, 59, 999); // último dia do mês
+
                 query.entryTime = { $gte: start, $lte: end };
             }
 
+            // Busca no banco
             const records = await WorkRecord.find(query)
-                .sort({ entryTime: -1 })
+                .sort({ entryTime: -1 }) // mais recentes primeiro
                 .populate('companyId', 'name fantasyName cnpj')
-                .lean();
+                .lean(); // mais rápido, sem documentos mongoose
 
-            const decryptedRecords = records.map(record => ({
-                ...record,
-                employeePhone: record.employeePhone,
-            }));
-
+            records.map(record => {
+                record.employeePhone = `${employeePhone}`;
+            });
+            // Resposta
             res.json({
-                count: decryptedRecords.length,
-                records: decryptedRecords,
+                count: records.length,
+                records,
             });
         } catch (error: any) {
             console.error('Erro ao listar registros de ponto:', error);
-            res.status(500).json({ error: 'Erro ao listar registros' });
+            res.status(500).json({ error: 'Erro interno ao listar registros' });
         }
     },
 
