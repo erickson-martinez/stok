@@ -143,28 +143,32 @@ const updateUser = async (req: Request, res: Response) => {
 const getUser = async (req: Request, res: Response) => {
     try {
         const { phone } = req.query;
-        const userAll = await User.find({});
-        const users = userAll.map((user) => {
-            return {
-                name: decryptPassword(user.name),
-                phone: decryptPassword(user.phone),
-                _id: user._id
-            }
-        })
+        const user = await User.findOne({ phone: phone })
 
-
-        if (phone) {
-            const user = users.find((user) => user.phone == phone);
-            if (!user) {
-                return res.status(404).json({ error: "Usuário não encontrado" });
-            }
-            res.json({ name: user.name, _id: user._id });
-
-        } else {
-            res.json(users);
+        if (!user) {
+            return res.status(404).json({ error: "Usuário não encontrado" });
         }
+
+        const decryptedUser = { name: decryptPassword(user.name), phone: decryptPassword(user.phone), _id: user._id };
+
+        res.json(decryptedUser);
+
     } catch (error) {
         res.status(500).json({ error: "Erro ao buscar usuário", details: (error as Error).message });
+    }
+};
+
+const getUsers = async (req: Request, res: Response) => {
+    try {
+        const users = await User.find({});
+        const decryptedUsers = users.map((user) => ({
+            name: decryptPassword(user.name),
+            phone: decryptPassword(user.phone),
+            _id: user._id
+        }));
+        res.json(decryptedUsers);
+    } catch (error) {
+        res.status(500).json({ error: "Erro ao buscar usuários", details: (error as Error).message });
     }
 };
 
@@ -203,4 +207,4 @@ const authenticateUser = async (req: Request, res: Response) => {
     }
 };
 
-export default { createUser, getUser, authenticateUser, updateUser };
+export default { createUser, getUser, getUsers, authenticateUser, updateUser };
