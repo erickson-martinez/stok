@@ -181,27 +181,18 @@ const authenticateUser = async (req: Request, res: Response) => {
             return res.status(400).json({ error: "Telefone e senha são obrigatórios" });
         }
 
-        const userAll = await User.find({});
-        const users = userAll.map((user) => {
-            return {
-                name: user.name,
-                phone: decryptPassword(user.phone),
-                password: user.password,
-                _id: user._id
-            }
-        })
-
-        const findUser = users.find((user) => user.phone == phone);
-        if (!userAll || !findUser || !users) {
+        const user = await User.findOne({ phone: phone })
+        if (!user) {
             return res.status(404).json({ error: "Usuário não encontrado" });
         }
+        const decryptedUser = { name: decryptPassword(user.name), phone: decryptPassword(user.phone), _id: user._id };
 
-        if (decryptPassword(findUser.password) !== pass) {
+        if (decryptPassword(user.password) !== pass) {
             return res.status(401).json({ error: "Senha incorreta" });
         }
-        console.log(findUser.name)
+        console.log(decryptedUser.name)
 
-        res.status(200).json({ name: decryptPassword(findUser.name), phone: findUser.phone, _id: findUser._id });
+        res.status(200).json({ name: decryptedUser.name, phone: decryptedUser.phone, _id: decryptedUser._id });
     } catch (error) {
         res.status(500).json({ error: "Erro ao autenticar", details: (error as Error).message });
     }
