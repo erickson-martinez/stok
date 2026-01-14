@@ -223,7 +223,7 @@ const workRecordController = {
                 exitTime: undefined,
                 durationMinutes: undefined,
                 notes: notes ? String(notes).trim() : undefined,
-                status: 'em andamento', // ou 'pendente'
+                status: 'pendente', // ou 'pendente'
             });
 
             await record.save();
