@@ -1,18 +1,18 @@
 {
-    "compilerOptions": {
-        "target": "ESNext",
-        "module": "CommonJS",
-        "moduleResolution": "node",
-        "strict": true,
-        "esModuleInterop": true,
-        "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true,
-        "outDir": "./dist",
-        "rootDir": "./",
-        "types": ["node"],
-        "allowImportingTsExtensions": true, // Permite importações com .ts
-        "noEmit": true
-    },
-    "include": ["backend/**/*"],
-    "exclude": ["node_modules"]
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist",
+    "rootDir": "./",
+    "types": ["node"],
+    "sourceMap": true,               // opcional: ajuda no debug se precisar
+    "incremental": true              // opcional: builds mais rápidos depois do primeiro
+  },
+  "include": ["backend/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

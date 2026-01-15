@@ -3,8 +3,10 @@
     "version": "1.0.0",
     "main": "backend/server.js",
     "scripts": {
-        "start": "ts-node backend/server.ts",
-        "dev": "nodemon --exec ts-node backend/server.ts"
+        "build": "tsc",
+        "start": "node dist/backend/server.js",
+        "dev": "nodemon --exec ts-node backend/server.ts",
+        "start:dev": "ts-node backend/server.ts"
     },
     "dependencies": {
         "bcrypt": "^5.1.1",
