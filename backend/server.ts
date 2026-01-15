@@ -89,6 +89,8 @@ app.get("/transactions", transactionController.listTransactions);
 app.patch("/transactions/status", transactionController.markStatus);
 app.post("/transactions/follow", transactionController.followUser);
 app.delete("/transactions", transactionController.deleteTransaction);
+app.patch("/transactions/:transactionId/add-value", transactionController.addValue);
+app.patch("/transactions/:transactionId/subtract-value", transactionController.subtractValue);
 
 // ── Outras funcionalidades ───────────────────────────────────────────
 app.get("/activity/:phone", activityController.getActivities);

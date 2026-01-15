@@ -65,17 +65,16 @@ const transactionController = {
                 res.status(400).json({ error: 'O valor (amount) deve ser maior que zero' });
                 return;
             }
+
             const targetPhone = String(ownerPhone).trim();
 
-            // Buscar todos usuários e descriptografar
-            const userMap = new Map<string, string>();
-            // Verificar existência do usuário
             const users = await User.find({}).lean();
-            const userExists = users.some(u => decryptPassword(u.phone) === ownerPhone);
+            const userMap = new Map<string, string>();
+            const userExists = users.some(u => decryptPassword(u.phone) === targetPhone);
 
             users.forEach(user => {
                 const plainPhone = decryptPassword(user.phone);
-                userMap.set(plainPhone, user.phone); // plain → encrypted
+                userMap.set(plainPhone, user.phone);
             });
 
             const encryptedPhone = userMap.get(targetPhone);
@@ -91,14 +90,13 @@ const transactionController = {
                 amount: Number(amount),
                 date: new Date(date),
                 isControlled: false,
-                status,
+                status: status || 'nao_pago',
                 paidAmount: 0,
                 notes: notes ? String(notes).trim() : undefined,
             });
 
             await transaction.save();
 
-            // Descriptografar para resposta
             const responseTransaction = {
                 ...transaction.toObject(),
                 ownerPhone: decryptPassword(transaction.ownerPhone),
@@ -144,31 +142,22 @@ const transactionController = {
                 return;
             }
 
-            // Verificar existência dos usuários
-
             const targetPhone = String(ownerPhone).trim();
             const counterpartyPhoneStr = String(counterpartyPhone).trim();
 
-            // Buscar todos usuários e descriptografar
-            const userMap = new Map<string, string>();
-            // Verificar existência do usuário
             const users = await User.find({}).lean();
+            const userMap = new Map<string, string>();
             const userExists = users.some(u => decryptPassword(u.phone) === ownerPhone);
 
             users.forEach(user => {
                 const plainPhone = decryptPassword(user.phone);
-                userMap.set(plainPhone, user.phone); // plain → encrypted
+                userMap.set(plainPhone, user.phone);
             });
 
-            const credtorExists = userMap.get(targetPhone);
+            const creditorExists = userMap.get(targetPhone);
             const debtorExists = userMap.get(counterpartyPhoneStr);
 
-            if (!userExists) {
-                res.status(404).json({ error: 'Usuário proprietário não encontrado' });
-                return;
-            }
-
-            if (!credtorExists || !debtorExists) {
+            if (!userExists || !creditorExists || !debtorExists) {
                 res.status(404).json({ error: 'Um ou ambos os usuários não foram encontrados' });
                 return;
             }
@@ -177,7 +166,7 @@ const transactionController = {
             const transactionDate = new Date(date);
 
             const mySide = new Transaction({
-                ownerPhone: credtorExists,
+                ownerPhone: creditorExists,
                 type: 'revenue',
                 name: name.trim(),
                 amount: Number(amount),
@@ -198,7 +187,7 @@ const transactionController = {
                 date: transactionDate,
                 isControlled: true,
                 controlId,
-                counterpartyPhone: credtorExists,
+                counterpartyPhone: creditorExists,
                 status: 'nao_pago',
                 paidAmount: 0,
                 notes: notes ? String(notes).trim() : undefined,
@@ -308,13 +297,14 @@ const transactionController = {
                 res.status(400).json({ error: 'Campos obrigatórios: transactionId, ownerPhone' });
                 return;
             }
+
             const targetPhone = String(ownerPhone).trim();
             const users = await User.find({}).lean();
             const userMap = new Map<string, string>();
 
             users.forEach(user => {
                 const plainPhone = decryptPassword(user.phone);
-                userMap.set(plainPhone, user.phone); // plain → encrypted
+                userMap.set(plainPhone, user.phone);
             });
 
             const encryptedPhone = userMap.get(targetPhone);
@@ -335,13 +325,11 @@ const transactionController = {
                 return;
             }
 
-            // Marcar como pago
             transaction.status = status;
             transaction.paidAmount = transaction.amount;
             transaction.updatedAt = new Date();
             await transaction.save();
 
-            // Se é controlada, atualizar a transação oposta também
             if (transaction.isControlled && transaction.controlId) {
                 const oppositeType = transaction.type === 'revenue' ? 'expense' : 'revenue';
 
@@ -387,7 +375,7 @@ const transactionController = {
             }
 
             const targetPhone = String(phone).trim();
-            const monthNum = parseInt(String(month)) - 1; // JavaScript usa 0-11
+            const monthNum = parseInt(String(month)) - 1;
             const yearNum = parseInt(String(year));
 
             if (monthNum < 0 || monthNum > 11 || isNaN(yearNum)) {
@@ -395,13 +383,12 @@ const transactionController = {
                 return;
             }
 
-            // Buscar todos usuários e descriptografar
             const users = await User.find({}).lean();
             const userMap = new Map<string, string>();
 
             users.forEach(user => {
                 const plainPhone = decryptPassword(user.phone);
-                userMap.set(plainPhone, user.phone); // plain → encrypted
+                userMap.set(plainPhone, user.phone);
             });
 
             const encryptedPhone = userMap.get(targetPhone);
@@ -411,7 +398,6 @@ const transactionController = {
                 return;
             }
 
-            // Definir intervalo de datas para o mês selecionado
             const startDate = new Date(yearNum, monthNum, 1);
             const endDate = new Date(yearNum, monthNum + 1, 0, 23, 59, 59, 999);
 
@@ -426,7 +412,6 @@ const transactionController = {
                 .sort({ date: -1 })
                 .lean();
 
-            // Transações compartilhadas
             if (includeShared) {
                 const shared = await Transaction.find({
                     sharerPhone: encryptedPhone,
@@ -438,7 +423,6 @@ const transactionController = {
                 transactions = [...transactions, ...shared];
             }
 
-            // Descriptografar todos os telefones nas respostas
             const responseTransactions = transactions.map(tx => ({
                 ...tx,
                 ownerPhone: decryptPassword(tx.ownerPhone),
@@ -446,18 +430,14 @@ const transactionController = {
                 sharerPhone: tx.sharerPhone ? decryptPassword(tx.sharerPhone) : undefined,
             }));
 
-            // Calcular somas
-            // Total de receitas (todas, independente do status)
             const totalRevenue = transactions
                 .filter(tx => tx.type === 'revenue')
                 .reduce((sum, tx) => sum + (tx.amount || 0), 0);
 
-            // Total de despesas (todas, independente do status)
             const totalExpense = transactions
                 .filter(tx => tx.type === 'expense')
                 .reduce((sum, tx) => sum + (tx.amount || 0), 0);
 
-            // Saldo do mês = receitas PAGAS - despesas PAGAS
             const paidRevenue = transactions
                 .filter(tx => tx.type === 'revenue' && tx.status === 'pago')
                 .reduce((sum, tx) => sum + (tx.amount || 0), 0);
@@ -468,7 +448,6 @@ const transactionController = {
 
             const monthlyBalance = paidRevenue - paidExpense;
 
-            // Calcular saldo acumulado (somando todos os meses anteriores)
             const accumulatedQuery = {
                 ownerPhone: encryptedPhone,
                 date: { $lt: startDate }
@@ -567,11 +546,10 @@ const transactionController = {
 
             users.forEach(user => {
                 const plainPhone = decryptPassword(user.phone);
-                userMap.set(plainPhone, user.phone); // plain → encrypted
+                userMap.set(plainPhone, user.phone);
             });
 
             const encryptedOwner = userMap.get(targetPhone);
-
 
             const transaction = await Transaction.findById(transactionId);
             if (!transaction) {
@@ -594,6 +572,191 @@ const transactionController = {
         } catch (error: any) {
             console.error('Erro ao deletar transação:', error);
             res.status(500).json({ error: error.message });
+        }
+    },
+
+    // ────────────────────────────────────────────────────────────────
+    // ADICIONAR VALOR EXTRA (registra no array additions)
+    // ────────────────────────────────────────────────────────────────
+    async addValue(req: Request, res: Response): Promise<void> {
+        try {
+            const { transactionId } = req.params;
+            const { ownerPhone, additionalAmount, description } = req.body;
+
+            if (!ownerPhone || additionalAmount == null || Number(additionalAmount) <= 0) {
+                res.status(400).json({ error: 'ownerPhone e additionalAmount (positivo) são obrigatórios' });
+                return
+            }
+            if (!description?.trim()) {
+                res.status(400).json({ error: 'description é obrigatória para identificar a adição' });
+                return
+            }
+
+            const targetPhone = String(ownerPhone).trim();
+            const users = await User.find({}).lean();
+            const userMap = new Map<string, string>();
+            users.forEach(user => {
+                const plain = decryptPassword(user.phone);
+                userMap.set(plain, user.phone);
+            });
+
+            const encryptedPhone = userMap.get(targetPhone);
+            if (!encryptedPhone) {
+                res.status(404).json({ error: 'Usuário não encontrado' });
+                return
+            }
+
+            const transaction = await Transaction.findOne({
+                _id: transactionId,
+                ownerPhone: encryptedPhone,
+            });
+
+            if (!transaction) {
+                res.status(404).json({ error: 'Transação não encontrada ou não pertence ao usuário' });
+                return
+            }
+
+            if (transaction.status === 'pago') {
+                res.status(400).json({ error: 'Não é possível adicionar valor em transação já paga' });
+                return
+            }
+
+            // Validação de mês
+            const today = new Date();
+            const transMonth = transaction.date.getMonth();
+            const transYear = transaction.date.getFullYear();
+            const currMonth = today.getMonth();
+            const currYear = today.getFullYear();
+
+            if (transYear < currYear || (transYear === currYear && transMonth < currMonth)) {
+                res.status(400).json({ error: 'Não é permitido adicionar valores em meses anteriores' });
+                return
+            }
+
+            const added = Number(additionalAmount);
+            transaction.amount += added;
+
+            transaction.additions = transaction.additions || [];
+            transaction.additions.push({
+                description: description.trim(),
+                amount: added,
+                addedAt: new Date(),
+                addedBy: targetPhone,
+            });
+
+            transaction.updatedAt = new Date();
+            await transaction.save();
+
+            const response = {
+                ...transaction.toObject(),
+                ownerPhone: decryptPassword(transaction.ownerPhone),
+                counterpartyPhone: transaction.counterpartyPhone ? decryptPassword(transaction.counterpartyPhone) : undefined,
+                sharerPhone: transaction.sharerPhone ? decryptPassword(transaction.sharerPhone) : undefined,
+            };
+
+            res.json({
+                message: 'Valor adicionado com sucesso',
+                transaction: response,
+            });
+        } catch (error: any) {
+            console.error('Erro ao adicionar valor:', error);
+            res.status(500).json({ error: error.message || 'Erro interno no servidor' });
+        }
+    },
+
+    // ────────────────────────────────────────────────────────────────
+    // SUBTRAIR / REMOVER VALOR (só se a description existir no array additions)
+    // ────────────────────────────────────────────────────────────────
+    async subtractValue(req: Request, res: Response): Promise<void> {
+        try {
+            const { transactionId } = req.params;
+            const { ownerPhone, description } = req.body;
+
+            if (!ownerPhone || !description?.trim()) {
+                res.status(400).json({ error: 'ownerPhone e description são obrigatórios' });
+                return
+            }
+
+            const targetPhone = String(ownerPhone).trim();
+            const users = await User.find({}).lean();
+            const userMap = new Map<string, string>();
+            users.forEach(user => userMap.set(decryptPassword(user.phone), user.phone));
+
+            const encryptedPhone = userMap.get(targetPhone);
+            if (!encryptedPhone) {
+                res.status(404).json({ error: 'Usuário não encontrado' });
+                return
+            }
+
+            const transaction = await Transaction.findOne({
+                _id: transactionId,
+                ownerPhone: encryptedPhone,
+            });
+
+            if (!transaction) {
+                res.status(404).json({ error: 'Transação não encontrada ou não pertence ao usuário' });
+                return
+            }
+
+            if (transaction.status === 'pago') {
+                res.status(400).json({ error: 'Não é possível subtrair de transação já paga' });
+                return
+            }
+
+            // Validação de mês
+            const today = new Date();
+            const transMonth = transaction.date.getMonth();
+            const transYear = transaction.date.getFullYear();
+            const currMonth = today.getMonth();
+            const currYear = today.getFullYear();
+
+            if (transYear < currYear || (transYear === currYear && transMonth < currMonth)) {
+                res.status(400).json({ error: 'Não é permitido subtrair valores em meses anteriores' });
+                return
+            }
+
+            transaction.additions = transaction.additions || [];
+            const index = transaction.additions.findIndex(item =>
+                !item.removed && item.description.trim().toLowerCase() === description.trim().toLowerCase()
+            );
+
+            if (index === -1) {
+                res.status(400).json({
+                    error: `Não encontrado adição ativa com a descrição "${description}". Subtração não permitida.`
+                });
+                return
+            }
+
+            const removedAmount = transaction.additions[index].amount;
+            transaction.amount -= removedAmount;
+
+            // Soft-delete do item
+            transaction.additions[index].removed = true;
+            transaction.additions[index].removedAt = new Date();
+            transaction.additions[index].removedReason = 'Removido pelo usuário';
+
+            // Registro no notes (opcional, para log legível)
+            const entry = `${new Date().toLocaleString('pt-BR')}: -R$ ${removedAmount.toFixed(2)} (removido: ${description})`;
+            transaction.notes = transaction.notes ? `${transaction.notes}\n${entry}` : entry;
+
+            transaction.updatedAt = new Date();
+            await transaction.save();
+
+            const response = {
+                ...transaction.toObject(),
+                ownerPhone: decryptPassword(transaction.ownerPhone),
+                counterpartyPhone: transaction.counterpartyPhone ? decryptPassword(transaction.counterpartyPhone) : undefined,
+                sharerPhone: transaction.sharerPhone ? decryptPassword(transaction.sharerPhone) : undefined,
+            };
+
+            res.json({
+                message: `Adição "${description}" removida com sucesso`,
+                removedAmount,
+                transaction: response,
+            });
+        } catch (error: any) {
+            console.error('Erro ao subtrair valor:', error);
+            res.status(500).json({ error: error.message || 'Erro interno no servidor' });
         }
     },
 };

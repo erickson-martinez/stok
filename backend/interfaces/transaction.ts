@@ -1,3 +1,4 @@
+// src/interfaces/transaction.ts
 import { Types } from 'mongoose';
 
 export type TransactionType = 'revenue' | 'expense';
@@ -6,21 +7,33 @@ export type TransactionStatus = 'pago' | 'nao_pago' | 'parcial' | 'cancelado';
 
 export interface ITransaction {
     _id?: Types.ObjectId;
-    ownerPhone: string;                // Quem é o dono real da transação
+
+    ownerPhone: string;                // Telefone criptografado do dono da transação
     type: TransactionType;
     name: string;
-    amount: number;
-    date: Date;                        // data de vencimento/recebimento esperado
+    amount: number;                    // Valor total atual (base + adições - remoções)
+    date: Date;                        // Data de referência/vencimento
     isControlled: boolean;
-    controlId?: string;                // mesmo valor nas duas pontas da transação controlada
-    counterpartyPhone?: string;        // telefone da outra ponta (se controlada)
+    controlId?: string;
+    counterpartyPhone?: string;
     status: TransactionStatus;
-    paidAmount?: number;               // para pagamentos parciais
+    paidAmount?: number;
     notes?: string;
 
-    // Campos de compartilhamento / "seguindo"
-    sharerPhone?: string;              // quem está acompanhando essa transação
-    aggregate?: boolean;               // true = deve aparecer no agregado do usuário que segue
+    // Campos de compartilhamento / acompanhamento
+    sharerPhone?: string;
+    aggregate?: boolean;
+
+    // Histórico estruturado de adições e subtrações
+    additions?: Array<{
+        description: string;             // ex: "Material hidráulico - tubos e conexões"
+        amount: number;
+        addedAt: Date;
+        addedBy?: string;                // telefone de quem adicionou
+        removed?: boolean;               // soft-delete
+        removedAt?: Date;
+        removedReason?: string;
+    }>;
 
     createdAt?: Date;
     updatedAt?: Date;
@@ -32,8 +45,6 @@ export interface TransactionCreateDTO {
     name: string;
     amount: number;
     date: string;                      // ISO ou formato aceitável
-    isControlled?: boolean;
-    counterpartyPhone?: string;
     status?: TransactionStatus;
     notes?: string;
 }
