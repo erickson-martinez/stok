@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
-import Stock from "../models/Stock.ts";
+import Stock from "../models/Stock";
+
 
 class StockController {
     // Listar produtos

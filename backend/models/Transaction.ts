@@ -41,7 +41,6 @@ const transactionSchema = new Schema<ITransaction & Document>(
 
 // Índices úteis
 transactionSchema.index({ ownerPhone: 1, date: -1 });
-transactionSchema.index({ controlId: 1 });
 transactionSchema.index({ sharerPhone: 1, aggregate: 1 });
 
 export default model<ITransaction & Document>('Transaction', transactionSchema);
