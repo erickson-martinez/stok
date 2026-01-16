@@ -195,20 +195,13 @@ const osController = {
                 return
             }
 
-
-
             if (!mongoose.isValidObjectId(empresaId)) {
                 res.status(400).json({ error: 'empresaId inválido' });
                 return
             }
 
-            const targetPhone = String(phone).trim();
-            const users = await User.find({}).lean();
-            const userMap = new Map<string, string>();
-            users.forEach(user => userMap.set(decryptPhone(user.phone), user.phone));
 
-            const requesterEncrypted = userMap.get(targetPhone);
-            if (!requesterEncrypted) {
+            if (!phone) {
                 res.status(404).json({ error: 'Usuário solicitante não encontrado' });
                 return
             }
@@ -220,7 +213,7 @@ const osController = {
             }
 
             // Permissão: por enquanto apenas o dono — depois expandir para admins/gerentes/técnicos
-            if (company.phone !== requesterEncrypted) {
+            if (company.phone !== phone) {
                 res.status(403).json({ error: 'Você não tem permissão para ver os chamados desta empresa' });
                 return
             }
