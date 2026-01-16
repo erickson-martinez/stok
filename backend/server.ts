@@ -18,6 +18,7 @@ import companyController from "./controllers/companyController";
 import permissionController from "./controllers/permissionController";
 import rhController from "./controllers/rhController";
 import workRecordController from "./controllers/workRecordController";
+import osController from "./controllers/osController";
 
 dotenv.config();
 
@@ -91,6 +92,16 @@ app.post("/transactions/follow", transactionController.followUser);
 app.delete("/transactions", transactionController.deleteTransaction);
 app.patch("/transactions/:transactionId/add-value", transactionController.addValue);
 app.patch("/transactions/:transactionId/subtract-value", transactionController.subtractValue);
+
+// Minhas OS
+app.post("/os", osController.create);
+app.get("/os/my", osController.getMyOrders);
+app.patch("/os/:id/cancel", osController.cancel);
+
+// Gestão da empresa
+app.get("/os/company", osController.getCompanyOrders);
+app.patch("/os/:id/resolve", osController.resolve);
+app.patch("/os/:id/start", osController.start);
 
 // ── Outras funcionalidades ───────────────────────────────────────────
 app.get("/activity/:phone", activityController.getActivities);
