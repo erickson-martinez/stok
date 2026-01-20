@@ -3,7 +3,7 @@ import { Types } from 'mongoose';
 
 export type TransactionType = 'revenue' | 'expense';
 
-export type TransactionStatus = 'pago' | 'nao_pago' | 'parcial' | 'cancelado';
+export type TransactionStatus = 'pendente' | 'pago' | 'nao_pago' | 'parcial' | 'cancelado';
 
 export interface ITransaction {
     _id?: Types.ObjectId;

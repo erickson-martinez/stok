@@ -51,7 +51,7 @@ const transactionSchema = new Schema<ITransaction & Document>(
 
         status: {
             type: String,
-            enum: ['pago', 'nao_pago', 'parcial', 'cancelado'] as TransactionStatus[],
+            enum: ['pendente', 'pago', 'nao_pago', 'parcial', 'cancelado'] as TransactionStatus[],
             default: 'nao_pago',
         },
 

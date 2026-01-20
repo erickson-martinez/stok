@@ -293,8 +293,17 @@ const transactionController = {
         try {
             const { transactionId, ownerPhone, status } = req.body;
 
-            if (!transactionId || !ownerPhone) {
-                res.status(400).json({ error: 'Campos obrigatórios: transactionId, ownerPhone' });
+            if (!transactionId || !ownerPhone || !status) {
+                res.status(400).json({ error: 'Campos obrigatórios: transactionId, ownerPhone, status' });
+                return;
+            }
+
+            // Validar status
+            const validStatuses = ['pendente', 'pago', 'nao_pago', 'parcial', 'cancelado'];
+            if (!validStatuses.includes(status)) {
+                res.status(400).json({ 
+                    error: `Status inválido: "${status}". Valores permitidos: ${validStatuses.join(', ')}` 
+                });
                 return;
             }
 
