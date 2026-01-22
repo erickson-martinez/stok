@@ -13,7 +13,7 @@ export const Whatsapp = new WhatsAppAPI({
 });
 
 // Evento principal: mensagem recebida do usuário
-Whatsapp.on.message = async ({ from, message, name, reply }) => {
+Whatsapp.on.message = async ({ from, message, name, reply }: any) => {
     if (message.type !== 'text') {
         await reply(new Text('Desculpe, por enquanto só aceito mensagens de texto. Envie comandos como "despesa: ..."'));
         return;
