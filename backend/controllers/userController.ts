@@ -70,7 +70,7 @@ const validatePassword = (password: string): { isValid: boolean; error?: string 
 };
 
 // Criar um novo usuário
-const createUser = async (req: Request, res: Response) => {
+const createUser = async (req: Request, res: Response): Promise<void> => {
     try {
         const { name, pass, phone } = req.body;
 
@@ -100,7 +100,7 @@ const createUser = async (req: Request, res: Response) => {
 };
 
 // Atualizar usuário
-const updateUser = async (req: Request, res: Response) => {
+const updateUser = async (req: Request, res: Response): Promise<void> => {
     try {
         const { phone } = req.params; // Identifica o usuário pelo telefone
         const { name, pass } = req.body;
@@ -140,7 +140,7 @@ const updateUser = async (req: Request, res: Response) => {
 
 // Buscar usuário por telefon
 
-const getUser = async (req: Request, res: Response) => {
+const getUser = async (req: Request, res: Response): Promise<void> => {
     try {
         const { phone } = req.query;
         const user = await User.findOne({ phone: phone })
@@ -158,7 +158,7 @@ const getUser = async (req: Request, res: Response) => {
     }
 };
 
-const getUsers = async (res: Response) => {
+const getUsers = async (res: Response): Promise<void> => {
     try {
         const users = await User.find({});
         const decryptedUsers = users.map((user) => ({
@@ -173,7 +173,7 @@ const getUsers = async (res: Response) => {
 };
 
 // Autenticar usuário
-const authenticateUser = async (req: Request, res: Response) => {
+const authenticateUser = async (req: Request, res: Response): Promise<void> => {
     try {
         const { phone, pass } = req.body;
 

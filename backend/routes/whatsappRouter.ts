@@ -4,7 +4,7 @@ import { Whatsapp } from '../whatsapp/whatsappClient';
 
 const router = Router();
 
-router.get('/webhook', (req, res) => {
+router.get('/webhook', (req, res): void => {
     const response = Whatsapp.get(req.query as any);
     if (response) return res.status(200).send(response);
     res.sendStatus(403);

@@ -4,7 +4,7 @@ import Stock from "../models/Stock";
 
 class StockController {
     // Listar produtos
-    async getProducts(req: Request, res: Response) {
+    async getProducts(req: Request, res: Response): Promise<void> {
         try {
             const { idUser } = req.params;
             if (!idUser) {
@@ -19,7 +19,7 @@ class StockController {
     }
 
     // Cadastrar produto
-    async createProduct(req: Request, res: Response) {
+    async createProduct(req: Request, res: Response): Promise<void> {
         try {
             const stock = new Stock(req.body);
             await stock.save();
@@ -31,7 +31,7 @@ class StockController {
     }
 
     // Atualizar produto
-    async updateProduct(req: Request, res: Response) {
+    async updateProduct(req: Request, res: Response): Promise<void> {
         try {
             const stock = await Stock.findByIdAndUpdate(req.params.id, req.body, { new: true });
             if (!stock) {
@@ -45,7 +45,7 @@ class StockController {
     }
 
     // Excluir produto
-    async deleteProduct(req: Request, res: Response) {
+    async deleteProduct(req: Request, res: Response): Promise<void> {
         try {
             const stock = await Stock.findByIdAndDelete(req.params.id);
             if (!stock) {
