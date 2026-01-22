@@ -8,7 +8,8 @@ class StockController {
         try {
             const { idUser } = req.params;
             if (!idUser) {
-                return res.status(400).send("Parâmetro idUser é obrigatório");
+                res.status(400).send("Parâmetro idUser é obrigatório");
+                return;
             }
             const stock = await Stock.find({ $or: [{ idUser }, { sharedWith: idUser }] });
             res.json(stock);
@@ -35,7 +36,8 @@ class StockController {
         try {
             const stock = await Stock.findByIdAndUpdate(req.params.id, req.body, { new: true });
             if (!stock) {
-                return res.status(404).send("Produto não encontrado");
+                res.status(404).send("Produto não encontrado");
+                return;
             }
             res.json(stock);
         } catch (error) {
@@ -49,7 +51,8 @@ class StockController {
         try {
             const stock = await Stock.findByIdAndDelete(req.params.id);
             if (!stock) {
-                return res.status(404).send("Produto não encontrado");
+                res.status(404).send("Produto não encontrado");
+                return;
             }
             res.status(204).send();
         } catch (error) {
@@ -59,15 +62,17 @@ class StockController {
     }
 
     // Compartilhar produto
-    async shareProduct(req: Request, res: Response) {
+    async shareProduct(req: Request, res: Response): Promise<void> {
         const { idUserShared } = req.body;
         try {
             if (!idUserShared) {
-                return res.status(400).send("O campo idUserShared é obrigatório");
+                res.status(400).send("O campo idUserShared é obrigatório");
+                return;
             }
             const stock = await Stock.findById(req.params.id);
             if (!stock) {
-                return res.status(404).send("Produto não encontrado");
+                res.status(404).send("Produto não encontrado");
+                return;
             }
             if (!stock.idUserShared.includes(idUserShared)) {
                 stock.idUserShared.push(idUserShared);

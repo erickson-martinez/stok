@@ -75,12 +75,14 @@ const createUser = async (req: Request, res: Response): Promise<void> => {
         const { name, pass, phone } = req.body;
 
         if (!name || !pass || !phone) {
-            return res.status(400).json({ error: "Nome, senha e telefone são obrigatórios" });
+            res.status(400).json({ error: "Nome, senha e telefone são obrigatórios" });
+            return;
         }
 
         const passwordValidation = validatePassword(pass);
         if (!passwordValidation.isValid) {
-            return res.status(400).json({ error: passwordValidation.error });
+            res.status(400).json({ error: passwordValidation.error });
+            return;
         }
 
         const encryptedPassword = encryptPassword(pass);
@@ -107,13 +109,15 @@ const updateUser = async (req: Request, res: Response): Promise<void> => {
 
         // Verifica se há algo para atualizar
         if (!name && !pass) {
-            return res.status(400).json({ error: "Forneça pelo menos um campo para atualizar (nome ou senha)" });
+            res.status(400).json({ error: "Forneça pelo menos um campo para atualizar (nome ou senha)" });
+            return;
         }
 
         // Busca o usuário pelo telefone
         const user = await User.findOne({ phone });
         if (!user) {
-            return res.status(404).json({ error: "Usuário não encontrado" });
+            res.status(404).json({ error: "Usuário não encontrado" });
+            return;
         }
 
         // Atualiza o nome, se fornecido
@@ -125,7 +129,8 @@ const updateUser = async (req: Request, res: Response): Promise<void> => {
         if (pass) {
             const passwordValidation = validatePassword(pass);
             if (!passwordValidation.isValid) {
-                return res.status(400).json({ error: passwordValidation.error });
+                res.status(400).json({ error: passwordValidation.error });
+                return;
             }
             user.password = encryptPassword(pass);
         }
@@ -146,7 +151,8 @@ const getUser = async (req: Request, res: Response): Promise<void> => {
         const user = await User.findOne({ phone: phone })
 
         if (!user) {
-            return res.status(404).json({ error: "Usuário não encontrado" });
+            res.status(404).json({ error: "Usuário não encontrado" });
+            return;
         }
 
         const decryptedUser = { name: decryptPassword(user.name), phone: decryptPassword(user.phone), _id: user._id };
@@ -178,7 +184,8 @@ const authenticateUser = async (req: Request, res: Response): Promise<void> => {
         const { phone, pass } = req.body;
 
         if (!phone || !pass) {
-            return res.status(400).json({ error: "Telefone e senha são obrigatórios" });
+            res.status(400).json({ error: "Telefone e senha são obrigatórios" });
+            return;
         }
 
         const userAll = await User.find({});
@@ -193,11 +200,13 @@ const authenticateUser = async (req: Request, res: Response): Promise<void> => {
 
         const findUser = users.find((user) => user.phone == phone);
         if (!userAll || !findUser || !users) {
-            return res.status(404).json({ error: "Usuário não encontrado" });
+            res.status(404).json({ error: "Usuário não encontrado" });
+            return;
         }
 
         if (decryptPassword(findUser.password) !== pass) {
-            return res.status(401).json({ error: "Senha incorreta" });
+            res.status(401).json({ error: "Senha incorreta" });
+            return;
         }
         console.log(findUser.name)
 
