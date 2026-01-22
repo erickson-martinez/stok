@@ -164,7 +164,7 @@ const getUser = async (req: Request, res: Response): Promise<void> => {
     }
 };
 
-const getUsers = async (res: Response): Promise<void> => {
+const getUsers = async (_req: Request, res: Response): Promise<void> => {
     try {
         const users = await User.find({});
         const decryptedUsers = users.map((user) => ({
