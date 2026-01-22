@@ -6,7 +6,10 @@ const router = Router();
 
 router.get('/webhook', (req, res): void => {
     const response = Whatsapp.get(req.query as any);
-    if (response) return res.status(200).send(response);
+    if (response) {
+        res.status(200).send(response);
+        return;
+    }
     res.sendStatus(403);
 });
 
