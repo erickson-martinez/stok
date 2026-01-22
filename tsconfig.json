@@ -1,33 +1,78 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
-    "module": "CommonJS",
-    "moduleResolution": "node",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "outDir": "./dist",
-    "rootDir": "./",               // ok, mas veja abaixo
-    "types": ["node"],
-    "sourceMap": true,
-    "incremental": true,
+    // Versão do JavaScript gerado
+    "target": "ES2022",
 
-    // Sugestões úteis:
-    "noImplicitAny": true,         // já vem com strict, mas reforça
-    "noUnusedLocals": true,        // avisa variáveis não usadas
-    "noUnusedParameters": true,    // avisa params não usados
+    // Sistema de módulos (recomendado para Node.js moderno)
+    "module": "NodeNext",
+
+    // Resolve módulos como o Node.js faz
+    "moduleResolution": "NodeNext",
+
+    // Pasta de saída dos arquivos compilados
+    "outDir": "./dist",
+
+    // Pasta raiz do código fonte
+    "rootDir": "./",
+
+    // Gera arquivos .d.ts (útil se for uma lib, opcional aqui)
+    "declaration": false,
+
+    // Remove comentários do código gerado
+    "removeComments": true,
+
+    // Permite import default de módulos sem default export
+    "esModuleInterop": true,
+
+    // Permite importações sem extensão .js (útil em alguns casos)
+    "allowSyntheticDefaultImports": true,
+
+    // Força checagem estrita (recomendado)
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "noImplicitThis": true,
+    "useUnknownInCatchVariables": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "allowSyntheticDefaultImports": true,  // ajuda com imports default
-    "resolveJsonModule": true,     // permite import json como módulo
-    "baseUrl": ".",                // permite imports absolutos (ex: import { x } from "src/utils")
-    "paths": {                     // exemplo de alias (opcional)
-      "@/*": ["src/*"]
-    }
+
+    // Pula checagem de tipos em arquivos .d.ts de bibliotecas
+    // ← ISSO resolve o erro TS2307 com whatsapp-api-js no Render
+    "skipLibCheck": true,
+
+    // Força consistência nos nomes de arquivos (case-sensitive)
+    "forceConsistentCasingInFileNames": true,
+
+    // Resolve JSON imports
+    "resolveJsonModule": true,
+
+    // Suporte a paths (opcional, mas útil em projetos maiores)
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    },
+
+    // Evita emitir arquivos se houver erro
+    "noEmitOnError": true,
+
+    // Source maps (útil para debug)
+    "sourceMap": true
   },
+
   "include": [
-    "backend/**/*",                // ok
-    "src/**/*"                     // se quiser padronizar pasta src
+    "backend/**/*",
+    "src/**/*",
+    "*.ts",
+    "*.tsx"
   ],
-  "exclude": ["node_modules", "dist"]
+
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.spec.ts",
+    "**/*.test.ts"
+  ]
 }
