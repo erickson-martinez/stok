@@ -10,19 +10,10 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
-const IV_LENGTH = 16;
 
 if (!ENCRYPTION_KEY || ENCRYPTION_KEY.length !== 64) {
     throw new Error('ENCRYPTION_KEY deve estar definida no .env e ter exatamente 64 caracteres hex (32 bytes)');
 }
-
-const encryptPhone = (text: string): string => {
-    const iv = crypto.randomBytes(IV_LENGTH);
-    const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY, 'hex'), iv);
-    let encrypted = cipher.update(text.trim(), 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    return `${iv.toString('hex')}:${encrypted}`;
-};
 
 const decryptPhone = (encrypted: string): string => {
     try {

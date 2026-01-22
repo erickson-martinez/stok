@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import Permission, { IPermission } from "../models/Permission";
+import Permission from "../models/Permission";
 import User from "../models/User";
 import crypto from "crypto";
 import dotenv from "dotenv";
@@ -7,7 +7,6 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
-const IV_LENGTH = 16;
 
 if (!ENCRYPTION_KEY) {
     throw new Error("ENCRYPTION_KEY não está definida no arquivo .env");

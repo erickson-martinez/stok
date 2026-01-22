@@ -1,6 +1,6 @@
 
 import { Request, Response } from "express";
-import User, { IUser } from "../models/User";
+import User from "../models/User";
 import crypto from "crypto";
 
 import dotenv from "dotenv";
@@ -158,7 +158,7 @@ const getUser = async (req: Request, res: Response) => {
     }
 };
 
-const getUsers = async (req: Request, res: Response) => {
+const getUsers = async (res: Response) => {
     try {
         const users = await User.find({});
         const decryptedUsers = users.map((user) => ({

@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import mongoose from "mongoose";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
-import Company, { ICompany } from "../models/Company";
+import Company from "../models/Company";
 import User from "../models/User";
 import Permission from "../models/Permission";
 
@@ -18,18 +18,6 @@ const decryptPhone = (encrypted: string): string => {
     let decrypted = decipher.update(encryptedText, "hex", "utf8");
     decrypted += decipher.final("utf8");
     return decrypted;
-};
-
-const encryptPhone = (phone: string): string => {
-    const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipheriv(
-        "aes-256-cbc",
-        Buffer.from(ENCRYPTION_KEY, "hex"),
-        iv
-    );
-    let encrypted = cipher.update(phone, "utf8", "hex");
-    encrypted += cipher.final("hex");
-    return iv.toString("hex") + ":" + encrypted;
 };
 
 class CompanyController {

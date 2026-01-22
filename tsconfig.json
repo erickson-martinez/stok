@@ -8,11 +8,26 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
-    "rootDir": "./",
+    "rootDir": "./",               // ok, mas veja abaixo
     "types": ["node"],
-    "sourceMap": true,               // opcional: ajuda no debug se precisar
-    "incremental": true              // opcional: builds mais rápidos depois do primeiro
+    "sourceMap": true,
+    "incremental": true,
+
+    // Sugestões úteis:
+    "noImplicitAny": true,         // já vem com strict, mas reforça
+    "noUnusedLocals": true,        // avisa variáveis não usadas
+    "noUnusedParameters": true,    // avisa params não usados
+    "noFallthroughCasesInSwitch": true,
+    "allowSyntheticDefaultImports": true,  // ajuda com imports default
+    "resolveJsonModule": true,     // permite import json como módulo
+    "baseUrl": ".",                // permite imports absolutos (ex: import { x } from "src/utils")
+    "paths": {                     // exemplo de alias (opcional)
+      "@/*": ["src/*"]
+    }
   },
-  "include": ["backend/**/*"],
+  "include": [
+    "backend/**/*",                // ok
+    "src/**/*"                     // se quiser padronizar pasta src
+  ],
   "exclude": ["node_modules", "dist"]
 }

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import Books, { IBooks } from '../models/Books';
+import Books from '../models/Books';
 
 class BookController {
     // Obter todos os livros de um usuário

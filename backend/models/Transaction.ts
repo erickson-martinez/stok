@@ -129,7 +129,7 @@ transactionSchema.index({ controlId: 1, type: 1 });
 transactionSchema.pre('save', function (next) {
     if (this.isModified('additions')) {
         const activeAdditions = this.additions?.filter(add => !add.removed) || [];
-        const totalAdditions = activeAdditions.reduce((sum, add) => sum + add.amount, 0);
+        activeAdditions.reduce((sum, add) => sum + add.amount, 0);
     }
     next();
 });

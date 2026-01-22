@@ -13,7 +13,7 @@ const marketController = {
         }
     },
 
-    async getMarketsAll(req: Request, res: Response): Promise<void> {
+    async getMarketsAll(_req: Request, res: Response): Promise<void> {
         try {
             const markets: IMarket[] = await Market.find();
             res.status(200).json(markets);

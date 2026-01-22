@@ -123,8 +123,8 @@ const transactionController = {
                 amount,
                 date,
                 notes,
+                type
             } = req.body;
-
             if (!ownerPhone || !counterpartyPhone || !name || amount == null || !date) {
                 res.status(400).json({
                     error: 'Campos obrigatórios: ownerPhone, counterpartyPhone, name, amount, date'
@@ -165,54 +165,106 @@ const transactionController = {
             const controlId = `ctrl-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
             const transactionDate = new Date(date);
 
-            const mySide = new Transaction({
-                ownerPhone: creditorExists,
-                type: 'revenue',
-                name: name.trim(),
-                amount: Number(amount),
-                date: transactionDate,
-                isControlled: true,
-                controlId,
-                counterpartyPhone: debtorExists,
-                status: 'nao_pago',
-                paidAmount: 0,
-                notes: notes ? String(notes).trim() : undefined,
-            });
+            if (type === 'revenue') {
+                const mySide = new Transaction({
+                    ownerPhone: creditorExists,
+                    type: 'revenue',
+                    name: name.trim(),
+                    amount: Number(amount),
+                    date: transactionDate,
+                    isControlled: true,
+                    controlId,
+                    counterpartyPhone: debtorExists,
+                    status: 'nao_pago',
+                    paidAmount: 0,
+                    notes: notes ? String(notes).trim() : undefined,
+                });
 
-            const counterpartySide = new Transaction({
-                ownerPhone: debtorExists,
-                type: 'expense',
-                name: name.trim(),
-                amount: Number(amount),
-                date: transactionDate,
-                isControlled: true,
-                controlId,
-                counterpartyPhone: creditorExists,
-                status: 'nao_pago',
-                paidAmount: 0,
-                notes: notes ? String(notes).trim() : undefined,
-            });
+                const counterpartySide = new Transaction({
+                    ownerPhone: debtorExists,
+                    type: 'expense',
+                    name: name.trim(),
+                    amount: Number(amount),
+                    date: transactionDate,
+                    isControlled: true,
+                    controlId,
+                    counterpartyPhone: creditorExists,
+                    status: 'nao_pago',
+                    paidAmount: 0,
+                    notes: notes ? String(notes).trim() : undefined,
+                });
 
-            await Promise.all([mySide.save(), counterpartySide.save()]);
+                await Promise.all([mySide.save(), counterpartySide.save()]);
+                const responseMySide = {
+                    ...mySide.toObject(),
+                    ownerPhone: decryptPassword(mySide.ownerPhone),
+                    counterpartyPhone: decryptPassword(mySide.counterpartyPhone || ''),
+                };
 
-            const responseMySide = {
-                ...mySide.toObject(),
-                ownerPhone: decryptPassword(mySide.ownerPhone),
-                counterpartyPhone: decryptPassword(mySide.counterpartyPhone || ''),
-            };
+                const responseCounterSide = {
+                    ...counterpartySide.toObject(),
+                    ownerPhone: decryptPassword(counterpartySide.ownerPhone),
+                    counterpartyPhone: decryptPassword(counterpartySide.counterpartyPhone || ''),
+                };
 
-            const responseCounterSide = {
-                ...counterpartySide.toObject(),
-                ownerPhone: decryptPassword(counterpartySide.ownerPhone),
-                counterpartyPhone: decryptPassword(counterpartySide.counterpartyPhone || ''),
-            };
+                res.status(201).json({
+                    message: 'Cobrança criada com sucesso',
+                    controlId,
+                    mySide: responseMySide,
+                    counterpartySide: responseCounterSide,
+                });
+            } else {
+                const mySide = new Transaction({
+                    ownerPhone: creditorExists,
+                    type: 'expense',
+                    name: name.trim(),
+                    amount: Number(amount),
+                    date: transactionDate,
+                    isControlled: true,
+                    controlId,
+                    counterpartyPhone: debtorExists,
+                    status: 'nao_pago',
+                    paidAmount: 0,
+                    notes: notes ? String(notes).trim() : undefined,
+                });
 
-            res.status(201).json({
-                message: 'Cobrança criada com sucesso',
-                controlId,
-                mySide: responseMySide,
-                counterpartySide: responseCounterSide,
-            });
+                const counterpartySide = new Transaction({
+                    ownerPhone: debtorExists,
+                    type: 'revenue',
+                    name: name.trim(),
+                    amount: Number(amount),
+                    date: transactionDate,
+                    isControlled: true,
+                    controlId,
+                    counterpartyPhone: creditorExists,
+                    status: 'nao_pago',
+                    paidAmount: 0,
+                    notes: notes ? String(notes).trim() : undefined,
+                });
+
+                await Promise.all([mySide.save(), counterpartySide.save()]);
+                const responseMySide = {
+                    ...mySide.toObject(),
+                    ownerPhone: decryptPassword(mySide.ownerPhone),
+                    counterpartyPhone: decryptPassword(mySide.counterpartyPhone || ''),
+                };
+
+                const responseCounterSide = {
+                    ...counterpartySide.toObject(),
+                    ownerPhone: decryptPassword(counterpartySide.ownerPhone),
+                    counterpartyPhone: decryptPassword(counterpartySide.counterpartyPhone || ''),
+                };
+                res.status(201).json({
+                    message: 'Cobrança criada com sucesso',
+                    controlId,
+                    mySide: responseMySide,
+                    counterpartySide: responseCounterSide,
+                });
+            }
+
+
+
+
         } catch (error: any) {
             console.error('Erro ao criar transação controlada:', error);
             res.status(500).json({ error: error.message || 'Erro interno no servidor' });
@@ -301,8 +353,8 @@ const transactionController = {
             // Validar status
             const validStatuses = ['pendente', 'pago', 'nao_pago', 'parcial', 'cancelado'];
             if (!validStatuses.includes(status)) {
-                res.status(400).json({ 
-                    error: `Status inválido: "${status}". Valores permitidos: ${validStatuses.join(', ')}` 
+                res.status(400).json({
+                    error: `Status inválido: "${status}". Valores permitidos: ${validStatuses.join(', ')}`
                 });
                 return;
             }

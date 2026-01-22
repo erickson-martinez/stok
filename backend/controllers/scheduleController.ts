@@ -1,7 +1,6 @@
 // controllers/scheduleController.ts
 import { Request, Response } from 'express';
 import Schedule, { ISchedule } from '../models/Schedule';
-import mongoose from 'mongoose';
 
 const scheduleController = {
     async getSchedules(req: Request<{ idUser: string }>, res: Response): Promise<void> {
