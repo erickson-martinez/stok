@@ -1,42 +1,6 @@
 // src/controllers/transactionController.ts
 import { Request, Response } from 'express';
 import Transaction from '../models/Transaction';
-import User from '../models/User';
-import crypto from 'crypto';
-import dotenv from 'dotenv';
-
-dotenv.config();
-
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
-const IV_LENGTH = 16;
-
-if (!ENCRYPTION_KEY) {
-    throw new Error("ENCRYPTION_KEY não está definida no arquivo .env");
-}
-
-const encryptPhone = (text: string): string => {
-    const iv = crypto.randomBytes(IV_LENGTH);
-    const cipher = crypto.createCipheriv(
-        "aes-256-cbc",
-        Buffer.from(ENCRYPTION_KEY, "hex"),
-        iv
-    );
-    let encrypted = cipher.update(text, "utf8", "hex");
-    encrypted += cipher.final("hex");
-    return `${iv.toString("hex")}:${encrypted}`;
-};
-
-const decryptPassword = (encrypted: string): string => {
-    const [iv, encryptedText] = encrypted.split(":");
-    const decipher = crypto.createDecipheriv(
-        "aes-256-cbc",
-        Buffer.from(ENCRYPTION_KEY, "hex"),
-        Buffer.from(iv, "hex")
-    );
-    let decrypted = decipher.update(encryptedText, "hex", "utf8");
-    decrypted += decipher.final("utf8");
-    return decrypted;
-};
 
 const transactionController = {
     async createSimple(req: Request, res: Response): Promise<void> {
@@ -66,25 +30,8 @@ const transactionController = {
                 return;
             }
 
-            const targetPhone = String(ownerPhone).trim();
-
-            const users = await User.find({}).lean();
-            const userMap = new Map<string, string>();
-            const userExists = users.some(u => decryptPassword(u.phone) === targetPhone);
-
-            users.forEach(user => {
-                const plainPhone = decryptPassword(user.phone);
-                userMap.set(plainPhone, user.phone);
-            });
-
-            const encryptedPhone = userMap.get(targetPhone);
-            if (!userExists) {
-                res.status(404).json({ error: 'Usuário proprietário não encontrado' });
-                return;
-            }
-
             const transaction = new Transaction({
-                ownerPhone: encryptedPhone,
+                ownerPhone: ownerPhone,
                 type,
                 name: name.trim(),
                 amount: Number(amount),
@@ -99,9 +46,9 @@ const transactionController = {
 
             const responseTransaction = {
                 ...transaction.toObject(),
-                ownerPhone: decryptPassword(transaction.ownerPhone),
-                counterpartyPhone: transaction.counterpartyPhone ? decryptPassword(transaction.counterpartyPhone) : undefined,
-                sharerPhone: transaction.sharerPhone ? decryptPassword(transaction.sharerPhone) : undefined,
+                ownerPhone: ownerPhone,
+                counterpartyPhone: transaction.counterpartyPhone || undefined,
+                sharerPhone: transaction.sharerPhone || undefined,
             };
 
             res.status(201).json({
@@ -142,53 +89,33 @@ const transactionController = {
                 return;
             }
 
-            const targetPhone = String(ownerPhone).trim();
-            const counterpartyPhoneStr = String(counterpartyPhone).trim();
-
-            const users = await User.find({}).lean();
-            const userMap = new Map<string, string>();
-            const userExists = users.some(u => decryptPassword(u.phone) === ownerPhone);
-
-            users.forEach(user => {
-                const plainPhone = decryptPassword(user.phone);
-                userMap.set(plainPhone, user.phone);
-            });
-
-            const creditorExists = userMap.get(targetPhone);
-            const debtorExists = userMap.get(counterpartyPhoneStr);
-
-            if (!userExists || !creditorExists || !debtorExists) {
-                res.status(404).json({ error: 'Um ou ambos os usuários não foram encontrados' });
-                return;
-            }
-
             const controlId = `ctrl-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
             const transactionDate = new Date(date);
 
             if (type === 'revenue') {
                 const mySide = new Transaction({
-                    ownerPhone: creditorExists,
+                    ownerPhone: ownerPhone,
                     type: 'revenue',
                     name: name.trim(),
                     amount: Number(amount),
                     date: transactionDate,
                     isControlled: true,
                     controlId,
-                    counterpartyPhone: debtorExists,
+                    counterpartyPhone: counterpartyPhone,
                     status: 'nao_pago',
                     paidAmount: 0,
                     notes: notes ? String(notes).trim() : undefined,
                 });
 
                 const counterpartySide = new Transaction({
-                    ownerPhone: debtorExists,
+                    ownerPhone: counterpartyPhone,
                     type: 'expense',
                     name: name.trim(),
                     amount: Number(amount),
                     date: transactionDate,
                     isControlled: true,
                     controlId,
-                    counterpartyPhone: creditorExists,
+                    counterpartyPhone: ownerPhone,
                     status: 'nao_pago',
                     paidAmount: 0,
                     notes: notes ? String(notes).trim() : undefined,
@@ -197,14 +124,14 @@ const transactionController = {
                 await Promise.all([mySide.save(), counterpartySide.save()]);
                 const responseMySide = {
                     ...mySide.toObject(),
-                    ownerPhone: decryptPassword(mySide.ownerPhone),
-                    counterpartyPhone: decryptPassword(mySide.counterpartyPhone || ''),
+                    ownerPhone: ownerPhone,
+                    counterpartyPhone: counterpartyPhone,
                 };
 
                 const responseCounterSide = {
                     ...counterpartySide.toObject(),
-                    ownerPhone: decryptPassword(counterpartySide.ownerPhone),
-                    counterpartyPhone: decryptPassword(counterpartySide.counterpartyPhone || ''),
+                    ownerPhone: counterpartySide.ownerPhone,
+                    counterpartyPhone: counterpartySide.counterpartyPhone || '',
                 };
 
                 res.status(201).json({
@@ -215,28 +142,28 @@ const transactionController = {
                 });
             } else {
                 const mySide = new Transaction({
-                    ownerPhone: creditorExists,
+                    ownerPhone: ownerPhone,
                     type: 'expense',
                     name: name.trim(),
                     amount: Number(amount),
                     date: transactionDate,
                     isControlled: true,
                     controlId,
-                    counterpartyPhone: debtorExists,
+                    counterpartyPhone: counterpartyPhone,
                     status: 'nao_pago',
                     paidAmount: 0,
                     notes: notes ? String(notes).trim() : undefined,
                 });
 
                 const counterpartySide = new Transaction({
-                    ownerPhone: debtorExists,
+                    ownerPhone: counterpartyPhone,
                     type: 'revenue',
                     name: name.trim(),
                     amount: Number(amount),
                     date: transactionDate,
                     isControlled: true,
                     controlId,
-                    counterpartyPhone: creditorExists,
+                    counterpartyPhone: ownerPhone,
                     status: 'nao_pago',
                     paidAmount: 0,
                     notes: notes ? String(notes).trim() : undefined,
@@ -245,14 +172,14 @@ const transactionController = {
                 await Promise.all([mySide.save(), counterpartySide.save()]);
                 const responseMySide = {
                     ...mySide.toObject(),
-                    ownerPhone: decryptPassword(mySide.ownerPhone),
-                    counterpartyPhone: decryptPassword(mySide.counterpartyPhone || ''),
+                    ownerPhone: mySide.ownerPhone,
+                    counterpartyPhone: mySide.counterpartyPhone || '',
                 };
 
                 const responseCounterSide = {
                     ...counterpartySide.toObject(),
-                    ownerPhone: decryptPassword(counterpartySide.ownerPhone),
-                    counterpartyPhone: decryptPassword(counterpartySide.counterpartyPhone || ''),
+                    ownerPhone: counterpartySide.ownerPhone,
+                    counterpartyPhone: counterpartySide.counterpartyPhone || '',
                 };
                 res.status(201).json({
                     message: 'Cobrança criada com sucesso',
@@ -280,15 +207,13 @@ const transactionController = {
                 return;
             }
 
-            const encryptedOwnerPhone = encryptPhone(ownerPhone);
-
             const transaction = await Transaction.findById(transactionId);
             if (!transaction) {
                 res.status(404).json({ error: 'Transação não encontrada' });
                 return;
             }
 
-            if (transaction.ownerPhone !== encryptedOwnerPhone) {
+            if (transaction.ownerPhone !== ownerPhone) {
                 res.status(403).json({ error: 'Você não tem permissão para alterar esta transação' });
                 return;
             }
@@ -326,9 +251,9 @@ const transactionController = {
 
             const response = {
                 ...transaction.toObject(),
-                ownerPhone: decryptPassword(transaction.ownerPhone),
-                counterpartyPhone: transaction.counterpartyPhone ? decryptPassword(transaction.counterpartyPhone) : undefined,
-                sharerPhone: transaction.sharerPhone ? decryptPassword(transaction.sharerPhone) : undefined,
+                ownerPhone: transaction.ownerPhone,
+                counterpartyPhone: transaction.counterpartyPhone || undefined,
+                sharerPhone: transaction.sharerPhone || undefined,
             };
 
             res.json({
@@ -359,29 +284,13 @@ const transactionController = {
                 return;
             }
 
-            const targetPhone = String(ownerPhone).trim();
-            const users = await User.find({}).lean();
-            const userMap = new Map<string, string>();
-
-            users.forEach(user => {
-                const plainPhone = decryptPassword(user.phone);
-                userMap.set(plainPhone, user.phone);
-            });
-
-            const encryptedPhone = userMap.get(targetPhone);
-
-            if (!encryptedPhone) {
-                res.status(404).json({ error: 'Nenhum usuário encontrado com este telefone' });
-                return;
-            }
-
             const transaction = await Transaction.findById(transactionId);
             if (!transaction) {
                 res.status(404).json({ error: 'Transação não encontrada' });
                 return;
             }
 
-            if (transaction.ownerPhone !== encryptedPhone) {
+            if (transaction.ownerPhone !== ownerPhone) {
                 res.status(403).json({ error: 'Você não tem permissão para alterar esta transação' });
                 return;
             }
@@ -406,9 +315,9 @@ const transactionController = {
 
             const response = {
                 ...transaction.toObject(),
-                ownerPhone: decryptPassword(transaction.ownerPhone),
-                counterpartyPhone: transaction.counterpartyPhone ? decryptPassword(transaction.counterpartyPhone) : undefined,
-                sharerPhone: transaction.sharerPhone ? decryptPassword(transaction.sharerPhone) : undefined,
+                ownerPhone: transaction.ownerPhone,
+                counterpartyPhone: transaction.counterpartyPhone || undefined,
+                sharerPhone: transaction.sharerPhone || undefined,
             };
 
             res.json({
@@ -435,7 +344,7 @@ const transactionController = {
                 return;
             }
 
-            const targetPhone = String(phone).trim();
+
             const monthNum = parseInt(String(month)) - 1;
             const yearNum = parseInt(String(year));
 
@@ -444,26 +353,12 @@ const transactionController = {
                 return;
             }
 
-            const users = await User.find({}).lean();
-            const userMap = new Map<string, string>();
-
-            users.forEach(user => {
-                const plainPhone = decryptPassword(user.phone);
-                userMap.set(plainPhone, user.phone);
-            });
-
-            const encryptedPhone = userMap.get(targetPhone);
-
-            if (!encryptedPhone) {
-                res.status(404).json({ error: 'Nenhum usuário encontrado com este telefone' });
-                return;
-            }
 
             const startDate = new Date(yearNum, monthNum, 1);
             const endDate = new Date(yearNum, monthNum + 1, 0, 23, 59, 59, 999);
 
             const query: any = {
-                ownerPhone: encryptedPhone,
+                ownerPhone: phone,
                 date: { $gte: startDate, $lte: endDate }
             };
 
@@ -475,7 +370,7 @@ const transactionController = {
 
             if (includeShared) {
                 const shared = await Transaction.find({
-                    sharerPhone: encryptedPhone,
+                    sharerPhone: phone,
                     date: { $gte: startDate, $lte: endDate }
                 })
                     .sort({ date: -1 })
@@ -486,9 +381,9 @@ const transactionController = {
 
             const responseTransactions = transactions.map(tx => ({
                 ...tx,
-                ownerPhone: decryptPassword(tx.ownerPhone),
-                counterpartyPhone: tx.counterpartyPhone ? decryptPassword(tx.counterpartyPhone) : undefined,
-                sharerPhone: tx.sharerPhone ? decryptPassword(tx.sharerPhone) : undefined,
+                ownerPhone: tx.ownerPhone,
+                counterpartyPhone: tx.counterpartyPhone || undefined,
+                sharerPhone: tx.sharerPhone || undefined,
             }));
 
             const totalRevenue = transactions
@@ -510,7 +405,7 @@ const transactionController = {
             const monthlyBalance = paidRevenue - paidExpense;
 
             const accumulatedQuery = {
-                ownerPhone: encryptedPhone,
+                ownerPhone: phone,
                 date: { $lt: startDate }
             };
 
@@ -562,24 +457,9 @@ const transactionController = {
                 return;
             }
 
-            const users = await User.find({}).lean();
-            const userMap = new Map<string, string>();
-
-            users.forEach(user => {
-                userMap.set(decryptPassword(user.phone), user.phone);
-            });
-
-            if (!userMap.has(myPhone) || !userMap.has(targetPhone)) {
-                res.status(404).json({ error: 'Um ou ambos os usuários não encontrados' });
-                return;
-            }
-
-            const encryptedMy = userMap.get(myPhone)!;
-            const encryptedTarget = userMap.get(targetPhone)!;
-
             const result = await Transaction.updateMany(
-                { ownerPhone: encryptedMy },
-                { $set: { sharerPhone: encryptedTarget, aggregate } }
+                { ownerPhone: myPhone },
+                { $set: { sharerPhone: targetPhone, aggregate } }
             );
 
             res.json({
@@ -601,24 +481,13 @@ const transactionController = {
                 return;
             }
 
-            const targetPhone = String(ownerPhone).trim();
-            const users = await User.find({}).lean();
-            const userMap = new Map<string, string>();
-
-            users.forEach(user => {
-                const plainPhone = decryptPassword(user.phone);
-                userMap.set(plainPhone, user.phone);
-            });
-
-            const encryptedOwner = userMap.get(targetPhone);
-
             const transaction = await Transaction.findById(transactionId);
             if (!transaction) {
                 res.status(404).json({ error: 'Transação não encontrada' });
                 return;
             }
 
-            if (transaction.ownerPhone !== encryptedOwner) {
+            if (transaction.ownerPhone !== ownerPhone) {
                 res.status(403).json({ error: 'Não autorizado' });
                 return;
             }
@@ -653,23 +522,9 @@ const transactionController = {
                 return
             }
 
-            const targetPhone = String(ownerPhone).trim();
-            const users = await User.find({}).lean();
-            const userMap = new Map<string, string>();
-            users.forEach(user => {
-                const plain = decryptPassword(user.phone);
-                userMap.set(plain, user.phone);
-            });
-
-            const encryptedPhone = userMap.get(targetPhone);
-            if (!encryptedPhone) {
-                res.status(404).json({ error: 'Usuário não encontrado' });
-                return
-            }
-
             const transaction = await Transaction.findOne({
                 _id: transactionId,
-                ownerPhone: encryptedPhone,
+                ownerPhone: ownerPhone,
             });
 
             if (!transaction) {
@@ -702,7 +557,7 @@ const transactionController = {
                 description: description.trim(),
                 amount: added,
                 addedAt: new Date(),
-                addedBy: targetPhone,
+                addedBy: ownerPhone,
             });
 
             transaction.updatedAt = new Date();
@@ -710,9 +565,9 @@ const transactionController = {
 
             const response = {
                 ...transaction.toObject(),
-                ownerPhone: decryptPassword(transaction.ownerPhone),
-                counterpartyPhone: transaction.counterpartyPhone ? decryptPassword(transaction.counterpartyPhone) : undefined,
-                sharerPhone: transaction.sharerPhone ? decryptPassword(transaction.sharerPhone) : undefined,
+                ownerPhone: transaction.ownerPhone,
+                counterpartyPhone: transaction.counterpartyPhone || undefined,
+                sharerPhone: transaction.sharerPhone || undefined,
             };
 
             res.json({
@@ -738,20 +593,9 @@ const transactionController = {
                 return
             }
 
-            const targetPhone = String(ownerPhone).trim();
-            const users = await User.find({}).lean();
-            const userMap = new Map<string, string>();
-            users.forEach(user => userMap.set(decryptPassword(user.phone), user.phone));
-
-            const encryptedPhone = userMap.get(targetPhone);
-            if (!encryptedPhone) {
-                res.status(404).json({ error: 'Usuário não encontrado' });
-                return
-            }
-
             const transaction = await Transaction.findOne({
                 _id: transactionId,
-                ownerPhone: encryptedPhone,
+                ownerPhone: ownerPhone,
             });
 
             if (!transaction) {
@@ -805,9 +649,9 @@ const transactionController = {
 
             const response = {
                 ...transaction.toObject(),
-                ownerPhone: decryptPassword(transaction.ownerPhone),
-                counterpartyPhone: transaction.counterpartyPhone ? decryptPassword(transaction.counterpartyPhone) : undefined,
-                sharerPhone: transaction.sharerPhone ? decryptPassword(transaction.sharerPhone) : undefined,
+                ownerPhone: transaction.ownerPhone,
+                counterpartyPhone: transaction.counterpartyPhone || undefined,
+                sharerPhone: transaction.sharerPhone || undefined,
             };
 
             res.json({
