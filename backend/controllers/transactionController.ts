@@ -578,8 +578,8 @@ const transactionController = {
             const encryptedTarget = userMap.get(targetPhone)!;
 
             const result = await Transaction.updateMany(
-                { ownerPhone: encryptedTarget },
-                { $set: { sharerPhone: encryptedMy, aggregate } }
+                { ownerPhone: encryptedMy },
+                { $set: { sharerPhone: encryptedTarget, aggregate } }
             );
 
             res.json({
