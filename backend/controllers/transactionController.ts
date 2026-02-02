@@ -344,7 +344,6 @@ const transactionController = {
                 return;
             }
 
-
             const monthNum = parseInt(String(month)) - 1;
             const yearNum = parseInt(String(year));
 
@@ -352,7 +351,6 @@ const transactionController = {
                 res.status(400).json({ error: 'month deve estar entre 1-12 e year deve ser válido' });
                 return;
             }
-
 
             const startDate = new Date(yearNum, monthNum, 1);
             const endDate = new Date(yearNum, monthNum + 1, 0, 23, 59, 59, 999);
@@ -469,6 +467,162 @@ const transactionController = {
         } catch (error: any) {
             console.error('Erro ao seguir usuário:', error);
             res.status(500).json({ error: error.message });
+        }
+    },
+
+    async updateTransaction(req: Request, res: Response): Promise<void> {
+        try {
+            const { transactionId } = req.params;
+            const {
+                ownerPhone,
+                name,
+                amount,
+                date,
+                status,
+                notes,           // opcional
+            } = req.body;
+
+            if (!transactionId || !ownerPhone) {
+                res.status(400).json({ error: 'transactionId e ownerPhone são obrigatórios' });
+                return;
+            }
+
+            const transaction = await Transaction.findOne({
+                _id: transactionId,
+                ownerPhone: ownerPhone,
+            });
+
+            if (!transaction) {
+                res.status(404).json({ error: 'Transação não encontrada ou não pertence a este usuário' });
+                return;
+            }
+
+            // ── Bloqueia edição em transações já pagas (regra comum no seu sistema) ──
+            if (transaction.status === 'pago') {
+                res.status(400).json({ error: 'Não é permitido editar transação já marcada como paga' });
+                return;
+            }
+
+            // ── Validações de campos enviados ──────────────────────────────────────
+            const updates: Partial<typeof transaction> = {};
+
+            if (name !== undefined) {
+                if (typeof name !== 'string' || name.trim() === '') {
+                    res.status(400).json({ error: 'name deve ser uma string não vazia' });
+                    return;
+                }
+                updates.name = name.trim();
+            }
+
+            if (amount !== undefined) {
+                const newAmount = Number(amount);
+                if (isNaN(newAmount) || newAmount <= 0) {
+                    res.status(400).json({ error: 'amount deve ser um número maior que zero' });
+                    return;
+                }
+                updates.amount = newAmount;
+                // Se tinha paidAmount maior que o novo amount → ajusta
+                if ((transaction.paidAmount ?? 0) > newAmount) {
+                    updates.paidAmount = newAmount;
+                    updates.status = 'pago';
+                }
+            }
+
+            if (date !== undefined) {
+                const newDate = new Date(date);
+                if (isNaN(newDate.getTime())) {
+                    res.status(400).json({ error: 'Formato de data inválido' });
+                    return;
+                }
+
+                const today = new Date();
+                const transMonth = newDate.getMonth();
+                const transYear = newDate.getFullYear();
+                const currMonth = today.getMonth();
+                const currYear = today.getFullYear();
+
+                // Regra conservadora: só permite editar para mês atual ou futuro
+                if (transYear < currYear || (transYear === currYear && transMonth < currMonth)) {
+                    res.status(400).json({ error: 'Não é permitido alterar para datas em meses anteriores' });
+                    return;
+                }
+
+                updates.date = newDate;
+            }
+
+            if (status !== undefined) {
+                const validStatuses = ['pendente', 'pago', 'nao_pago', 'parcial', 'cancelado'];
+                if (!validStatuses.includes(status)) {
+                    res.status(400).json({
+                        error: `Status inválido. Valores permitidos: ${validStatuses.join(', ')}`
+                    });
+                    return;
+                }
+
+                updates.status = status;
+
+                // Consistência com paidAmount
+                if (status === 'pago') {
+                    updates.paidAmount = transaction.amount;
+                } else if (status === 'nao_pago') {
+                    updates.paidAmount = 0;
+                }
+                // 'parcial' deixa paidAmount como está (ou pode exigir paidAmount no body)
+            }
+
+            if (notes !== undefined) {
+                updates.notes = String(notes).trim() || undefined;
+            }
+
+            // ── Se nada foi enviado para atualizar ──
+            if (Object.keys(updates).length === 0) {
+                res.status(400).json({ error: 'Nenhum campo válido foi enviado para atualização' });
+                return;
+            }
+
+            // Aplica as atualizações
+            Object.assign(transaction, updates);
+            transaction.updatedAt = new Date();
+            await transaction.save();
+
+            // ── Se for transação controlada → propaga alterações relevantes ───────
+            if (transaction.isControlled && transaction.controlId) {
+                const oppositeType = transaction.type === 'revenue' ? 'expense' : 'revenue';
+
+                const oppositeUpdates: any = {
+                    updatedAt: new Date(),
+                };
+
+                if (updates.name) oppositeUpdates.name = updates.name;
+                if (updates.date) oppositeUpdates.date = updates.date;
+                if (updates.amount) oppositeUpdates.amount = updates.amount;
+                if (updates.status) oppositeUpdates.status = updates.status;
+                if (updates.paidAmount !== undefined) {
+                    oppositeUpdates.paidAmount = updates.paidAmount;
+                }
+
+                if (Object.keys(oppositeUpdates).length > 1) { // tem algo além de updatedAt
+                    await Transaction.updateOne(
+                        { controlId: transaction.controlId, type: oppositeType },
+                        { $set: oppositeUpdates }
+                    );
+                }
+            }
+
+            const response = {
+                ...transaction.toObject(),
+                ownerPhone: transaction.ownerPhone,
+                counterpartyPhone: transaction.counterpartyPhone || undefined,
+                sharerPhone: transaction.sharerPhone || undefined,
+            };
+
+            res.json({
+                message: 'Transação atualizada com sucesso',
+                transaction: response,
+            });
+        } catch (error: any) {
+            console.error('Erro ao atualizar transação:', error);
+            res.status(500).json({ error: error.message || 'Erro interno no servidor' });
         }
     },
 

@@ -73,6 +73,7 @@ app.post("/products/:id/share", stockController.shareProduct);
 // ── Novo Sistema: Transactions (independente) ────────────────────────
 app.post("/transactions/simple", transactionController.createSimple);
 app.post("/transactions/controlled", transactionController.createControlled);
+app.put("/transactions/:transactionId", transactionController.updateTransaction);
 app.patch("/transactions/payment", transactionController.updatePaymentStatus);
 app.get("/transactions", transactionController.listTransactions);
 app.patch("/transactions/status", transactionController.markStatus);
