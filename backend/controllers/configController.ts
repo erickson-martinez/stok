@@ -29,7 +29,7 @@ export class ConfigController {
     }
 
     // Read config
-    static async getConfig(req: Request, res: Response): Promise<void> {
+    static async getConfig(_req: Request, res: Response): Promise<void> {
         try {
             const config = await ConfigModel.findOne();
             if (!config) {
