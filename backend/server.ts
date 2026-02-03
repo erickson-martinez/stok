@@ -19,6 +19,11 @@ import permissionController from "./controllers/permissionController";
 import rhController from "./controllers/rhController";
 import workRecordController from "./controllers/workRecordController";
 import osController from "./controllers/osController";
+import { ConfigController } from "./controllers/configController";
+import { ProductBurgerController } from "./controllers/productsBurgerController";
+import OrdersController from './controllers/ordersController';
+import OrderClientController from './controllers/orderClientController';
+
 
 dotenv.config();
 
@@ -161,6 +166,36 @@ app.get("/rh/company/:phone", rhController.listCompanyByEmployee);
 app.delete("/rh/unlink/:linkId", rhController.unlinkUser);
 app.patch("/rh/link/:linkId/status", rhController.updateLinkStatus);
 app.get("/rh/user/companies", rhController.getUserCompanies);
+
+// Rotas de configuração
+app.post('/api/config', ConfigController.createOrUpdateConfig);
+app.get('/api/config', ConfigController.getConfig);
+app.patch('/api/config', ConfigController.updateConfig);
+
+// Rotas de produtos
+app.post('/api/products/burgers', ProductBurgerController.createProductBurger);
+app.get('/api/products/burgers', ProductBurgerController.getAllProductsBurger);
+app.get('/api/products/burgers/:id', ProductBurgerController.getProductBurgerById);
+app.put('/api/products/burgers/:id', ProductBurgerController.updateProductBurger);
+app.delete('/api/products/burgers/:id', ProductBurgerController.deleteProductBurger);
+
+// Rotas de pedidos
+app.post('/api/orders', OrdersController.createOrder);
+app.get('/api/orders', OrdersController.getAllOrders);
+app.get('/api/orders/delivery', OrdersController.getDeliveryOrders);
+app.get('/api/orders/:id', OrdersController.getOrderById);
+app.put('/api/orders/:id', OrdersController.updateOrder);
+app.patch('/api/orders/:id/status', OrdersController.updateOrderStatus);
+app.patch('/api/orders/:id/payment', OrdersController.updateOrderPayment);
+app.delete('/api/orders/:id', OrdersController.deleteOrder);
+
+
+// Rotas de pedidos do cliente
+app.get('/api/client', OrderClientController.getClientOrder);
+app.get('/api/client/all', OrderClientController.getClientOrders);
+app.patch('/api/order-client/:id/payment', OrderClientController.updateClientOrderPayment);
+app.patch('/api/order-client/:id/status', OrderClientController.updateClientOrderStatus);
+
 
 // Iniciar servidor
 const PORT = Number(process.env.PORT) || 4000;
