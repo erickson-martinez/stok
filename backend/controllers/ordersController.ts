@@ -85,7 +85,7 @@ class OrdersController {
         }
     }
 
-    public async getAllOrders(req: Request, res: Response): Promise<void> {
+    public async getAllOrders(_req: Request, res: Response): Promise<void> {
         try {
             const orders = await Order.find().sort({ createdAt: -1 });
             res.status(200).json({

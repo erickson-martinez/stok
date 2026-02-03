@@ -1,4 +1,3 @@
-import { Document } from 'mongoose';
 import { IOrder } from './Orders';
 
 export interface IOrderClient extends IOrder {

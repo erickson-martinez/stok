@@ -33,7 +33,7 @@ export class ProductBurgerController {
     }
 
     // Get all products
-    static async getAllProductsBurger(req: Request, res: Response): Promise<void> {
+    static async getAllProductsBurger(_req: Request, res: Response): Promise<void> {
         try {
             const products = await ProductBurgerModel.find();
             res.status(200).json({
