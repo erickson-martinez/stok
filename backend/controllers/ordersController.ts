@@ -117,6 +117,27 @@ class OrdersController {
         }
     }
 
+    public async getOrderByPhone(req: Request, res: Response): Promise<void> {
+        try {
+            const phone = req.params.phone || null;
+            const status = req.query.status || "Aguardando";
+            if (phone === null) {
+                return OrdersController.handleNotFound(res, 'Telefone inválido');
+            }
+
+            const order = await Order.find({ phone, status });
+            if (!order || order.length === 0) {
+                return OrdersController.handleNotFound(res);
+            }
+            res.status(200).json({
+                success: true,
+                data: order.map(o => OrdersController.sanitizeOrderData(o))
+            });
+        } catch (error: any) {
+            OrdersController.handleError(res, error);
+        }
+    }
+
     public async updateOrder(req: Request, res: Response): Promise<void> {
         try {
             // Convert the ID parameter to a number first
