@@ -87,10 +87,37 @@ class OrdersController {
 
     public async getAllOrders(_req: Request, res: Response): Promise<void> {
         try {
-            const orders = await Order.find().sort({ createdAt: -1 });
+            const agora = new Date();
+
+            // Ajusta para início do dia no fuso local
+            const inicioDoDia = new Date(
+                agora.getFullYear(),
+                agora.getMonth(),
+                agora.getDate(),
+                0, 0, 0, 0
+            );
+
+            // Fim do dia
+            const fimDoDia = new Date(
+                agora.getFullYear(),
+                agora.getMonth(),
+                agora.getDate(),
+                23, 59, 59, 999
+            );
+
+            const orders = await Order.find({
+                createdAt: {
+                    $gte: inicioDoDia,
+                    $lt: fimDoDia   // ou $lte se quiser incluir exatamente 23:59:59.999
+                }
+            }).sort({ createdAt: -1 });
+
             res.status(200).json({
                 success: true,
-                data: orders.map(order => OrdersController.sanitizeOrderData(order))
+                data: orders.map(order => {
+                    if (order.status !== "Entregue")
+                        return OrdersController.sanitizeOrderData(order)
+                })
             });
         } catch (error: any) {
             OrdersController.handleError(res, error);
@@ -119,20 +146,28 @@ class OrdersController {
 
     public async getOrderByPhone(req: Request, res: Response): Promise<void> {
         try {
+            const excessao = "Entregue";
             const phone = req.params.phone || null;
-            const status = req.query.status || "Aguardando";
+            const status = req.query.status || undefined;
             if (phone === null) {
                 return OrdersController.handleNotFound(res, 'Telefone inválido');
             }
 
-            const order = await Order.find({ phone, status });
-            if (!order || order.length === 0) {
-                return OrdersController.handleNotFound(res);
+            if (status !== excessao) {
+                const order = await Order.find({ phone, status });
+                if (!order || order.length === 0) {
+                    return OrdersController.handleNotFound(res);
+                }
+                res.status(200).json({
+                    success: true,
+                    data: order.map(o => OrdersController.sanitizeOrderData(o))
+                });
+            } else {
+                res.status(400).json({
+                    success: false,
+                    message: "Nenhhum pedido encontrado"
+                });
             }
-            res.status(200).json({
-                success: true,
-                data: order.map(o => OrdersController.sanitizeOrderData(o))
-            });
         } catch (error: any) {
             OrdersController.handleError(res, error);
         }
