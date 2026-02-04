@@ -351,14 +351,16 @@ class OrdersController {
             todayStart.setHours(0, 0, 0, 0);
 
             const todayEnd = new Date();
-            todayEnd.setHours(0, 0, 0, 0);
+            todayEnd.setHours(3, 0, 0, 0);
 
             // Consulta otimizada
             const orders = await Order.find({
                 burger: burger,
-                status: 'A caminho',
                 delivery: true,
-                createdAt: { $gte: todayStart, $lte: todayEnd }
+                status: "A caminho",
+                createdAt: {
+                    $gte: todayStart
+                }
             })
 
             res.status(200).json({
