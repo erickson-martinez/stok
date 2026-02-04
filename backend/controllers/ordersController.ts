@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { Order } from '../models/Orders';
 import { OrderClient } from '../models/OrderClient';
 import { IOrder } from '../interfaces/Orders';
+import { console } from 'inspector';
 
 class OrdersController {
     // ==============================================
@@ -153,10 +154,11 @@ class OrdersController {
             }
 
             if (status !== excessao) {
-                const order = await Order.find({ phone, status });
+                const order = await Order.find({ phone });
                 if (!order || order.length === 0) {
                     return OrdersController.handleNotFound(res);
                 }
+
                 res.status(200).json({
                     success: true,
                     data: order.filter(o => {
