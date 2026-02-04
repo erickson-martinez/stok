@@ -115,7 +115,7 @@ class OrdersController {
             res.status(200).json({
                 success: true,
                 data: orders.filter(order => {
-                    if (order.status !== "A caminho")
+                    if (order.status !== "A caminho" || order.payment !== true)
                         return OrdersController.sanitizeOrderData(order)
                 })
             });
