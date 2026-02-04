@@ -106,8 +106,8 @@ class OrdersController {
             const fimDoDia = new Date(
                 agora.getFullYear(),
                 agora.getMonth(),
-                agora.getDate(),
-                0, 0, 0, 0
+                agora.getDate() + 1,
+                3, 0, 0, 0
             );
 
             const orders = await Order.find({
