@@ -86,6 +86,8 @@ class OrdersController {
     }
 
     public async getAllOrders(_req: Request, res: Response): Promise<void> {
+
+        // tenho que adicionar filtro de status, tipo pagamento, pago ou não, e talvez telefone, para facilitar a busca dos pedidos
         try {
             const agora = new Date();
 
