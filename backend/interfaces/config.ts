@@ -3,6 +3,11 @@ import { Document } from 'mongoose';
 
 export interface IConfig extends Document {
     PAYMENT_METHODS: string[];
+    BURGER: string;
+    CAIXA: string[];
+    GARCOM: string[];
+    DELIVERY: string[];
+    phone: string;
     DEBIT_CARD_FEE_RATE: number;
     CREDIT_CARD_FEE_RATE: number;
     TAXA_POR_KM: number;

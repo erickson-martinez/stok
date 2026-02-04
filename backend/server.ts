@@ -170,6 +170,8 @@ app.get("/rh/user/companies", rhController.getUserCompanies);
 // Rotas de configuração
 app.post('/api/config', ConfigController.createOrUpdateConfig);
 app.get('/api/config', ConfigController.getConfig);
+app.get('/api/config/product', ConfigController.getProduct);
+app.get('/api/config/caixa', ConfigController.getCaixa);
 app.patch('/api/config', ConfigController.updateConfig);
 
 // Rotas de produtos

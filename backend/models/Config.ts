@@ -3,6 +3,11 @@ import { Schema, model } from 'mongoose';
 import { IConfig } from '../interfaces/config';
 
 const ConfigSchema = new Schema<IConfig>({
+    BURGER: { type: String, required: true },
+    CAIXA: { type: [String], required: true },
+    GARCOM: { type: [String], required: true },
+    DELIVERY: { type: [String], required: true },
+    phone: { type: String, required: true },
     PAYMENT_METHODS: {
         type: [String],
         required: true,
