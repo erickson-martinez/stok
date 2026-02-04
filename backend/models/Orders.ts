@@ -19,6 +19,7 @@ const statusHistorySchema = new Schema({
 
 const orderSchema = new Schema<IOrder>({
     id: { type: Number, required: true, unique: true },
+    buger: { type: String, required: true },
     time: { type: Date, required: true },
     name: { type: String, required: true },
     phone: { type: String, required: true },
