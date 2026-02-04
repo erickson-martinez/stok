@@ -2,7 +2,6 @@
 import { Request, Response } from 'express';
 import { ConfigModel } from '../models/Config';
 import { IConfig } from '../interfaces/config';
-import { table } from 'console';
 
 export class ConfigController {
     // Create or update config (upsert)
