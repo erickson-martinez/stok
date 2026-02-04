@@ -207,19 +207,25 @@ class OrdersController {
 
     public async updateOrderStatus(req: Request, res: Response): Promise<void> {
         try {
-            // Convert the ID parameter to a number first
             const id = Number(req.params.id);
+            const nameDeliverer = req.params?.name || req.params?.username || 'Entregador desconhecido';
             if (isNaN(id)) {
                 return OrdersController.handleNotFound(res);
             }
 
             const { newStatus, currentStatus } = req.body;
-            const currentOrder = await Order.findOne({ id });
 
+            const currentOrder = await Order.findOne({ id });
             if (!currentOrder) {
                 return OrdersController.handleNotFound(res);
             }
 
+            // Preparar atualização
+            const updateData: any = {
+                status: newStatus,
+            };
+
+            // Atualizar histórico de status (seu código atual)
             const cleanStatusHistory = OrdersController.sanitizeStatusHistory(currentOrder.statusHistory);
 
             if (cleanStatusHistory[currentStatus] && !cleanStatusHistory[currentStatus].end) {
@@ -231,21 +237,30 @@ class OrdersController {
                 end: newStatus === 'Entregue' ? new Date() : null
             };
 
+            updateData.statusHistory = cleanStatusHistory;
+
+            // ─── NOVO: Registrar quem entregou ───────────────────────────────
+            if (newStatus === 'Entregue' && currentOrder.delivery === true) {
+                // Opção 1: Nome simples (mais fácil)
+                updateData.deliveredBy = nameDeliverer;
+
+            }
+            // ─────────────────────────────────────────────────────────────────
+
             const order = await Order.findOneAndUpdate(
                 { id },
-                {
-                    status: newStatus,
-                    statusHistory: cleanStatusHistory
-                },
+                updateData,
                 { new: true }
             );
 
             if (order?.onclient === "true") {
+                // Atualizar também no OrderClient (adicione deliveredBy lá também se quiser)
                 await OrderClient.findOneAndUpdate(
                     { id },
                     {
                         status: newStatus,
-                        statusHistory: cleanStatusHistory
+                        statusHistory: cleanStatusHistory,
+                        deliveredBy: updateData.deliveredBy   // ← adicione aqui
                     }
                 );
             }

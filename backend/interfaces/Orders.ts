@@ -19,6 +19,7 @@ export interface IOrder extends Document {
     onclient: string;
     paymentMethod: string;
     delivery: boolean;
+    deliveredBy?: string;
     pickupTime?: string;
     address?: OrderAddress;
     distancia?: number;
