@@ -86,8 +86,10 @@ class OrdersController {
         }
     }
 
-    public async getAllOrders(_req: Request, res: Response): Promise<void> {
+    public async getAllOrders(req: Request, res: Response): Promise<void> {
 
+
+        const burger = req.params.burger || null;
         // tenho que adicionar filtro de status, tipo pagamento, pago ou não, e talvez telefone, para facilitar a busca dos pedidos
         try {
             const agora = new Date();
@@ -105,10 +107,11 @@ class OrdersController {
                 agora.getFullYear(),
                 agora.getMonth(),
                 agora.getDate(),
-                23, 59, 59, 999
+                0, 0, 0, 0
             );
 
             const orders = await Order.find({
+                burger: burger,
                 createdAt: {
                     $gte: inicioDoDia,
                     $lt: fimDoDia   // ou $lte se quiser incluir exatamente 23:59:59.999
