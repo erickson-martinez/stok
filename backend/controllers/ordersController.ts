@@ -245,28 +245,19 @@ class OrdersController {
 
             updateData.statusHistory = cleanStatusHistory;
 
-            // ─── NOVO: Registrar quem entregou ───────────────────────────────
-            if (newStatus === 'Entregue' && currentOrder.delivery === true) {
-                // Opção 1: Nome simples (mais fácil)
-                updateData.deliveredBy = nameDeliverer;
-
-            }
-            // ─────────────────────────────────────────────────────────────────
-
             const order = await Order.findOneAndUpdate(
                 { id },
-                updateData,
+                { ...updateData, deliveredBy: newStatus === "Entregue" && currentStatus === 'A caminho' ? nameDeliverer : null },
                 { new: true }
             );
 
             if (order?.onclient === "true") {
-                // Atualizar também no OrderClient (adicione deliveredBy lá também se quiser)
                 await OrderClient.findOneAndUpdate(
                     { id },
                     {
                         status: newStatus,
                         statusHistory: cleanStatusHistory,
-                        deliveredBy: updateData.deliveredBy   // ← adicione aqui
+                        deliveredBy: newStatus === "Entregue" && currentStatus === 'A caminho' ? nameDeliverer : null
                     }
                 );
             }
@@ -328,6 +319,50 @@ class OrdersController {
             });
         } catch (error: any) {
             OrdersController.handleError(res, error);
+        }
+    }
+
+    public async getMyDeliveryOrders(req: Request, res: Response): Promise<void> {
+        try {
+
+            const burger = req.params.burger || null;
+            const deliveredBy = req.params?.name || req.params?.username || null;
+            // Garante que não há parâmetro ID interferindo
+            if (req.params.id) {
+                delete req.params.id;
+            }
+
+            if (!burger) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Burger é obrigatório'
+                });
+            }
+
+            const todayStart = new Date();
+            todayStart.setHours(18, 0, 0, 0);
+
+            // Consulta otimizada
+            const orders = await Order.find({
+                burger: burger,
+                delivery: true,
+                deliveredBy,
+                createdAt: {
+                    $gte: todayStart
+                }
+            })
+
+            res.status(200).json({
+                success: true,
+                data: orders
+            });
+
+        } catch (error: any) {
+            console.error('Erro em getDeliveryOrders:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Erro ao buscar entregas'
+            });
         }
     }
 

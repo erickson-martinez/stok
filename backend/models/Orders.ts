@@ -22,6 +22,7 @@ const orderSchema = new Schema<IOrder>({
     burger: { type: String, required: true },
     time: { type: Date, required: true },
     name: { type: String, required: true },
+    deliveredBy: { type: String, default: null },
     phone: { type: String, required: true },
     onclient: { type: String, required: true },
     paymentMethod: { type: String, required: true },
