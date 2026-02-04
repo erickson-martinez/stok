@@ -114,7 +114,7 @@ class OrdersController {
 
             res.status(200).json({
                 success: true,
-                data: orders.map(order => {
+                data: orders.filter(order => {
                     if (order.status !== "Entregue")
                         return OrdersController.sanitizeOrderData(order)
                 })
@@ -148,7 +148,7 @@ class OrdersController {
         try {
             const excessao = "Entregue";
             const phone = req.params.phone || null;
-            const status = req.query.status || undefined;
+            const status = req.query.status || null;
             if (phone === null) {
                 return OrdersController.handleNotFound(res, 'Telefone inválido');
             }
@@ -160,12 +160,10 @@ class OrdersController {
                 }
                 res.status(200).json({
                     success: true,
-                    data: order.map(o => OrdersController.sanitizeOrderData(o))
-                });
-            } else {
-                res.status(400).json({
-                    success: false,
-                    message: "Nenhhum pedido encontrado"
+                    data: order.filter(o => {
+                        if (o.status !== "Entregue")
+                            return OrdersController.sanitizeOrderData(o)
+                    })
                 });
             }
         } catch (error: any) {
