@@ -114,11 +114,7 @@ class OrdersController {
 
             res.status(200).json({
                 success: true,
-                data: orders.filter(order => {
-                    if (order.status !== "A caminho")
-                        if (order.payment === false || order.payment === undefined)
-                            return OrdersController.sanitizeOrderData(order)
-                })
+                data: orders.filter(order => OrdersController.sanitizeOrderData(order))
             });
         } catch (error: any) {
             OrdersController.handleError(res, error);
