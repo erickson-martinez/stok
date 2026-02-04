@@ -85,6 +85,44 @@ export class ConfigController {
         }
     }
 
+    static async getGarcon(_req: Request, res: Response): Promise<void> {
+        try {
+            const config = await ConfigModel.findOne();
+            if (!config) {
+                res.status(404).json({ message: 'Configuração não encontrada' });
+                return;
+            }
+            res.status(200).json({
+                message: 'Configuração recuperada com sucesso',
+                data: { burger: config.BURGER, garcom: config.GARCOM, tables: config.TABLE_COUNT, pay: config.PAYMENT_METHODS, debit: config.DEBIT_CARD_FEE_RATE, credit: config.CREDIT_CARD_FEE_RATE, phone: config.phone },
+            });
+        } catch (error) {
+            res.status(500).json({
+                message: 'Erro ao recuperar configuração',
+                error: (error as Error).message,
+            });
+        }
+    }
+
+    static async getDelivery(_req: Request, res: Response): Promise<void> {
+        try {
+            const config = await ConfigModel.findOne();
+            if (!config) {
+                res.status(404).json({ message: 'Configuração não encontrada' });
+                return;
+            }
+            res.status(200).json({
+                message: 'Configuração recuperada com sucesso',
+                data: { burger: config.BURGER, delivery: config.DELIVERY, pay: config.PAYMENT_METHODS, debit: config.DEBIT_CARD_FEE_RATE, credit: config.CREDIT_CARD_FEE_RATE, phone: config.phone },
+            });
+        } catch (error) {
+            res.status(500).json({
+                message: 'Erro ao recuperar configuração',
+                error: (error as Error).message,
+            });
+        }
+    }
+
     // Update specific fields
     static async updateConfig(req: Request, res: Response): Promise<void> {
         try {

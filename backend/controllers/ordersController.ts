@@ -127,6 +127,8 @@ class OrdersController {
         }
     }
 
+
+
     public async getOrderById(req: Request, res: Response): Promise<void> {
         try {
             const id = OrdersController.validateId(req.params.id);
@@ -331,9 +333,18 @@ class OrdersController {
 
     public async getDeliveryOrders(req: Request, res: Response): Promise<void> {
         try {
+
+            const burger = req.params.burger || null;
             // Garante que não há parâmetro ID interferindo
             if (req.params.id) {
                 delete req.params.id;
+            }
+
+            if (!burger) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Burger é obrigatório'
+                });
             }
 
             const todayStart = new Date();
@@ -344,6 +355,7 @@ class OrdersController {
 
             // Consulta otimizada
             const orders = await Order.find({
+                burger: burger,
                 status: 'A caminho',
                 delivery: true,
                 createdAt: { $gte: todayStart, $lte: todayEnd }

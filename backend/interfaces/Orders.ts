@@ -27,7 +27,7 @@ export interface IOrder extends Document {
     items: OrderItem[];
     total: number;
     deliveryFee: number;
-    status: 'Aguardando' | 'Em preparo' | 'Pronto' | 'Entregue' | 'Cancelado' | 'A caminho' | 'Aberto' | 'Fechamento';
+    status: 'Aguardando' | 'Em preparo' | 'Pronto' | 'Entregue' | 'Cancelado' | 'A caminho' | 'Aberto' | 'Fechamento' | 'Retirada';
     payment?: boolean;
     receivedTime?: Date;
     statusHistory?: {

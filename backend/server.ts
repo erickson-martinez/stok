@@ -184,7 +184,7 @@ app.delete('/api/products/burgers/:id', ProductBurgerController.deleteProductBur
 // Rotas de pedidos
 app.post('/api/orders', OrdersController.createOrder);
 app.get('/api/orders/:burger', OrdersController.getAllOrders);
-app.get('/api/orders/delivery', OrdersController.getDeliveryOrders);
+app.get('/api/orders/delivery/:burger', OrdersController.getDeliveryOrders);
 app.get('/api/orders/:id', OrdersController.getOrderById);
 app.get('/api/orders/phone/:phone', OrdersController.getOrderByPhone);
 app.put('/api/orders/:id', OrdersController.updateOrder);

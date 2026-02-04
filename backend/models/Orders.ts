@@ -35,7 +35,7 @@ const orderSchema = new Schema<IOrder>({
     status: {
         type: String,
         required: true,
-        enum: ['Aguardando', 'Em preparo', 'Pronto', 'Entregue', 'Cancelado', "A caminho", "Aberto", "Fechamento"],
+        enum: ['Aguardando', 'Em preparo', 'Pronto', 'Entregue', 'Cancelado', "A caminho", "Aberto", "Fechamento", "Retirada"],
         default: 'Aguardando'
     },
     payment: { type: Boolean, default: false },
