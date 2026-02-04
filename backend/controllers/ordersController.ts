@@ -120,7 +120,7 @@ class OrdersController {
 
             res.status(200).json({
                 success: true,
-                data: orders.filter(order => OrdersController.sanitizeOrderData(order))
+                data: orders.map(order => OrdersController.sanitizeOrderData(order))
             });
         } catch (error: any) {
             OrdersController.handleError(res, error);

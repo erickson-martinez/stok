@@ -13,7 +13,7 @@ export interface OrderAddress {
 
 export interface IOrder extends Document {
     id: number;
-    buger: string;
+    burger: string;
     time: Date;
     name: string;
     phone: string;
