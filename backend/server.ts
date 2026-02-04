@@ -186,7 +186,7 @@ app.get('/api/orders/delivery', OrdersController.getDeliveryOrders);
 app.get('/api/orders/:id', OrdersController.getOrderById);
 app.get('/api/orders/phone/:phone', OrdersController.getOrderByPhone);
 app.put('/api/orders/:id', OrdersController.updateOrder);
-app.patch('/api/orders/:id/status', OrdersController.updateOrderStatus);
+app.patch('/api/orders/:id/status/:name', OrdersController.updateOrderStatus);
 app.patch('/api/orders/:id/payment', OrdersController.updateOrderPayment);
 app.delete('/api/orders/:id', OrdersController.deleteOrder);
 
