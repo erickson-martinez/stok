@@ -7,6 +7,7 @@ const ConfigSchema = new Schema<IConfig>({
     CAIXA: { type: [String], required: true },
     GARCOM: { type: [String], required: true },
     DELIVERY: { type: [String], required: true },
+    PERIOD: { type: [{ segStart: String, segEnd: String, terStart: String, terEnd: String, quaStart: String, quaEnd: String, quiStart: String, quiEnd: String, sexStart: String, sexEnd: String, sabStart: String, sabEnd: String, domStart: String, domEnd: String }], required: false },
     phone: { type: String, required: true },
     PAYMENT_METHODS: {
         type: [String],
