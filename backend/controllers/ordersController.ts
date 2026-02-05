@@ -349,8 +349,7 @@ class OrdersController {
                 delivery: true,
                 deliveredBy,
                 createdAt: {
-                    $gte: todayStart,
-                    $lt: todayEnd
+                    $gte: todayStart
                 }
             })
 
