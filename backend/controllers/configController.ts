@@ -113,7 +113,7 @@ export class ConfigController {
             }
             res.status(200).json({
                 message: 'Configuração recuperada com sucesso',
-                data: { burger: config.BURGER, delivery: config.DELIVERY, pay: config.PAYMENT_METHODS, debit: config.DEBIT_CARD_FEE_RATE, credit: config.CREDIT_CARD_FEE_RATE, phone: config.phone },
+                data: { burger: config.BURGER, taxa_delivery_fixa: config.TAXA_DELIVERY_FIXA, delivery: config.DELIVERY, pay: config.PAYMENT_METHODS, debit: config.DEBIT_CARD_FEE_RATE, credit: config.CREDIT_CARD_FEE_RATE, phone: config.phone },
             });
         } catch (error) {
             res.status(500).json({

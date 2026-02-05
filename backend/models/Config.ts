@@ -43,6 +43,11 @@ const ConfigSchema = new Schema<IConfig>({
         required: true,
         default: '-54.6371336',
     },
+    TAXA_DELIVERY_FIXA: {
+        type: Number,
+        required: true,
+        default: 50.0,
+    },
     DELIVERY_FEE: {
         type: Number,
         required: true,

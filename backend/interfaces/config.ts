@@ -10,6 +10,7 @@ export interface IConfig extends Document {
     phone: string;
     DEBIT_CARD_FEE_RATE: number;
     CREDIT_CARD_FEE_RATE: number;
+    TAXA_DELIVERY_FIXA: number;
     TAXA_POR_KM: number;
     PREFIXOS_LOGRADOURO: string[];
     latitude: string;
