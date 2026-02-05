@@ -371,7 +371,7 @@ class OrdersController {
         try {
 
             const burger = req.params.burger || null;
-            const status = req.query.status || 'A caminho';
+            const status = req.params.status || 'A caminho';
             // Garante que não há parâmetro ID interferindo
             if (req.params.id) {
                 delete req.params.id;
