@@ -5,11 +5,10 @@ import { IConfig } from '../interfaces/config';
 
 export class ConfigController {
     // Create or update config (upsert)
-    static async createOrUpdateConfig(req: Request, res: Response): Promise<void> {
+    static async createConfig(req: Request, res: Response): Promise<void> {
         try {
             const configData: Partial<IConfig> = req.body;
 
-            // Use findOneAndUpdate with upsert to create or update the single config document
             const config = await ConfigModel.findOneAndUpdate(
                 {}, // Empty filter to match the single config document
                 configData,
@@ -29,9 +28,10 @@ export class ConfigController {
     }
 
     // Read config
-    static async getConfig(_req: Request, res: Response): Promise<void> {
+    static async getConfig(req: Request, res: Response): Promise<void> {
         try {
-            const config = await ConfigModel.findOne();
+            const burger = req.params.burger;
+            const config = await ConfigModel.findOne({ BURGER: burger });
             if (!config) {
                 res.status(404).json({ message: 'Configuração não encontrada' });
                 return;
@@ -126,10 +126,11 @@ export class ConfigController {
     // Update specific fields
     static async updateConfig(req: Request, res: Response): Promise<void> {
         try {
+            const id = req.params.id;
             const updateData: Partial<IConfig> = req.body;
 
             const config = await ConfigModel.findOneAndUpdate(
-                {},
+                { _id: id },
                 { $set: updateData },
                 { new: true }
             );

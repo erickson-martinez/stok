@@ -4,6 +4,8 @@ import { Document } from 'mongoose';
 export interface IConfig extends Document {
     PAYMENT_METHODS: string[];
     BURGER: string;
+    CNPJ: string;
+    STATUS: string;
     CAIXA: string[];
     GARCOM: string[];
     DELIVERY: string[];

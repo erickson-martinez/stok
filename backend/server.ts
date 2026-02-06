@@ -168,8 +168,8 @@ app.patch("/rh/link/:linkId/status", rhController.updateLinkStatus);
 app.get("/rh/user/companies", rhController.getUserCompanies);
 
 // Rotas de configuração
-app.post('/api/config', ConfigController.createOrUpdateConfig);
-app.get('/api/config', ConfigController.getConfig);
+app.post('/api/config', ConfigController.createConfig);
+app.get('/api/config/:burger', ConfigController.getConfig);
 app.get('/api/config/product', ConfigController.getProduct);
 app.get('/api/config/caixa', ConfigController.getCaixa);
 app.get('/api/config/delivery', ConfigController.getDelivery);

@@ -4,6 +4,7 @@ import { IConfig } from '../interfaces/config';
 
 const ConfigSchema = new Schema<IConfig>({
     BURGER: { type: String, required: true },
+    CNPJ: { type: String, required: true },
     CAIXA: { type: [String], required: true },
     GARCOM: { type: [String], required: true },
     DELIVERY: { type: [String], required: true },
@@ -59,6 +60,7 @@ const ConfigSchema = new Schema<IConfig>({
         required: true,
         default: 6,
     },
+    STATUS: { type: String, enum: ['active', 'inactive'], default: 'inactive' },
 });
 
 export const ConfigModel = model<IConfig>('Config', ConfigSchema);
