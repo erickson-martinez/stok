@@ -48,11 +48,12 @@ export class ConfigController {
         }
     }
 
-    static async getProduct(_req: Request, res: Response): Promise<void> {
+    static async getProduct(req: Request, res: Response): Promise<void> {
         try {
-            const config = await ConfigModel.findOne();
+            const burger = req.params.burger;
+            const config = await ConfigModel.findOne({ BURGER: burger });
             if (!config) {
-                res.status(404).json({ message: 'Configuração não encontrada' });
+                res.status(404).json({ message: 'Configuração não encontrada para o Hamburgeueria especificada' });
                 return;
             }
             res.status(200).json({
