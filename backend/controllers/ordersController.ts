@@ -371,7 +371,7 @@ class OrdersController {
         try {
 
             const burger = req.params.burger || null;
-            const status = req.params.status || 'A caminho';
+            const status = req.params.status;
             // Garante que não há parâmetro ID interferindo
             if (req.params.id) {
                 delete req.params.id;
@@ -389,21 +389,35 @@ class OrdersController {
 
             const todayEnd = new Date();
             todayEnd.setHours(3, 0, 0, 0);
+            if (!status) {
+                const orders = await Order.find({
+                    burger: burger,
+                    delivery: true,
+                    status: status,
+                    createdAt: {
+                        $gte: todayStart
+                    }
+                })
 
-            // Consulta otimizada
-            const orders = await Order.find({
-                burger: burger,
-                delivery: true,
-                status: status,
-                createdAt: {
-                    $gte: todayStart
-                }
-            })
+                res.status(200).json({
+                    success: true,
+                    data: orders
+                });
+            } else {
+                const orders = await Order.find({
+                    burger: burger,
+                    delivery: true,
+                    createdAt: {
+                        $gte: todayStart
+                    }
+                })
 
-            res.status(200).json({
-                success: true,
-                data: orders
-            });
+                res.status(200).json({
+                    success: true,
+                    data: orders
+                });
+            }
+
 
         } catch (error: any) {
             console.error('Erro em getDeliveryOrders:', error);
