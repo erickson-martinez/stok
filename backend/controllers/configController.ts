@@ -58,7 +58,7 @@ export class ConfigController {
             }
             res.status(200).json({
                 message: 'Configuração recuperada com sucesso',
-                data: { burger: config.BURGER, product: config.DELIVERY_FEE, taxa: config.TAXA_POR_KM, long: config.longitude, lat: config.latitude, pay: config.PAYMENT_METHODS, logradouro: config.PREFIXOS_LOGRADOURO },
+                data: { burger: config.BURGER, period: config.PERIOD, product: config.DELIVERY_FEE, taxa: config.TAXA_POR_KM, long: config.longitude, lat: config.latitude, pay: config.PAYMENT_METHODS, logradouro: config.PREFIXOS_LOGRADOURO },
             });
         } catch (error) {
             res.status(500).json({
