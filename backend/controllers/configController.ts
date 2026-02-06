@@ -125,11 +125,12 @@ export class ConfigController {
                     data: { burger: delivery.BURGER, taxa_delivery_fixa: delivery.TAXA_DELIVERY_FIXA, delivery: delivery.DELIVERY, pay: delivery.PAYMENT_METHODS, debit: delivery.DEBIT_CARD_FEE_RATE, credit: delivery.CREDIT_CARD_FEE_RATE, phone: delivery.phone },
                 });
                 return;
+            } else {
+                res.status(200).json({
+                    message: 'Configuração recuperada com sucesso',
+                    data: { burger: config.BURGER, taxa_delivery_fixa: config.TAXA_DELIVERY_FIXA, delivery: config.DELIVERY, pay: config.PAYMENT_METHODS, debit: config.DEBIT_CARD_FEE_RATE, credit: config.CREDIT_CARD_FEE_RATE, phone: config.phone },
+                });
             }
-            res.status(200).json({
-                message: 'Configuração recuperada com sucesso',
-                data: { burger: config.BURGER, taxa_delivery_fixa: config.TAXA_DELIVERY_FIXA, delivery: config.DELIVERY, pay: config.PAYMENT_METHODS, debit: config.DEBIT_CARD_FEE_RATE, credit: config.CREDIT_CARD_FEE_RATE, phone: config.phone },
-            });
         } catch (error) {
             res.status(500).json({
                 message: 'Erro ao recuperar configuração',
