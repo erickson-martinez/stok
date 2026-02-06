@@ -10,6 +10,8 @@ export interface IConfig extends Document {
     GARCOM: string[];
     DELIVERY: string[];
     phone: string;
+    MANAGER_PHONE?: string;
+    COORDENATOR_PHONE?: string[];
     DEBIT_CARD_FEE_RATE: number;
     CREDIT_CARD_FEE_RATE: number;
     TAXA_DELIVERY_FIXA: number;

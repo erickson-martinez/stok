@@ -66,17 +66,24 @@ export class ConfigController {
             });
         }
     }
-    static async getCaixa(_req: Request, res: Response): Promise<void> {
+    static async getCaixa(req: Request, res: Response): Promise<void> {
         try {
-            const config = await ConfigModel.findOne();
+            const phone = req.params.phone;
+            const config = await ConfigModel.findOne({ phone });
             if (!config) {
-                res.status(404).json({ message: 'Configuração não encontrada' });
-                return;
+                const caixa = await ConfigModel.findOne({ CAIXA: phone });
+                if (!caixa) {
+                    res.status(404).json({ message: 'Configuração não encontrada para o telefone ou caixa fornecido' });
+                    return;
+                }
+                res.status(200).json({
+                    data: { burger: caixa.BURGER, period: caixa.PERIOD, caixa: caixa.CAIXA, tables: caixa.TABLE_COUNT, pay: caixa.PAYMENT_METHODS, debit: caixa.DEBIT_CARD_FEE_RATE, credit: caixa.CREDIT_CARD_FEE_RATE, phone: caixa.phone },
+                });
+            } else {
+                res.status(200).json({
+                    data: { burger: config.BURGER, period: config.PERIOD, caixa: config.CAIXA, tables: config.TABLE_COUNT, pay: config.PAYMENT_METHODS, debit: config.DEBIT_CARD_FEE_RATE, credit: config.CREDIT_CARD_FEE_RATE, phone: config.phone },
+                });
             }
-            res.status(200).json({
-                message: 'Configuração recuperada com sucesso',
-                data: { burger: config.BURGER, period: config.PERIOD, caixa: config.CAIXA, tables: config.TABLE_COUNT, pay: config.PAYMENT_METHODS, debit: config.DEBIT_CARD_FEE_RATE, credit: config.CREDIT_CARD_FEE_RATE, phone: config.phone },
-            });
         } catch (error) {
             res.status(500).json({
                 message: 'Erro ao recuperar configuração',
@@ -104,11 +111,19 @@ export class ConfigController {
         }
     }
 
-    static async getDelivery(_req: Request, res: Response): Promise<void> {
+    static async getDelivery(req: Request, res: Response): Promise<void> {
         try {
+            const phone = req.params.phone;
             const config = await ConfigModel.findOne();
             if (!config) {
-                res.status(404).json({ message: 'Configuração não encontrada' });
+                const delivery = await ConfigModel.findOne({ DELIVERY: phone });
+                if (!delivery) {
+                    res.status(404).json({ message: 'Configuração não encontrada para o telefone de delivery fornecido' });
+                    return;
+                }
+                res.status(200).json({
+                    data: { burger: delivery.BURGER, taxa_delivery_fixa: delivery.TAXA_DELIVERY_FIXA, delivery: delivery.DELIVERY, pay: delivery.PAYMENT_METHODS, debit: delivery.DEBIT_CARD_FEE_RATE, credit: delivery.CREDIT_CARD_FEE_RATE, phone: delivery.phone },
+                });
                 return;
             }
             res.status(200).json({

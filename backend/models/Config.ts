@@ -60,6 +60,8 @@ const ConfigSchema = new Schema<IConfig>({
         required: true,
         default: 6,
     },
+    MANAGER_PHONE: { type: String },
+    COORDENATOR_PHONE: { type: [String] },
     STATUS: { type: String, enum: ['active', 'inactive'], default: 'inactive' },
 });
 

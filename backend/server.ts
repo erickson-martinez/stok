@@ -171,8 +171,8 @@ app.get("/rh/user/companies", rhController.getUserCompanies);
 app.post('/api/config', ConfigController.createConfig);
 app.get('/api/config/:phone', ConfigController.getConfig);
 app.get('/api/config/product', ConfigController.getProduct);
-app.get('/api/config/caixa', ConfigController.getCaixa);
-app.get('/api/config/delivery', ConfigController.getDelivery);
+app.get('/api/config/caixa/:phone', ConfigController.getCaixa);
+app.get('/api/config/delivery/:phone', ConfigController.getDelivery);
 app.patch('/api/config', ConfigController.updateConfig);
 
 // Rotas de produtos
