@@ -58,7 +58,7 @@ export class ConfigController {
             }
             res.status(200).json({
                 message: 'Configuração recuperada com sucesso',
-                data: { burger: config.BURGER, period: config.PERIOD, product: config.DELIVERY_FEE, taxa: config.TAXA_POR_KM, long: config.longitude, lat: config.latitude, pay: config.PAYMENT_METHODS, logradouro: config.PREFIXOS_LOGRADOURO },
+                data: { burger: config.BURGER, open: config.CAIXA_OPEN_DAY, period: config.PERIOD, product: config.DELIVERY_FEE, taxa: config.TAXA_POR_KM, long: config.longitude, lat: config.latitude, pay: config.PAYMENT_METHODS, logradouro: config.PREFIXOS_LOGRADOURO },
             });
         } catch (error) {
             res.status(500).json({
@@ -161,6 +161,43 @@ export class ConfigController {
                 message: 'Configuração atualizada com sucesso',
                 data: config,
             });
+        } catch (error) {
+            res.status(500).json({
+                message: 'Erro ao atualizar configuração',
+                error: (error as Error).message,
+            });
+        }
+    }
+
+    static async updateCaixaOpenDay(req: Request, res: Response): Promise<void> {
+        try {
+            const phone = req.params.phone;
+            const open = req.params.open;
+            const config = await ConfigModel.findOneAndUpdate(
+                { phone: phone },
+                { $set: { CAIXA_OPEN_DAY: open } },
+                { new: true }
+            );
+            if (!config) {
+                const caixa = await ConfigModel.findOneAndUpdate(
+                    { CAIXA: phone },
+                    { $set: { CAIXA_OPEN_DAY: open } },
+                    { new: true }
+                );
+                if (!caixa) {
+                    res.status(404).json({ message: 'Configuração não encontrada para o telefone ou caixa fornecido' });
+                    return;
+                }
+                caixa.CAIXA_OPEN_DAY = open;
+                await caixa.save();
+                res.status(200).json({
+                    data: { open: caixa.CAIXA_OPEN_DAY },
+                });
+            } else {
+                res.status(200).json({
+                    data: { open: config.CAIXA_OPEN_DAY },
+                });
+            }
         } catch (error) {
             res.status(500).json({
                 message: 'Erro ao atualizar configuração',

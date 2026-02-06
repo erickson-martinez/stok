@@ -7,6 +7,7 @@ export interface IConfig extends Document {
     CNPJ: string;
     STATUS: string;
     CAIXA: string[];
+    CAIXA_OPEN_DAY: string;
     GARCOM: string[];
     DELIVERY: string[];
     phone: string;

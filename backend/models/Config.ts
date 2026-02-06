@@ -6,6 +6,7 @@ const ConfigSchema = new Schema<IConfig>({
     BURGER: { type: String, required: true },
     CNPJ: { type: String, required: true },
     CAIXA: { type: [String], required: true },
+    CAIXA_OPEN_DAY: { type: String, required: true },
     GARCOM: { type: [String], required: true },
     DELIVERY: { type: [String], required: true },
     PERIOD: { type: [{ day: String, start: String, end: String }], required: false },

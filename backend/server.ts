@@ -174,6 +174,7 @@ app.get('/api/config/product/:burger', ConfigController.getProduct);
 app.get('/api/config/caixa/:phone', ConfigController.getCaixa);
 app.get('/api/config/delivery/:phone', ConfigController.getDelivery);
 app.patch('/api/config', ConfigController.updateConfig);
+app.patch('/api/config/caixa-open/:phone/:open', ConfigController.updateCaixaOpenDay);
 
 // Rotas de produtos
 app.post('/api/products/burgers', ProductBurgerController.createProductBurger);
