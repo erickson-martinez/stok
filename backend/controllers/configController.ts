@@ -30,8 +30,8 @@ export class ConfigController {
     // Read config
     static async getConfig(req: Request, res: Response): Promise<void> {
         try {
-            const burger = req.params.burger;
-            const config = await ConfigModel.findOne({ BURGER: burger });
+            const phone = req.params.phone;
+            const config = await ConfigModel.findOne({ phone });
             if (!config) {
                 res.status(404).json({ message: 'Configuração não encontrada' });
                 return;
