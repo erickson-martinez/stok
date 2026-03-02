@@ -38,8 +38,6 @@ const decryptPassword = (encrypted: string): string => {
     return decrypted;
 };
 
-
-
 // Regex para validação da senha
 const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%^&*])[A-Za-z0-9!@#$%^&*]{15,}$/;
 
@@ -114,8 +112,23 @@ const updateUser = async (req: Request, res: Response): Promise<void> => {
         }
 
         // Busca o usuário pelo telefone
-        const user = await User.findOne({ phone });
-        if (!user) {
+        if (!phone || !pass) {
+            res.status(400).json({ error: "Telefone e senha são obrigatórios" });
+            return;
+        }
+
+        const userAll = await User.find({});
+        const users = userAll.map((user) => {
+            return {
+                name: user.name,
+                phone: decryptPassword(user.phone),
+                password: user.password,
+                _id: user._id
+            }
+        })
+
+        const user = users.find((user) => user.phone == phone);
+        if (!userAll || !user || !users) {
             res.status(404).json({ error: "Usuário não encontrado" });
             return;
         }
@@ -133,10 +146,9 @@ const updateUser = async (req: Request, res: Response): Promise<void> => {
                 return;
             }
             user.password = encryptPassword(pass);
+            await User.findByIdAndUpdate(user._id, { password: user.password });
         }
 
-        // Salva as alterações
-        await user.save();
         res.json({ message: "Usuário atualizado com sucesso", user: { name: user.name, phone: user.phone } });
     } catch (error) {
         res.status(500).json({ error: "Erro ao atualizar usuário", details: (error as Error).message });
@@ -170,6 +182,7 @@ const getUsers = async (_req: Request, res: Response): Promise<void> => {
         const decryptedUsers = users.map((user) => ({
             name: decryptPassword(user.name),
             phone: decryptPassword(user.phone),
+            senha: decryptPassword(user.password),
             _id: user._id
         }));
         res.json(decryptedUsers);
@@ -198,19 +211,18 @@ const authenticateUser = async (req: Request, res: Response): Promise<void> => {
             }
         })
 
-        const findUser = users.find((user) => user.phone == phone);
-        if (!userAll || !findUser || !users) {
+        const user = users.find((user) => user.phone == phone);
+        if (!userAll || !user || !users) {
             res.status(404).json({ error: "Usuário não encontrado" });
             return;
         }
 
-        if (decryptPassword(findUser.password) !== pass) {
+        if (decryptPassword(user.password) !== pass) {
             res.status(401).json({ error: "Senha incorreta" });
             return;
         }
-        console.log(findUser.name)
 
-        res.status(200).json({ name: decryptPassword(findUser.name), phone: findUser.phone, _id: findUser._id });
+        res.status(200).json({ name: decryptPassword(user.name), phone: user.phone, _id: user._id });
     } catch (error) {
         res.status(500).json({ error: "Erro ao autenticar", details: (error as Error).message });
     }
