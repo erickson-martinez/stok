@@ -5,6 +5,7 @@ export interface ICompany extends Document {
     cnpj?: string;
     phone?: string;
     email?: string;
+    linkId?: string;
     address?: string;
     city?: string;
     state?: string;
@@ -18,9 +19,10 @@ export interface ICompany extends Document {
 const CompanySchema: Schema = new Schema({
     name: { type: String, required: true },
     cnpj: { type: String, unique: true, sparse: true },
-    phone: { type: String },
+    phone: { type: String, unique: true, sparse: true },
     email: { type: String },
     address: { type: String },
+    linkId: { type: String, unique: true, sparse: true }, // Campo para armazenar o linkId
     city: { type: String },
     state: { type: String },
     zipCode: { type: String },

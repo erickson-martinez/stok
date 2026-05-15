@@ -24,7 +24,7 @@ class CompanyController {
     // Criar nova empresa
     async createCompany(req: Request, res: Response): Promise<void> {
         try {
-            const { name, cnpj, phone, email, address, city, state, zipCode, status, owner } = req.body;
+            const { name, cnpj, phone, email, address, city, linkId, state, zipCode, status, owner } = req.body;
 
             // Validação básica
             if (!name) {
@@ -181,7 +181,7 @@ class CompanyController {
     async updateCompany(req: Request, res: Response): Promise<void> {
         try {
             const { id, status } = req.params;
-            const { name, cnpj, phone, email, address, city, state, zipCode } = req.body;
+            const { name, cnpj, phone, email, address, linkId, city, state, zipCode } = req.body;
 
             // Verificar se CNPJ já existe em outra empresa
             if (cnpj) {
