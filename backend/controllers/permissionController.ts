@@ -169,16 +169,16 @@ const permissionController = {
     // Atualizar permissões de um usuário (PATCH - atualização parcial)
     async updatePermissions(req: Request, res: Response): Promise<void> {
         try {
-            const { phone, add } = req.query;
+            const { userPhone, add } = req.query;
             const { permissions } = req.body;
 
             // Validar userPhone
-            if (!phone) {
+            if (!userPhone) {
                 res.status(400).json({ error: "userPhone é obrigatório" });
                 return;
             }
 
-            if (typeof phone !== "string" || phone.trim() === "") {
+            if (typeof userPhone !== "string" || userPhone.trim() === "") {
                 res.status(400).json({ error: "userPhone deve ser uma string válida" });
                 return;
             }
@@ -202,7 +202,7 @@ const permissionController = {
                 return;
             }
 
-            const targetPhone = String(phone).trim();
+            const targetPhone = String(userPhone).trim();
 
             // Buscar todos usuários e descriptografar
             const users = await User.find({}).lean();
@@ -216,14 +216,14 @@ const permissionController = {
             const encryptedPhone = userMap.get(targetPhone);
 
             if (!encryptedPhone) {
-                res.status(404).json({ error: `Usuário com telefone ${phone} não encontrado` });
+                res.status(404).json({ error: `Usuário com telefone ${userPhone} não encontrado` });
                 return;
             }
 
             let permissionDoc = await Permission.findOne({ userPhone: encryptedPhone });
 
             if (!permissionDoc) {
-                res.status(404).json({ error: `Permissões não encontradas para ${phone}` });
+                res.status(404).json({ error: `Permissões não encontradas para ${userPhone}` });
                 return;
             }
 
@@ -250,7 +250,7 @@ const permissionController = {
 
             res.status(200).json({
                 success: true,
-                message: `Permissões de ${phone} atualizadas com sucesso`,
+                message: `Permissões de ${userPhone} atualizadas com sucesso`,
                 userPhone: targetPhone,
                 permissions: permissionDoc.permissions,
             });
