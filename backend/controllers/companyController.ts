@@ -135,17 +135,8 @@ class CompanyController {
         try {
             const phone = req.params.phone || req.query.phone;
             const targetPhone = String(phone).trim();
-            const users = await User.find({}).lean();
-            const userMap = new Map<string, string>();
 
-            users.forEach(user => {
-                const plainPhone = decryptPhone(user.phone);
-                userMap.set(plainPhone, user.phone); // plain → encrypted
-            });
-
-            const encryptedPhone = userMap.get(targetPhone);
-
-            const companies = await Company.find({ owner: encryptedPhone });
+            const companies = await Company.findOne({ phone: targetPhone });
             res.status(200).json({
                 success: true,
                 companies,
