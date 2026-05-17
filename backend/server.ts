@@ -25,6 +25,7 @@ import OrdersController from './controllers/ordersController';
 import OrderClientController from './controllers/orderClientController';
 import barberController from "./controllers/barberController";
 import barberProductController from "./controllers/barberProductController";
+import barberServiceController from "./controllers/barberServiceController";
 
 dotenv.config();
 
@@ -199,6 +200,13 @@ app.put("/api/barber-products/:id", barberProductController.updateProduct);
 app.patch("/api/barber-products/:id/stock", barberProductController.updateStock);
 app.delete("/api/barber-products/:id", barberProductController.deleteProduct);
 
+// ── Barber Services ──────────────────────────────────────
+
+app.post("/api/barber-services", barberServiceController.createService);
+app.get("/api/barber-services", barberServiceController.getServices);
+app.get("/api/barber-services/:id", barberServiceController.getServiceById);
+app.put("/api/barber-services/:id", barberServiceController.updateService);
+app.delete("/api/barber-services/:id", barberServiceController.deleteService);
 
 // Rotas de pedidos
 app.post('/api/orders', OrdersController.createOrder);
