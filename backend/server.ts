@@ -23,7 +23,7 @@ import { ConfigController } from "./controllers/configController";
 import { ProductBurgerController } from "./controllers/productsBurgerController";
 import OrdersController from './controllers/ordersController';
 import OrderClientController from './controllers/orderClientController';
-
+import barberController from "./controllers/barberController";
 
 dotenv.config();
 
@@ -182,6 +182,14 @@ app.get('/api/products/burgers', ProductBurgerController.getAllProductsBurger);
 app.get('/api/products/burgers/:id', ProductBurgerController.getProductBurgerById);
 app.put('/api/products/burgers/:id', ProductBurgerController.updateProductBurger);
 app.delete('/api/products/burgers/:id', ProductBurgerController.deleteProductBurger);
+
+// Rotas de barbeiros
+app.post("/api/barbers", barberController.createBarber);
+app.get("/api/barbers", barberController.getBarbers);
+app.get("/api/barbers/:id", barberController.getBarberById);
+app.put("/api/barbers/:id", barberController.updateBarber);
+app.delete("/api/barbers/:id", barberController.deleteBarber);
+
 
 // Rotas de pedidos
 app.post('/api/orders', OrdersController.createOrder);
