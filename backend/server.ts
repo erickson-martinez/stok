@@ -26,6 +26,7 @@ import OrderClientController from './controllers/orderClientController';
 import barberController from "./controllers/barberController";
 import barberProductController from "./controllers/barberProductController";
 import barberServiceController from "./controllers/barberServiceController";
+import appointmentBarberController from "./controllers/appointmentBarberController";
 
 dotenv.config();
 
@@ -200,8 +201,16 @@ app.put("/api/barber-products/:id", barberProductController.updateProduct);
 app.patch("/api/barber-products/:id/stock", barberProductController.updateStock);
 app.delete("/api/barber-products/:id", barberProductController.deleteProduct);
 
-// ── Barber Services ──────────────────────────────────────
+// ── Appointment Barber ──────────────────────────────────
+app.post("/api/appointment-barbers", appointmentBarberController.createAppointment);
+app.get("/api/appointment-barbers", appointmentBarberController.getAppointments);
+app.get("/api/appointment-barbers/:id", appointmentBarberController.getAppointmentById);
+app.put("/api/appointment-barbers/:id", appointmentBarberController.updateAppointment);
+app.patch("/api/appointment-barbers/:id/status", appointmentBarberController.updateStatus);
+app.patch("/api/appointment-barbers/:id/cancel", appointmentBarberController.cancelAppointment);
+app.delete("/api/appointment-barbers/:id", appointmentBarberController.deleteAppointment);
 
+// ── Barber Services ──────────────────────────────────────
 app.post("/api/barber-services", barberServiceController.createService);
 app.get("/api/barber-services", barberServiceController.getServices);
 app.get("/api/barber-services/:id", barberServiceController.getServiceById);
