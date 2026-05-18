@@ -2,35 +2,22 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IAppointmentBarber extends Document {
     clienteNome: string;
-
     clienteTelefone: string;
-
     barbeiroId: string;
-
     servicosIds: string[];
-
     produtosIds: string[];
-
     dataAgendada: Date;
-
     horarios: string[];
-
     status:
     | "pendente"
     | "atendendo"
     | "concluido"
     | "cancelado";
-
     quantidadePessoas: number;
-
     nomesAcompanhantes?: string;
-
     valorTotalPrevisto: number;
-
     linkId: string;
-
     createdAt: Date;
-
     updatedAt: Date;
 }
 

@@ -90,6 +90,7 @@ class RhController {
             const newLink = await Employee.create({
                 userPhone: encryptedPhone,
                 companyName: company.name,
+                linkId: company.linkId,
                 company: empresaId,
                 role: "funcionario",           // ou vem do body se quiser
                 status: "ativo",               // ou "pendente" se preferir aprovação
