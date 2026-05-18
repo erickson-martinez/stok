@@ -3,6 +3,7 @@ import mongoose, { Schema, Document, Types } from "mongoose";
 export interface IEmployee extends Document {
     userPhone: string;           // telefone criptografado (FK → User.phone)
     company: Types.ObjectId;     // referência à empresa
+    linkId: string;              // ID do vínculo
     role?: string;               // "admin", "rh", "funcionario", "gerente", etc.
     status: "ativo" | "inativo" | "pendente";
     admittedAt?: Date;
@@ -22,6 +23,10 @@ const EmployeeSchema = new Schema<IEmployee>(
             ref: "Company",
             required: true,
             index: true,
+        },
+        linkId: {
+            type: String,
+            required: true,
         },
         role: {
             type: String,
