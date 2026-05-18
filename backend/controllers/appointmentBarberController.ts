@@ -8,7 +8,6 @@ const createAppointment = async (
 ): Promise<void> => {
     try {
         const {
-            clienteNome,
             clienteTelefone,
             dataAgendada,
             horarios,
@@ -54,6 +53,7 @@ const createAppointment = async (
         await appointment.save();
 
         res.status(201).json(appointment);
+
     } catch (error) {
         res.status(500).json({
             error: "Erro ao criar agendamento",
