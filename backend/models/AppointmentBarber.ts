@@ -11,7 +11,8 @@ export interface IAppointmentBarber extends Document {
     status:
     | "pendente"
     | "atendendo"
-    | "concluido"
+    | "finalizado"
+    | "pago"
     | "cancelado";
     quantidadePessoas: number;
     nomesAcompanhantes?: string;
