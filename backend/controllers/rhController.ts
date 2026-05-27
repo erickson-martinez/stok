@@ -23,7 +23,7 @@ class RhController {
     // POST /rh/link-user
     async linkUserToCompany(req: Request, res: Response): Promise<void> {
         try {
-            const { userPhone: plainUserPhone, empresaId } = req.body;
+            const { userPhone: plainUserPhone, empresaId, role } = req.body;
 
             if (!plainUserPhone || !empresaId) {
                 res.status(400).json({ error: "userPhone e empresaId são obrigatórios" });
@@ -92,7 +92,7 @@ class RhController {
                 companyName: company.name,
                 linkId: company.linkId,
                 company: empresaId,
-                role: "funcionario",           // ou vem do body se quiser
+                role: role || "funcionario",           // ou vem do body se quiser
                 status: "ativo",               // ou "pendente" se preferir aprovação
                 admittedAt: new Date(),
             });
