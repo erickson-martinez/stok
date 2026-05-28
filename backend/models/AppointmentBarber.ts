@@ -17,6 +17,7 @@ export interface IAppointmentBarber extends Document {
     quantidadePessoas: number;
     nomesAcompanhantes?: string;
     valorTotalPrevisto: number;
+    tipoPagamento?: string[];
     linkId: string;
     createdAt: Date;
     updatedAt: Date;
@@ -44,6 +45,11 @@ const AppointmentBarberSchema: Schema = new Schema(
                 type: String,
             },
         ],
+
+        descricaoServicos: {
+            type: String,
+            default: "",
+        },
 
         produtosIds: [
             {
@@ -76,8 +82,9 @@ const AppointmentBarberSchema: Schema = new Schema(
             enum: [
                 "pendente",
                 "atendendo",
-                "concluido",
+                "finalizado",
                 "cancelado",
+                "pago",
             ],
 
             default: "pendente",
@@ -97,7 +104,9 @@ const AppointmentBarberSchema: Schema = new Schema(
             type: Number,
             default: 0,
         },
-
+        tipoPagamento: {
+            type: [String],
+        },
         linkId: {
             type: String,
             required: true,

@@ -5,17 +5,21 @@ export interface IAppointmentBarber {
     clienteTelefone: string;
     barbeiroId: string;
     servicosIds: string[];
+    descricaoServicos?: string;
     produtosIds: string[];
     dataAgendada: string;
     horarios: string[];
     status:
     | "pendente"
     | "atendendo"
-    | "concluido"
-    | "cancelado";
+    | "finalizado"
+    | "cancelado"
+    | "pago"
+    ;
     quantidadePessoas: number;
     nomesAcompanhantes?: string;
     valorTotalPrevisto: number;
+    tipoPagamento?: string[];
     linkId: string;
     createdAt?: Date;
     updatedAt?: Date;

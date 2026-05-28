@@ -167,7 +167,7 @@ const updateStatus = async (
     try {
         const { id } = req.params;
 
-        const { status } = req.body;
+        const { status, tipoPagamento, descricaoServicos } = req.body;
 
         if (!status) {
             res.status(400).json({
@@ -177,12 +177,34 @@ const updateStatus = async (
             return;
         }
 
+        let updateData: Partial<{ status: string; tipoPagamento?: string[], descricaoServicos?: string }> = {
+            status,
+        };
+
+        if (status === "finalizado" && descricaoServicos.length === 0) {
+            res.status(400).json({
+                error: "Informe informações sobre os serviços realizados para finalizar o agendamento.",
+            });
+
+            return;
+        } else if (status === "finalizado" && descricaoServicos.length > 0) {
+            updateData.descricaoServicos = descricaoServicos;
+        }
+
+        if (status === "pago" && (!tipoPagamento || !tipoPagamento.length)) {
+            res.status(400).json({
+                error: "Tipo de pagamento é obrigatório para status pago",
+            });
+
+            return;
+        } else if (status === "pago" && tipoPagamento && tipoPagamento.length) {
+            updateData.tipoPagamento = tipoPagamento;
+        }
+
         const updatedAppointment =
             await AppointmentBarber.findByIdAndUpdate(
                 id,
-                {
-                    status,
-                },
+                updateData,
                 {
                     new: true,
                 }
