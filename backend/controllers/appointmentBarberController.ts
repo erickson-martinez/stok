@@ -177,27 +177,51 @@ const updateStatus = async (
             return;
         }
 
-        let updateData: Partial<{ status: string; tipoPagamento?: string[], descricaoServicos?: string }> = {
+        let updateData: Partial<{
+            status: string;
+            tipoPagamento?: string[];
+            descricaoServicos?: string;
+        }> = {
             status,
         };
 
-        if (status === "finalizado" && descricaoServicos.length === 0) {
+        // FINALIZADO
+        if (
+            status === "finalizado" &&
+            (!descricaoServicos || descricaoServicos.trim().length === 0)
+        ) {
             res.status(400).json({
                 error: "Informe informações sobre os serviços realizados para finalizar o agendamento.",
             });
 
             return;
-        } else if (status === "finalizado" && descricaoServicos.length > 0) {
+        }
+
+        if (
+            status === "finalizado" &&
+            descricaoServicos &&
+            descricaoServicos.trim().length > 0
+        ) {
             updateData.descricaoServicos = descricaoServicos;
         }
 
-        if (status === "pago" && (!tipoPagamento || !tipoPagamento.length)) {
+        // PAGO
+        if (
+            status === "pago" &&
+            (!tipoPagamento || tipoPagamento.length === 0)
+        ) {
             res.status(400).json({
                 error: "Tipo de pagamento é obrigatório para status pago",
             });
 
             return;
-        } else if (status === "pago" && tipoPagamento && tipoPagamento.length) {
+        }
+
+        if (
+            status === "pago" &&
+            tipoPagamento &&
+            tipoPagamento.length > 0
+        ) {
             updateData.tipoPagamento = tipoPagamento;
         }
 
@@ -222,6 +246,7 @@ const updateStatus = async (
             message: "Status atualizado com sucesso",
             appointment: updatedAppointment,
         });
+
     } catch (error) {
         res.status(500).json({
             error: "Erro ao atualizar status",
