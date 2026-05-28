@@ -167,9 +167,17 @@ const updateStatus = async (
     try {
         const { id } = req.params;
 
-        const { status, tipoPagamento, descricaoServicos } = req.body;
+        const {
+            status,
+            tipoPagamento,
+            descricaoServicos,
+        } = req.body;
 
-        if (!status) {
+        // STATUS OBRIGATÓRIO
+        if (
+            typeof status !== "string" ||
+            status.trim().length === 0
+        ) {
             res.status(400).json({
                 error: "Status é obrigatório",
             });
@@ -182,48 +190,57 @@ const updateStatus = async (
             tipoPagamento?: string[];
             descricaoServicos?: string;
         }> = {
-            status,
+            status: status.trim(),
         };
 
         // FINALIZADO
-        if (
-            status === "finalizado" &&
-            (!descricaoServicos || descricaoServicos.trim().length === 0)
-        ) {
-            res.status(400).json({
-                error: "Informe informações sobre os serviços realizados para finalizar o agendamento.",
-            });
+        if (status === "finalizado") {
 
-            return;
-        }
+            const descricaoValida =
+                typeof descricaoServicos === "string" &&
+                descricaoServicos.trim().length > 0;
 
-        if (
-            status === "finalizado" &&
-            descricaoServicos &&
-            descricaoServicos.trim().length > 0
-        ) {
-            updateData.descricaoServicos = descricaoServicos;
+            if (!descricaoValida) {
+                res.status(400).json({
+                    error:
+                        "Informe informações sobre os serviços realizados para finalizar o agendamento.",
+                });
+
+                return;
+            }
+
+            updateData.descricaoServicos =
+                descricaoServicos.trim();
         }
 
         // PAGO
-        if (
-            status === "pago" &&
-            (!tipoPagamento || tipoPagamento.length === 0)
-        ) {
-            res.status(400).json({
-                error: "Tipo de pagamento é obrigatório para status pago",
-            });
+        if (status === "pago") {
 
-            return;
+            const pagamentoValido =
+                Array.isArray(tipoPagamento) &&
+                tipoPagamento.length > 0 &&
+                tipoPagamento.every(
+                    (item) =>
+                        typeof item === "string" &&
+                        item.trim().length > 0
+                );
+
+            if (!pagamentoValido) {
+                res.status(400).json({
+                    error:
+                        "Tipo de pagamento é obrigatório para status pago",
+                });
+
+                return;
+            }
+
+            updateData.tipoPagamento =
+                tipoPagamento.map((item) =>
+                    item.trim()
+                );
         }
 
-        if (
-            status === "pago" &&
-            tipoPagamento &&
-            tipoPagamento.length > 0
-        ) {
-            updateData.tipoPagamento = tipoPagamento;
-        }
+        console.log("UPDATE:", updateData);
 
         const updatedAppointment =
             await AppointmentBarber.findByIdAndUpdate(
@@ -248,6 +265,8 @@ const updateStatus = async (
         });
 
     } catch (error) {
+        console.error(error);
+
         res.status(500).json({
             error: "Erro ao atualizar status",
             details: (error as Error).message,
