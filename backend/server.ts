@@ -5,6 +5,8 @@ import dotenv from "dotenv";
 
 // Controllers
 import UserController from "./controllers/userController";
+import costController from "./controllers/costController";
+import companyConfigController from "./controllers/companyConfigController";
 //import whatsappRouter from './routes/whatsappRouter';
 import stockController from "./controllers/stockController";   // Sistema antigo
 import transactionController from "./controllers/transactionController"; // Novo sistema independente
@@ -170,6 +172,33 @@ app.delete("/rh/unlink/:linkId", rhController.unlinkUser);
 app.patch("/rh/link/:linkId/status", rhController.updateLinkStatus);
 app.get("/rh/user/companies", rhController.getUserCompanies);
 
+// ── Costs ───────────────────────────────────────────────
+
+app.post(
+    "/api/costs",
+    costController.createCost
+);
+
+app.get(
+    "/api/costs",
+    costController.getCosts
+);
+
+app.get(
+    "/api/costs/:id",
+    costController.getCostById
+);
+
+app.put(
+    "/api/costs/:id",
+    costController.updateCost
+);
+
+app.delete(
+    "/api/costs/:id",
+    costController.deleteCost
+);
+
 // Rotas de configuração
 app.post('/api/config', ConfigController.createConfig);
 app.get('/api/config/:phone', ConfigController.getConfig);
@@ -229,6 +258,19 @@ app.patch('/api/orders/:id/status/:name?', OrdersController.updateOrderStatus);
 app.patch('/api/orders/:id/payment', OrdersController.updateOrderPayment);
 app.delete('/api/orders/:id', OrdersController.deleteOrder);
 
+// ── Company Config ──────────────────────────────────────
+app.get(
+    "/api/company-config/:linkId",
+    companyConfigController.getConfig
+);
+app.put(
+    "/api/company-config/:linkId",
+    companyConfigController.upsertConfig
+);
+app.delete(
+    "/api/company-config/:linkId",
+    companyConfigController.deleteConfig
+);
 
 // Rotas de pedidos do cliente
 app.get('/api/client', OrderClientController.getClientOrder);
