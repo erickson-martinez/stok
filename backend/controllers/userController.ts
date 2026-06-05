@@ -101,7 +101,7 @@ const createUser = async (req: Request, res: Response): Promise<void> => {
 // Atualizar usuário
 const updateUser = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { phone } = req.params; // Identifica o usuário pelo telefone
+        const { idEmail } = req.params; // Identifica o usuário pelo telefone
         const { name, pass } = req.body;
 
         // Verifica se há algo para atualizar
@@ -111,23 +111,13 @@ const updateUser = async (req: Request, res: Response): Promise<void> => {
         }
 
         // Busca o usuário pelo telefone
-        if (!phone || !pass) {
+        if (!idEmail || !pass) {
             res.status(400).json({ error: "Telefone e senha são obrigatórios" });
             return;
         }
 
-        const userAll = await User.find({});
-        const users = userAll.map((user) => {
-            return {
-                name: user.name,
-                phone: decryptPassword(user.phone),
-                password: user.password,
-                _id: user._id
-            }
-        })
-
-        const user = users.find((user) => user.phone == phone);
-        if (!userAll || !user || !users) {
+        const user = await User.findOne({ idEmail: idEmail });
+        if (!user) {
             res.status(404).json({ error: "Usuário não encontrado" });
             return;
         }

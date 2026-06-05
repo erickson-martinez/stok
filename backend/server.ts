@@ -67,11 +67,11 @@ mongoose.connect(mongoUri)
 //app.use('/whatsapp', whatsappRouter);
 
 // ── Usuários ─────────────────────────────────────────────────────────
-app.get("/user/:phone?", UserController.getUser);
+app.get("/user/:idEmail?", UserController.getUser);
 app.get("/users", UserController.getUsers);
 app.post("/users", UserController.createUser);
 app.post("/users/auth", UserController.authenticateUser);
-app.patch("/users/:phone", UserController.updateUser);
+app.patch("/users/:idEmail", UserController.updateUser);
 
 // ── Estoque / Produtos ───────────────────────────────────────────────
 app.get("/products/:idUser", stockController.getProducts);
@@ -156,7 +156,7 @@ app.delete("/companies/:id", companyController.deleteCompany);
 app.post("/permissions", permissionController.createPermission);
 app.get("/permissions", permissionController.getPermissions);
 app.patch("/permissions", permissionController.updatePermissions);
-app.delete("/permissions/:userPhone", permissionController.deletePermissions);
+app.delete("/permissions/:idEmail", permissionController.deletePermissions);
 
 app.post('/work-records/clock-in', workRecordController.clockIn);
 app.patch('/work-records/:id/clock-out', workRecordController.clockOut);
