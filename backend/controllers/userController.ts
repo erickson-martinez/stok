@@ -70,10 +70,10 @@ const validatePassword = (password: string): { isValid: boolean; error?: string 
 // Criar um novo usuário
 const createUser = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { name, pass, phone } = req.body;
+        const { name, pass, phone, idEmail, email } = req.body;
 
-        if (!name || !pass || !phone) {
-            res.status(400).json({ error: "Nome, senha e telefone são obrigatórios" });
+        if (!name || !pass || !phone || !idEmail || !email) {
+            res.status(400).json({ error: "Nome, senha, telefone, ID do email e email são obrigatórios" });
             return;
         }
 
@@ -83,13 +83,12 @@ const createUser = async (req: Request, res: Response): Promise<void> => {
             return;
         }
 
-        const encryptedPassword = encryptPassword(pass);
-        const encryptedPhone = encryptPassword(phone);
-        const encryptedName = encryptPassword(name);
         const user = new User({
-            name: encryptedName,
-            password: encryptedPassword,
-            phone: encryptedPhone,
+            name: encryptPassword(name),
+            password: encryptPassword(pass),
+            phone: encryptPassword(phone),
+            idEmail: idEmail,
+            email: encryptPassword(email),
         });
 
         await user.save();
@@ -159,15 +158,15 @@ const updateUser = async (req: Request, res: Response): Promise<void> => {
 
 const getUser = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { phone } = req.query;
-        const user = await User.findOne({ phone: phone })
+        const { idEmail } = req.query;
+        const user = await User.findOne({ idEmail: idEmail })
 
         if (!user) {
             res.status(404).json({ error: "Usuário não encontrado" });
             return;
         }
 
-        const decryptedUser = { name: decryptPassword(user.name), phone: decryptPassword(user.phone), _id: user._id };
+        const decryptedUser = { name: decryptPassword(user.name), phone: decryptPassword(user.phone), _id: user._id, email: decryptPassword(user.email) };
 
         res.json(decryptedUser);
 
@@ -183,6 +182,8 @@ const getUsers = async (_req: Request, res: Response): Promise<void> => {
             name: decryptPassword(user.name),
             phone: decryptPassword(user.phone),
             senha: decryptPassword(user.password),
+            email: decryptPassword(user.email),
+            idEmail: decryptPassword(user.idEmail),
             _id: user._id
         }));
         res.json(decryptedUsers);
