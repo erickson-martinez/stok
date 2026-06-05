@@ -7,7 +7,7 @@ export type TransactionStatus = 'pendente' | 'pago' | 'nao_pago' | 'parcial' | '
 
 export interface ITransaction {
     _id?: Types.ObjectId;
-
+    idEmail: string;                    // Email do usuário dono da transação (para indexação e controle de acesso)
     ownerPhone: string;                // Telefone criptografado do dono da transação
     type: TransactionType;
     name: string;
@@ -15,11 +15,11 @@ export interface ITransaction {
     date: Date;                        // Data de referência/vencimento
     isControlled: boolean;
     controlId?: string;
-    counterpartyPhone?: string;
+    counterpartyEmail?: string;
     status: TransactionStatus;
     paidAmount?: number;
     notes?: string;
-
+    emailShare?: string;
     // Campos de compartilhamento / acompanhamento
     sharerPhone?: string;
     aggregate?: boolean;

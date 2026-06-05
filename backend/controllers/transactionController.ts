@@ -6,7 +6,7 @@ const transactionController = {
     async createSimple(req: Request, res: Response): Promise<void> {
         try {
             const {
-                ownerPhone,
+                idEmail,
                 type,
                 name,
                 amount,
@@ -15,8 +15,8 @@ const transactionController = {
                 notes,
             } = req.body;
 
-            if (!ownerPhone || !type || !name || amount == null || !date) {
-                res.status(400).json({ error: 'Campos obrigatórios: ownerPhone, type, name, amount, date' });
+            if (!idEmail || !type || !name || amount == null || !date) {
+                res.status(400).json({ error: 'Campos obrigatórios: idEmail, type, name, amount, date' });
                 return;
             }
 
@@ -31,7 +31,7 @@ const transactionController = {
             }
 
             const transaction = new Transaction({
-                ownerPhone: ownerPhone,
+                idEmail: idEmail,
                 type,
                 name: name.trim(),
                 amount: Number(amount),
@@ -46,9 +46,9 @@ const transactionController = {
 
             const responseTransaction = {
                 ...transaction.toObject(),
-                ownerPhone: ownerPhone,
-                counterpartyPhone: transaction.counterpartyPhone || undefined,
-                sharerPhone: transaction.sharerPhone || undefined,
+                idEmail: idEmail,
+                counterpartyEmail: transaction.counterpartyEmail || undefined,
+                emailShare: transaction.emailShare || undefined,
             };
 
             res.status(201).json({
@@ -64,22 +64,22 @@ const transactionController = {
     async createControlled(req: Request, res: Response): Promise<void> {
         try {
             const {
-                ownerPhone,
-                counterpartyPhone,
+                idEmail,
+                counterpartyEmail,
                 name,
                 amount,
                 date,
                 notes,
                 type
             } = req.body;
-            if (!ownerPhone || !counterpartyPhone || !name || amount == null || !date) {
+            if (!idEmail || !counterpartyEmail || !name || amount == null || !date) {
                 res.status(400).json({
-                    error: 'Campos obrigatórios: ownerPhone, counterpartyPhone, name, amount, date'
+                    error: 'Campos obrigatórios: idEmail, counterpartyEmail, name, amount, date'
                 });
                 return;
             }
 
-            if (ownerPhone === counterpartyPhone) {
+            if (idEmail === counterpartyEmail) {
                 res.status(400).json({ error: 'Não é permitido criar cobrança para o mesmo usuário' });
                 return;
             }
@@ -94,28 +94,28 @@ const transactionController = {
 
             if (type === 'revenue') {
                 const mySide = new Transaction({
-                    ownerPhone: ownerPhone,
+                    idEmail: idEmail,
                     type: 'revenue',
                     name: name.trim(),
                     amount: Number(amount),
                     date: transactionDate,
                     isControlled: true,
                     controlId,
-                    counterpartyPhone: counterpartyPhone,
+                    counterpartyEmail: counterpartyEmail,
                     status: 'nao_pago',
                     paidAmount: 0,
                     notes: notes ? String(notes).trim() : undefined,
                 });
 
                 const counterpartySide = new Transaction({
-                    ownerPhone: counterpartyPhone,
+                    idEmail: idEmail,
                     type: 'expense',
                     name: name.trim(),
                     amount: Number(amount),
                     date: transactionDate,
                     isControlled: true,
                     controlId,
-                    counterpartyPhone: ownerPhone,
+                    counterpartyEmail: counterpartyEmail,
                     status: 'nao_pago',
                     paidAmount: 0,
                     notes: notes ? String(notes).trim() : undefined,
@@ -124,14 +124,14 @@ const transactionController = {
                 await Promise.all([mySide.save(), counterpartySide.save()]);
                 const responseMySide = {
                     ...mySide.toObject(),
-                    ownerPhone: ownerPhone,
-                    counterpartyPhone: counterpartyPhone,
+                    idEmail: idEmail,
+                    counterpartyEmail: counterpartyEmail,
                 };
 
                 const responseCounterSide = {
                     ...counterpartySide.toObject(),
-                    ownerPhone: counterpartySide.ownerPhone,
-                    counterpartyPhone: counterpartySide.counterpartyPhone || '',
+                    idEmail: counterpartySide.idEmail,
+                    counterpartyEmail: counterpartySide.counterpartyEmail || '',
                 };
 
                 res.status(201).json({
@@ -142,28 +142,28 @@ const transactionController = {
                 });
             } else {
                 const mySide = new Transaction({
-                    ownerPhone: ownerPhone,
+                    idEmail: idEmail,
                     type: 'expense',
                     name: name.trim(),
                     amount: Number(amount),
                     date: transactionDate,
                     isControlled: true,
                     controlId,
-                    counterpartyPhone: counterpartyPhone,
+                    counterpartyEmail: counterpartyEmail,
                     status: 'nao_pago',
                     paidAmount: 0,
                     notes: notes ? String(notes).trim() : undefined,
                 });
 
                 const counterpartySide = new Transaction({
-                    ownerPhone: counterpartyPhone,
+                    idEmail: idEmail,
                     type: 'revenue',
                     name: name.trim(),
                     amount: Number(amount),
                     date: transactionDate,
                     isControlled: true,
                     controlId,
-                    counterpartyPhone: ownerPhone,
+                    counterpartyEmail: counterpartyEmail,
                     status: 'nao_pago',
                     paidAmount: 0,
                     notes: notes ? String(notes).trim() : undefined,
@@ -172,14 +172,14 @@ const transactionController = {
                 await Promise.all([mySide.save(), counterpartySide.save()]);
                 const responseMySide = {
                     ...mySide.toObject(),
-                    ownerPhone: mySide.ownerPhone,
-                    counterpartyPhone: mySide.counterpartyPhone || '',
+                    idEmail: mySide.idEmail,
+                    counterpartyEmail: mySide.counterpartyEmail || '',
                 };
 
                 const responseCounterSide = {
                     ...counterpartySide.toObject(),
                     ownerPhone: counterpartySide.ownerPhone,
-                    counterpartyPhone: counterpartySide.counterpartyPhone || '',
+                    counterpartyEmail: counterpartySide.counterpartyEmail || '',
                 };
                 res.status(201).json({
                     message: 'Cobrança criada com sucesso',
@@ -200,10 +200,10 @@ const transactionController = {
 
     async updatePaymentStatus(req: Request, res: Response): Promise<void> {
         try {
-            const { transactionId, ownerPhone, status, paidAmount } = req.body;
+            const { transactionId, ownerPhone, idEmail, status, paidAmount } = req.body;
 
-            if (!transactionId || !ownerPhone || !status) {
-                res.status(400).json({ error: 'Campos obrigatórios: transactionId, ownerPhone, status' });
+            if (!transactionId || !ownerPhone || !idEmail || !status) {
+                res.status(400).json({ error: 'Campos obrigatórios: transactionId, ownerPhone, idEmail, status' });
                 return;
             }
 
@@ -213,7 +213,7 @@ const transactionController = {
                 return;
             }
 
-            if (transaction.ownerPhone !== ownerPhone) {
+            if (transaction.ownerPhone !== ownerPhone || transaction.idEmail !== idEmail) {
                 res.status(403).json({ error: 'Você não tem permissão para alterar esta transação' });
                 return;
             }
@@ -252,8 +252,8 @@ const transactionController = {
             const response = {
                 ...transaction.toObject(),
                 ownerPhone: transaction.ownerPhone,
-                counterpartyPhone: transaction.counterpartyPhone || undefined,
-                sharerPhone: transaction.sharerPhone || undefined,
+                counterpartyEmail: transaction.counterpartyEmail || undefined,
+                emailShare: transaction.emailShare || undefined,
             };
 
             res.json({
@@ -268,10 +268,10 @@ const transactionController = {
 
     async markStatus(req: Request, res: Response): Promise<void> {
         try {
-            const { transactionId, ownerPhone, status } = req.body;
+            const { transactionId, idEmail, status } = req.body;
 
-            if (!transactionId || !ownerPhone || !status) {
-                res.status(400).json({ error: 'Campos obrigatórios: transactionId, ownerPhone, status' });
+            if (!transactionId || !idEmail || !status) {
+                res.status(400).json({ error: 'Campos obrigatórios: transactionId, idEmail, status' });
                 return;
             }
 
@@ -290,7 +290,7 @@ const transactionController = {
                 return;
             }
 
-            if (transaction.ownerPhone !== ownerPhone) {
+            if (transaction.idEmail !== idEmail) {
                 res.status(403).json({ error: 'Você não tem permissão para alterar esta transação' });
                 return;
             }
@@ -316,8 +316,8 @@ const transactionController = {
             const response = {
                 ...transaction.toObject(),
                 ownerPhone: transaction.ownerPhone,
-                counterpartyPhone: transaction.counterpartyPhone || undefined,
-                sharerPhone: transaction.sharerPhone || undefined,
+                counterpartyEmail: transaction.counterpartyEmail || undefined,
+                emailShare: transaction.emailShare || undefined,
             };
 
             res.json({
@@ -332,10 +332,10 @@ const transactionController = {
 
     async listTransactions(req: Request, res: Response): Promise<void> {
         try {
-            const { phone, includeShared, status, month, year } = req.query;
+            const { idEmail, includeShared, emailShare, status, month, year } = req.query;
 
-            if (!phone) {
-                res.status(400).json({ error: 'Parâmetro phone é obrigatório' });
+            if (!idEmail) {
+                res.status(400).json({ error: 'Parâmetro obrigatório: idEmail' });
                 return;
             }
 
@@ -356,7 +356,7 @@ const transactionController = {
             const endDate = new Date(yearNum, monthNum + 1, 0, 23, 59, 59, 999);
 
             const query: any = {
-                ownerPhone: phone,
+                idEmail: idEmail,
                 date: { $gte: startDate, $lte: endDate }
             };
 
@@ -368,7 +368,7 @@ const transactionController = {
 
             if (includeShared) {
                 const shared = await Transaction.find({
-                    sharerPhone: phone,
+                    emailShare: emailShare,
                     date: { $gte: startDate, $lte: endDate }
                 })
                     .sort({ date: -1 })
@@ -379,9 +379,9 @@ const transactionController = {
 
             const responseTransactions = transactions.map(tx => ({
                 ...tx,
-                ownerPhone: tx.ownerPhone,
-                counterpartyPhone: tx.counterpartyPhone || undefined,
-                sharerPhone: tx.sharerPhone || undefined,
+                idEmail: tx.idEmail,
+                counterpartyEmail: tx.counterpartyEmail || undefined,
+                emailShare: tx.emailShare || undefined,
             }));
 
             const totalRevenue = transactions
@@ -403,7 +403,7 @@ const transactionController = {
             const monthlyBalance = paidRevenue - paidExpense;
 
             const accumulatedQuery = {
-                ownerPhone: phone,
+                idEmail: idEmail,
                 date: { $lt: startDate }
             };
 
@@ -443,25 +443,25 @@ const transactionController = {
 
     async followUser(req: Request, res: Response): Promise<void> {
         try {
-            const { myPhone, targetPhone, aggregate } = req.body;
+            const { idEmail, emailShare, aggregate } = req.body;
 
-            if (!myPhone || !targetPhone) {
-                res.status(400).json({ error: 'myPhone e targetPhone são obrigatórios' });
+            if (!idEmail || !emailShare) {
+                res.status(400).json({ error: 'idEmail e emailShare são obrigatórios' });
                 return;
             }
 
-            if (myPhone === targetPhone) {
+            if (idEmail === emailShare) {
                 res.status(400).json({ error: 'Não é possível seguir a si mesmo' });
                 return;
             }
 
             const result = await Transaction.updateMany(
-                { ownerPhone: myPhone },
-                { $set: { sharerPhone: targetPhone, aggregate } }
+                { idEmail: idEmail },
+                { $set: { emailShare: emailShare, aggregate } }
             );
 
             res.json({
-                message: `Agora você acompanha as transações de ${targetPhone}`,
+                message: `Agora você acompanha as transações de ${emailShare}`,
                 modifiedCount: result.modifiedCount,
             });
         } catch (error: any) {
@@ -474,7 +474,7 @@ const transactionController = {
         try {
             const { transactionId } = req.params;
             const {
-                ownerPhone,
+                idEmail,
                 name,
                 amount,
                 date,
@@ -482,14 +482,14 @@ const transactionController = {
                 notes,           // opcional
             } = req.body;
 
-            if (!transactionId || !ownerPhone) {
-                res.status(400).json({ error: 'transactionId e ownerPhone são obrigatórios' });
+            if (!transactionId || !idEmail) {
+                res.status(400).json({ error: 'transactionId e idEmail são obrigatórios' });
                 return;
             }
 
             const transaction = await Transaction.findOne({
                 _id: transactionId,
-                ownerPhone: ownerPhone,
+                idEmail: idEmail,
             });
 
             if (!transaction) {
@@ -611,9 +611,9 @@ const transactionController = {
 
             const response = {
                 ...transaction.toObject(),
-                ownerPhone: transaction.ownerPhone,
-                counterpartyPhone: transaction.counterpartyPhone || undefined,
-                sharerPhone: transaction.sharerPhone || undefined,
+                idEmail: transaction.idEmail,
+                counterpartyEmail: transaction.counterpartyEmail || undefined,
+                emailShare: transaction.emailShare || undefined,
             };
 
             res.json({
@@ -720,8 +720,8 @@ const transactionController = {
             const response = {
                 ...transaction.toObject(),
                 ownerPhone: transaction.ownerPhone,
-                counterpartyPhone: transaction.counterpartyPhone || undefined,
-                sharerPhone: transaction.sharerPhone || undefined,
+                counterpartyEmail: transaction.counterpartyEmail || undefined,
+                emailShare: transaction.emailShare || undefined,
             };
 
             res.json({
@@ -804,8 +804,8 @@ const transactionController = {
             const response = {
                 ...transaction.toObject(),
                 ownerPhone: transaction.ownerPhone,
-                counterpartyPhone: transaction.counterpartyPhone || undefined,
-                sharerPhone: transaction.sharerPhone || undefined,
+                counterpartyEmail: transaction.counterpartyEmail || undefined,
+                emailShare: transaction.emailShare || undefined,
             };
 
             res.json({

@@ -154,7 +154,7 @@ app.delete("/companies/:id", companyController.deleteCompany);
 
 // Permissões (Configurações de Acesso)
 app.post("/permissions", permissionController.createPermission);
-app.get("/permissions", permissionController.getPermissions);
+app.get("/permissions/:idEmail?", permissionController.getPermissions);
 app.patch("/permissions", permissionController.updatePermissions);
 app.delete("/permissions/:idEmail", permissionController.deletePermissions);
 

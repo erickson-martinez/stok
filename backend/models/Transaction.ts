@@ -44,7 +44,17 @@ const transactionSchema = new Schema<ITransaction & Document>(
             index: true,
         },
 
-        counterpartyPhone: {
+        counterpartyEmail: {
+            type: String,
+            sparse: true,
+        },
+        idEmail: {
+            type: String,
+            required: true,
+            index: true,
+        },
+
+        emailShare: {
             type: String,
             sparse: true,
         },
