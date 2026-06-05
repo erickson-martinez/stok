@@ -352,12 +352,15 @@ const transactionController = {
                 return;
             }
 
-            const startDate = new Date(yearNum, monthNum, 1);
-            const endDate = new Date(yearNum, monthNum + 1, 0, 23, 59, 59, 999);
+            const startDate = new Date(Date.UTC(yearNum, monthNum, 0, 0, 0, 0, 0));
+            const endDate = new Date(Date.UTC(yearNum, monthNum + 1, 0, 23, 59, 59, 999));
 
             const query: any = {
                 idEmail: idEmail,
-                date: { $gte: startDate, $lte: endDate }
+                date: {
+                    $gte: startDate, // Inclui o início do primeiro dia
+                    $lte: endDate    // Inclui o fim do último dia
+                }
             };
 
             if (status) query.status = status;
@@ -366,7 +369,11 @@ const transactionController = {
                 .sort({ date: -1 })
                 .lean();
 
-            if (includeShared) {
+            if (includeShared === 'true') {
+                if (!emailShare) {
+                    res.status(400).json({ error: 'emailShare é obrigatório quando includeShared é true' });
+                    return;
+                }
                 const shared = await Transaction.find({
                     emailShare: emailShare,
                     date: { $gte: startDate, $lte: endDate }
@@ -421,6 +428,7 @@ const transactionController = {
 
             res.json({
                 period: {
+                    idEmail: idEmail,
                     month: parseInt(String(month)),
                     year: yearNum,
                     startDate: startDate.toISOString(),
