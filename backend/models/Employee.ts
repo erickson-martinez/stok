@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document, Types } from "mongoose";
 
 export interface IEmployee extends Document {
-    userPhone: string;           // telefone criptografado (FK → User.phone)
+    idEmail: string;           // email do usuário (FK → User.idEmail)
     company: Types.ObjectId;     // referência à empresa
     linkId: string;              // ID do vínculo
     role?: string;               // "admin", "rh", "funcionario", "gerente", etc.
@@ -13,7 +13,7 @@ export interface IEmployee extends Document {
 
 const EmployeeSchema = new Schema<IEmployee>(
     {
-        userPhone: {
+        idEmail: {
             type: String,
             required: true,
             index: true,
@@ -49,6 +49,6 @@ const EmployeeSchema = new Schema<IEmployee>(
 );
 
 // Índice composto para evitar duplicatas (mesmo usuário na mesma empresa)
-EmployeeSchema.index({ userPhone: 1, company: 1 }, { unique: true });
+EmployeeSchema.index({ idEmail: 1, company: 1 }, { unique: true });
 
 export default mongoose.model<IEmployee>("Employee", EmployeeSchema);

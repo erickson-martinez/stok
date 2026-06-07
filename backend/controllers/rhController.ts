@@ -23,32 +23,14 @@ class RhController {
     // POST /rh/link-user
     async linkUserToCompany(req: Request, res: Response): Promise<void> {
         try {
-            const { userPhone: plainUserPhone, empresaId, role } = req.body;
+            const { idEmail, empresaId, role } = req.body;
 
-            if (!plainUserPhone || !empresaId) {
-                res.status(400).json({ error: "userPhone e empresaId são obrigatórios" });
+            if (!idEmail || !empresaId) {
+                res.status(400).json({ error: "idEmail e empresaId são obrigatórios" });
                 return;
             }
 
-            const targetPhone = String(plainUserPhone).trim();
-
-            const users = await User.find({}).lean();
-            const userMap = new Map<string, string>(); // plain → encrypted
-
-
-            users.forEach(user => {
-                const plainPhone = decryptPhone(user.phone);
-                userMap.set(plainPhone, user.phone);
-            });
-
-            const encryptedPhone = userMap.get(targetPhone);
-
-            if (!encryptedPhone) {
-                res.status(404).json({
-                    error: "Usuário não encontrado com este número de telefone"
-                });
-                return;
-            }
+            const users = await User.find({ idEmail });
 
             // ── Verifica se a empresa existe ────────────────────────────────
             const company = await Company.findById(empresaId);
@@ -59,7 +41,7 @@ class RhController {
 
             // ── Verifica vínculo existente ──────────────────────────────────
             const existingLink = await Employee.findOne({
-                userPhone: encryptedPhone,
+                idEmail: idEmail,
                 company: empresaId,
                 companyName: company.name,
 
@@ -88,7 +70,7 @@ class RhController {
 
             // ── Cria novo vínculo ───────────────────────────────────────────
             const newLink = await Employee.create({
-                userPhone: encryptedPhone,
+                idEmail: idEmail,
                 companyName: company.name,
                 linkId: company.linkId,
                 company: empresaId,
@@ -100,7 +82,7 @@ class RhController {
             // Opcional: adicionar permissão básica (se quiser)
             try {
                 await Permission.findOneAndUpdate(
-                    { userPhone: encryptedPhone },
+                    { idEmail: idEmail },
                     { $addToSet: { permissions: "rh" } }, // exemplo
                     { upsert: true, new: true }
                 );
@@ -131,7 +113,7 @@ class RhController {
         try {
             const employees = await Employee.find({ company: empresaId })
             const listEmployeesPromises = employees.map(async (emp: any) => {
-                const user = await User.findOne({ phone: emp.userPhone }).lean();
+                const user = await User.findOne({ idEmail: emp.idEmail }).lean();
                 if (!user) {
                     res.status(400).json({ error: "ID da empresa é obrigatório" });
                     return;
@@ -142,7 +124,7 @@ class RhController {
                     companyName: emp.companyName,
                     role: emp.role,
                     status: emp.status,
-                    userPhone: decryptPhone(emp.userPhone),
+                    userEmail: emp.idEmail,
                 };
             });
 
@@ -180,7 +162,7 @@ class RhController {
 
             const encryptedPhone = userMap.get(targetPhone);
 
-            const employees = await Employee.find({ userPhone: encryptedPhone })
+            const employees = await Employee.find({ idEmail: encryptedPhone })
                 .lean();
 
 
@@ -284,10 +266,9 @@ class RhController {
             }
 
             // Busca vínculos
-            const links = await Employee.find({ userPhone: encryptedPhone })
+            const links = await Employee.find({ idEmail: encryptedPhone })
                 .populate("company", "name cnpj status owner")
                 .lean();
-
             res.status(200).json({
                 success: true,
                 companies: links,
