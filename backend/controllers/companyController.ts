@@ -133,10 +133,8 @@ class CompanyController {
     // Listar todas as empresas de um usuário
     async getCompanies(req: Request, res: Response): Promise<void> {
         try {
-            const phone = req.params.phone || req.query.phone;
-            const targetPhone = String(phone).trim();
-
-            const companies = await Company.findOne({ phone: targetPhone });
+            const { idEmail } = req.params;
+            const companies = await Company.find({ idEmail: idEmail });
             res.status(200).json({
                 success: true,
                 companies,

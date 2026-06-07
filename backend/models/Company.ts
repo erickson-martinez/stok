@@ -11,7 +11,7 @@ export interface ICompany extends Document {
     state?: string;
     zipCode?: string;
     status: 'ativo' | 'inativo'; // Status da empresa
-    owner: string; // Referência ao usuário proprietário
+    idEmail: string; // Referência ao usuário proprietário
     createdAt: Date;
     updatedAt: Date;
 }
@@ -27,7 +27,7 @@ const CompanySchema: Schema = new Schema({
     state: { type: String },
     zipCode: { type: String },
     status: { type: String, enum: ['ativo', 'inativo'], default: 'ativo' },
-    owner: { type: String, ref: "User", required: true },
+    idEmail: { type: String, ref: "User", required: true },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
 });
