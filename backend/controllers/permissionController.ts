@@ -28,7 +28,7 @@ const permissionController = {
     // Criar permissão para um usuário
     async createPermission(req: Request, res: Response): Promise<void> {
         try {
-            const { idEmail, permissions = [] } = req.body;
+            const { idEmail, email, permissions = [] } = req.body;
 
             // Validar idEmail
             if (!idEmail) {
@@ -41,7 +41,10 @@ const permissionController = {
                 return;
             }
 
-
+            if (!email) {
+                res.status(400).json({ error: "email é obrigatório" });
+                return;
+            }
 
             // Validar permissions é um array
             if (!Array.isArray(permissions)) {
@@ -66,6 +69,7 @@ const permissionController = {
             // Criar nova permissão
             const newPermission = new Permission({
                 idEmail: idEmail,
+                email: email,
                 permissions: permissions,
             });
 
@@ -75,6 +79,7 @@ const permissionController = {
                 success: true,
                 message: `Permissão criada com sucesso para ${idEmail}`,
                 idEmail: idEmail,
+                email: email,
                 permissions: newPermission.permissions,
             });
         } catch (error: any) {
@@ -86,7 +91,7 @@ const permissionController = {
     // Obter permissões - com filtro opcional por userPhone
     async getPermissions(req: Request, res: Response): Promise<void> {
         try {
-            const { idEmail } = req.query;
+            const { idEmail, email } = req.query;
 
             // Se idEmail não foi fornecido, retorna todas as permissões
             if (!idEmail) {
@@ -95,6 +100,7 @@ const permissionController = {
                 // Descriptografar telefones na resposta
                 const response = permissions.map(perm => ({
                     idEmail: perm.idEmail,
+                    email: perm.email,
                     permissions: perm.permissions,
                     createdAt: perm.createdAt,
                     updatedAt: perm.updatedAt,
@@ -116,6 +122,7 @@ const permissionController = {
             if (!permissions) {
                 const newPermission = new Permission({
                     idEmail: idEmail,
+                    email: email,
                     permissions: [],
                 });
 
@@ -126,6 +133,7 @@ const permissionController = {
             res.status(200).json({
                 success: true,
                 idEmail: idEmail,
+                email: email,
                 permissions: permissions?.permissions ?? [],
             });
         } catch (error: any) {
