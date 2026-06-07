@@ -30,8 +30,6 @@ class RhController {
                 return;
             }
 
-            const users = await User.find({ idEmail });
-
             // ── Verifica se a empresa existe ────────────────────────────────
             const company = await Company.findById(empresaId);
             if (!company) {
