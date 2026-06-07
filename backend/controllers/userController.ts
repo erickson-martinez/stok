@@ -172,8 +172,8 @@ const getUsers = async (_req: Request, res: Response): Promise<void> => {
             name: decryptPassword(user.name),
             phone: decryptPassword(user.phone),
             senha: decryptPassword(user.password),
-            email: decryptPassword(user.email),
-            idEmail: decryptPassword(user.idEmail),
+            email: user.email,
+            idEmail: user.idEmail,
             _id: user._id
         }));
         res.json(decryptedUsers);
