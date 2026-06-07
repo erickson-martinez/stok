@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IBarber extends Document {
     nome: string;
-    telefone: string;
+    idEmail: string;
     comissao: number;
     corte: number;
     diasTrabalhados: string[];
@@ -15,7 +15,7 @@ const BarberSchema: Schema = new Schema({
         type: String,
         required: true,
     },
-    telefone: {
+    idEmail: {
         type: String,
         required: true,
     },

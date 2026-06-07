@@ -6,23 +6,23 @@ const createBarber = async (req: Request, res: Response): Promise<void> => {
     try {
         const {
             nome,
-            telefone,
+            idEmail,
             comissao,
             corte,
             diasTrabalhados,
             linkId,
         } = req.body;
 
-        if (!nome || !telefone || !linkId) {
+        if (!nome || !idEmail || !linkId) {
             res.status(400).json({
-                error: "Nome, telefone e linkId são obrigatórios",
+                error: "Nome, idEmail e linkId são obrigatórios",
             });
             return;
         }
 
         const barber = new Barbeiro({
             nome,
-            telefone,
+            idEmail,
             comissao,
             corte,
             diasTrabalhados,
