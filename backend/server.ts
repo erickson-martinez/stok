@@ -67,7 +67,7 @@ mongoose.connect(mongoUri)
 //app.use('/whatsapp', whatsappRouter);
 
 // ── Usuários ─────────────────────────────────────────────────────────
-app.get("/user/:idEmail?", UserController.getUser);
+app.get("/user", UserController.getUser);
 app.get("/users", UserController.getUsers);
 app.post("/users", UserController.createUser);
 app.post("/users/auth", UserController.authenticateUser);

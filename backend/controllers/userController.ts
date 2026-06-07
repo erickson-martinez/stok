@@ -145,20 +145,47 @@ const updateUser = async (req: Request, res: Response): Promise<void> => {
 };
 
 // Buscar usuário por telefon
-
 const getUser = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { idEmail } = req.query;
-        const user = await User.findOne({ idEmail: idEmail })
+        const { idEmail, name, email } = req.query;
 
-        if (!user) {
-            res.status(404).json({ error: "Usuário não encontrado" });
+        let users;
+
+        if (idEmail && name === undefined && email === undefined) {
+            users = await User.find({ idEmail: idEmail });
+            if (!users || users.length === 0) {
+                res.status(404).json({ error: "Usuário não encontrado" });
+                return;
+            }
+
+        } else if (name && typeof name === "string" && idEmail == undefined && email == undefined) {
+            const allUsers = await User.find();
+
+            users = allUsers.filter(user =>
+                decryptPassword(user.name)
+                    .toLowerCase()
+                    .includes(name.toLowerCase())
+            );
+
+            if (!users || users.length === 0) {
+                res.status(404).json({ error: "Usuário não encontrado" });
+                return;
+            }
+        } else if (email && idEmail == undefined && name == undefined) {
+            users = await User.find({ email: email as string });
+            if (!users || users.length === 0) {
+                res.status(404).json({ error: "Usuário não encontrado" });
+                return;
+            }
+        } else {
+            res.status(400).json({ error: "Forneça um parâmetro de consulta válido (idEmail, name ou email)" });
             return;
         }
 
-        const decryptedUser = { name: decryptPassword(user.name), phone: decryptPassword(user.phone), _id: user._id, email: decryptPassword(user.email) };
+        const decryptedUser = { name: decryptPassword(users[0].name), phone: decryptPassword(users[0].phone), _id: users[0]._id, email: users[0].email, idEmail: users[0].idEmail };
 
         res.json(decryptedUser);
+
 
     } catch (error) {
         res.status(500).json({ error: "Erro ao buscar usuário", details: (error as Error).message });
@@ -195,9 +222,11 @@ const authenticateUser = async (req: Request, res: Response): Promise<void> => {
         const userAll = await User.find({});
         const users = userAll.map((user) => {
             return {
-                name: user.name,
+                name: decryptPassword(user.name),
                 phone: decryptPassword(user.phone),
                 password: user.password,
+                email: user.email,
+                idEmail: user.idEmail,
                 _id: user._id
             }
         })
