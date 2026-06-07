@@ -10,7 +10,7 @@ export interface IPermission extends Document {
 
 const PermissionSchema: Schema = new Schema({
     idEmail: { type: String, required: true, unique: true },
-    email: { type: String, required: true, unique: true },
+    email: { type: String, required: false, unique: true },
     permissions: { type: [String], default: [] }, // Array de strings com nomes das permissões
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
