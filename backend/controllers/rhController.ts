@@ -140,27 +140,14 @@ class RhController {
 
     async listCompanyByEmployee(req: Request, res: Response): Promise<void> {
         try {
-            const { phone } = req.params;
+            const { idEmail } = req.params;
 
-            if (!phone) {
-                res.status(400).json({ error: "Telefone do usuário é obrigatório" });
+            if (!idEmail) {
+                res.status(400).json({ error: "ID do usuário é obrigatório" });
                 return;
             }
 
-            const targetPhone = String(phone).trim();
-
-            const users = await User.find({}).lean();
-            const userMap = new Map<string, string>(); // plain → encrypted
-
-
-            users.forEach(user => {
-                const plainPhone = decryptPhone(user.phone);
-                userMap.set(plainPhone, user.phone);
-            });
-
-            const encryptedPhone = userMap.get(targetPhone);
-
-            const employees = await Employee.find({ idEmail: encryptedPhone })
+            const employees = await Employee.find({ idEmail: idEmail })
                 .lean();
 
 

@@ -233,7 +233,7 @@ app.delete("/work-records/:id", workRecordController.delete); // opcional
 
 app.post("/rh/link-user", rhController.linkUserToCompany);
 app.get("/rh/:empresaId/employees", rhController.listEmployees);
-app.get("/rh/company/:phone", rhController.listCompanyByEmployee);
+app.get("/rh/company/:idEmail", rhController.listCompanyByEmployee);
 app.delete("/rh/unlink/:linkId", rhController.unlinkUser);
 app.patch("/rh/link/:linkId/status", rhController.updateLinkStatus);
 app.get("/rh/user/companies", rhController.getUserCompanies);
