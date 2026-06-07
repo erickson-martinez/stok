@@ -466,7 +466,7 @@ const workRecordController = {
 
                 generatedTransaction = {
                     ...transaction.toObject(),
-                    ownerPhone: decryptPhone(transaction.ownerPhone),
+                    ownerPhone: decryptPhone(transaction.idEmail),
                 };
             }
 
