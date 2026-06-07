@@ -1,55 +1,187 @@
 // src/interfaces/transaction.ts
+
 import { Types } from 'mongoose';
 
 export type TransactionType = 'revenue' | 'expense';
 
-export type TransactionStatus = 'pendente' | 'pago' | 'nao_pago' | 'parcial' | 'cancelado';
+export type TransactionStatus =
+    | 'pendente'
+    | 'pago'
+    | 'nao_pago'
+    | 'parcial'
+    | 'cancelado';
+
+export interface ITransactionAddition {
+    description: string;
+
+    amount: number;
+
+    addedAt: Date;
+
+    /**
+     * UID Firebase de quem adicionou
+     */
+    addedBy?: string;
+
+    removed?: boolean;
+
+    removedAt?: Date;
+
+    removedReason?: string;
+}
+
+export interface IPaymentRequest {
+    /**
+     * Existe uma solicitação pendente?
+     */
+    requested: boolean;
+
+    /**
+     * Quando foi solicitada
+     */
+    requestedAt?: Date;
+
+    /**
+     * Email de quem solicitou
+     */
+    requestedBy?: string;
+
+    /**
+     * Mensagem opcional
+     * Ex.: "Pix enviado"
+     */
+    message?: string;
+
+    /**
+     * Aprovado pelo proprietário
+     */
+    approved?: boolean;
+
+    approvedAt?: Date;
+
+    /**
+     * UID do proprietário que aprovou
+     */
+    approvedBy?: string;
+
+    /**
+     * Rejeitado pelo proprietário
+     */
+    rejected?: boolean;
+
+    rejectedAt?: Date;
+
+    rejectedReason?: string;
+}
 
 export interface ITransaction {
     _id?: Types.ObjectId;
-    idEmail: string;                    // Email do usuário dono da transação (para indexação e controle de acesso)
-    ownerPhone: string;                // Telefone criptografado do dono da transação
+
+    /**
+     * UID Firebase do proprietário da transação
+     */
+    idEmail: string;
+
+    /**
+     * Email do usuário relacionado
+     * (quem deve ou quem receberá)
+     */
+    sharedEmail?: string;
+
     type: TransactionType;
+
     name: string;
-    amount: number;                    // Valor total atual (base + adições - remoções)
-    date: Date;                        // Data de referência/vencimento
-    isControlled: boolean;
-    controlId?: string;
-    counterpartyEmail?: string;
-    status: TransactionStatus;
+
+    /**
+     * Valor total atual
+     */
+    amount: number;
+
+    /**
+     * Valor pago
+     */
     paidAmount?: number;
+
+    date: Date;
+
+    /**
+     * Indica se é compartilhada
+     */
+    isControlled: boolean;
+
+    status: TransactionStatus;
+
     notes?: string;
-    emailShare?: string;
-    // Campos de compartilhamento / acompanhamento
-    sharerPhone?: string;
+
+    /**
+     * Exibir em consolidações
+     */
     aggregate?: boolean;
 
-    // Histórico estruturado de adições e subtrações
-    additions?: Array<{
-        description: string;             // ex: "Material hidráulico - tubos e conexões"
-        amount: number;
-        addedAt: Date;
-        addedBy?: string;                // telefone de quem adicionou
-        removed?: boolean;               // soft-delete
-        removedAt?: Date;
-        removedReason?: string;
-    }>;
+    additions?: ITransactionAddition[];
+
+    /**
+     * Fluxo de confirmação de pagamento
+     */
+    paymentRequest?: IPaymentRequest;
 
     createdAt?: Date;
+
     updatedAt?: Date;
 }
 
 export interface TransactionCreateDTO {
-    ownerPhone: string;
+    idEmail: string;
+
     type: TransactionType;
+
     name: string;
+
     amount: number;
-    date: string;                      // ISO ou formato aceitável
+
+    date: string;
+
     status?: TransactionStatus;
+
+    notes?: string;
+
+    sharedEmail?: string;
+}
+
+export interface TransactionUpdateDTO {
+    transactionId: string;
+
+    idEmail: string;
+
+    name?: string;
+
+    amount?: number;
+
+    date?: string;
+
+    status?: TransactionStatus;
+
     notes?: string;
 }
 
-export interface ControlledTransactionPair {
-    mySide: ITransaction;
-    counterpartySide: ITransaction;
+export interface PaymentRequestDTO {
+    transactionId: string;
+
+    email: string;
+
+    message?: string;
+}
+
+export interface ApprovePaymentDTO {
+    transactionId: string;
+
+    idEmail: string;
+}
+
+export interface RejectPaymentDTO {
+    transactionId: string;
+
+    idEmail: string;
+
+    reason: string;
 }

@@ -1,10 +1,28 @@
 // src/controllers/transactionController.ts
+
 import { Request, Response } from 'express';
 import Transaction from '../models/Transaction';
 
+const VALID_STATUS = [
+    'pendente',
+    'pago',
+    'nao_pago',
+    'parcial',
+    'cancelado',
+];
+
 const transactionController = {
-    async createSimple(req: Request, res: Response): Promise<void> {
+
+    // ==========================================================
+    // CRIAR TRANSAÇÃO SIMPLES
+    // ==========================================================
+    async createSimple(
+        req: Request,
+        res: Response
+    ): Promise<void> {
+
         try {
+
             const {
                 idEmail,
                 type,
@@ -15,815 +33,1047 @@ const transactionController = {
                 notes,
             } = req.body;
 
-            if (!idEmail || !type || !name || amount == null || !date) {
-                res.status(400).json({ error: 'Campos obrigatórios: idEmail, type, name, amount, date' });
+            if (
+                !idEmail ||
+                !type ||
+                !name ||
+                amount == null ||
+                !date
+            ) {
+                res.status(400).json({
+                    error: 'Campos obrigatórios: idEmail, type, name, amount, date'
+                });
+
                 return;
             }
 
-            if (!['revenue', 'expense'].includes(type)) {
-                res.status(400).json({ error: 'type deve ser "revenue" ou "expense"' });
+            if (
+                !['revenue', 'expense'].includes(type)
+            ) {
+                res.status(400).json({
+                    error: 'type deve ser revenue ou expense'
+                });
+
                 return;
             }
 
             if (Number(amount) <= 0) {
-                res.status(400).json({ error: 'O valor (amount) deve ser maior que zero' });
+                res.status(400).json({
+                    error: 'amount deve ser maior que zero'
+                });
+
                 return;
             }
 
-            const transaction = new Transaction({
-                idEmail: idEmail,
+            const transaction = await Transaction.create({
+                idEmail,
+
                 type,
-                name: name.trim(),
+
+                name: String(name).trim(),
+
                 amount: Number(amount),
-                date: new Date(date),
-                isControlled: false,
-                status: status || 'nao_pago',
+
                 paidAmount: 0,
-                notes: notes ? String(notes).trim() : undefined,
+
+                date: new Date(date),
+
+                isControlled: false,
+
+                status: status || 'nao_pago',
+
+                notes: notes?.trim(),
+
+                paymentRequest: {
+                    requested: false,
+                    approved: false,
+                    rejected: false,
+                }
             });
-
-            await transaction.save();
-
-            const responseTransaction = {
-                ...transaction.toObject(),
-                idEmail: idEmail,
-                counterpartyEmail: transaction.counterpartyEmail || undefined,
-                emailShare: transaction.emailShare || undefined,
-            };
 
             res.status(201).json({
-                message: 'Transação simples criada com sucesso',
-                transaction: responseTransaction,
+                message: 'Transação criada com sucesso',
+                transaction,
             });
+
         } catch (error: any) {
-            console.error('Erro ao criar transação simples:', error);
-            res.status(500).json({ error: error.message || 'Erro interno no servidor' });
+
+            console.error(error);
+
+            res.status(500).json({
+                error: error.message || 'Erro interno'
+            });
+
         }
     },
 
-    async createControlled(req: Request, res: Response): Promise<void> {
+    // ==========================================================
+    // CRIAR TRANSAÇÃO COMPARTILHADA
+    // ==========================================================
+    async createControlled(
+        req: Request,
+        res: Response
+    ): Promise<void> {
+
         try {
+
             const {
                 idEmail,
-                counterpartyEmail,
+                sharedEmail,
+                type,
                 name,
                 amount,
                 date,
                 notes,
-                type
             } = req.body;
-            if (!idEmail || !counterpartyEmail || !name || amount == null || !date) {
+
+            if (
+                !idEmail ||
+                !sharedEmail ||
+                !type ||
+                !name ||
+                amount == null ||
+                !date
+            ) {
                 res.status(400).json({
-                    error: 'Campos obrigatórios: idEmail, counterpartyEmail, name, amount, date'
+                    error: 'Campos obrigatórios: idEmail, sharedEmail, type, name, amount, date'
                 });
+
                 return;
             }
 
-            if (idEmail === counterpartyEmail) {
-                res.status(400).json({ error: 'Não é permitido criar cobrança para o mesmo usuário' });
+            if (
+                !['revenue', 'expense'].includes(type)
+            ) {
+                res.status(400).json({
+                    error: 'type deve ser revenue ou expense'
+                });
+
                 return;
             }
 
             if (Number(amount) <= 0) {
-                res.status(400).json({ error: 'O valor deve ser maior que zero' });
-                return;
-            }
-
-            const controlId = `ctrl-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
-            const transactionDate = new Date(date);
-
-            if (type === 'revenue') {
-                const mySide = new Transaction({
-                    idEmail: idEmail,
-                    type: 'revenue',
-                    name: name.trim(),
-                    amount: Number(amount),
-                    date: transactionDate,
-                    isControlled: true,
-                    controlId,
-                    counterpartyEmail: counterpartyEmail,
-                    status: 'nao_pago',
-                    paidAmount: 0,
-                    notes: notes ? String(notes).trim() : undefined,
-                });
-
-                const counterpartySide = new Transaction({
-                    idEmail: idEmail,
-                    type: 'expense',
-                    name: name.trim(),
-                    amount: Number(amount),
-                    date: transactionDate,
-                    isControlled: true,
-                    controlId,
-                    counterpartyEmail: counterpartyEmail,
-                    status: 'nao_pago',
-                    paidAmount: 0,
-                    notes: notes ? String(notes).trim() : undefined,
-                });
-
-                await Promise.all([mySide.save(), counterpartySide.save()]);
-                const responseMySide = {
-                    ...mySide.toObject(),
-                    idEmail: idEmail,
-                    counterpartyEmail: counterpartyEmail,
-                };
-
-                const responseCounterSide = {
-                    ...counterpartySide.toObject(),
-                    idEmail: counterpartySide.idEmail,
-                    counterpartyEmail: counterpartySide.counterpartyEmail || '',
-                };
-
-                res.status(201).json({
-                    message: 'Cobrança criada com sucesso',
-                    controlId,
-                    mySide: responseMySide,
-                    counterpartySide: responseCounterSide,
-                });
-            } else {
-                const mySide = new Transaction({
-                    idEmail: idEmail,
-                    type: 'expense',
-                    name: name.trim(),
-                    amount: Number(amount),
-                    date: transactionDate,
-                    isControlled: true,
-                    controlId,
-                    counterpartyEmail: counterpartyEmail,
-                    status: 'nao_pago',
-                    paidAmount: 0,
-                    notes: notes ? String(notes).trim() : undefined,
-                });
-
-                const counterpartySide = new Transaction({
-                    idEmail: idEmail,
-                    type: 'revenue',
-                    name: name.trim(),
-                    amount: Number(amount),
-                    date: transactionDate,
-                    isControlled: true,
-                    controlId,
-                    counterpartyEmail: counterpartyEmail,
-                    status: 'nao_pago',
-                    paidAmount: 0,
-                    notes: notes ? String(notes).trim() : undefined,
-                });
-
-                await Promise.all([mySide.save(), counterpartySide.save()]);
-                const responseMySide = {
-                    ...mySide.toObject(),
-                    idEmail: mySide.idEmail,
-                    counterpartyEmail: mySide.counterpartyEmail || '',
-                };
-
-                const responseCounterSide = {
-                    ...counterpartySide.toObject(),
-                    ownerPhone: counterpartySide.ownerPhone,
-                    counterpartyEmail: counterpartySide.counterpartyEmail || '',
-                };
-                res.status(201).json({
-                    message: 'Cobrança criada com sucesso',
-                    controlId,
-                    mySide: responseMySide,
-                    counterpartySide: responseCounterSide,
-                });
-            }
-
-
-
-
-        } catch (error: any) {
-            console.error('Erro ao criar transação controlada:', error);
-            res.status(500).json({ error: error.message || 'Erro interno no servidor' });
-        }
-    },
-
-    async updatePaymentStatus(req: Request, res: Response): Promise<void> {
-        try {
-            const { transactionId, ownerPhone, idEmail, status, paidAmount } = req.body;
-
-            if (!transactionId || !ownerPhone || !idEmail || !status) {
-                res.status(400).json({ error: 'Campos obrigatórios: transactionId, ownerPhone, idEmail, status' });
-                return;
-            }
-
-            const transaction = await Transaction.findById(transactionId);
-            if (!transaction) {
-                res.status(404).json({ error: 'Transação não encontrada' });
-                return;
-            }
-
-            if (transaction.ownerPhone !== ownerPhone || transaction.idEmail !== idEmail) {
-                res.status(403).json({ error: 'Você não tem permissão para alterar esta transação' });
-                return;
-            }
-
-            transaction.status = status;
-
-            if (paidAmount !== undefined) {
-                transaction.paidAmount = Math.max(0, Number(paidAmount));
-
-                if (transaction.paidAmount >= transaction.amount) {
-                    transaction.status = 'pago';
-                    transaction.paidAmount = transaction.amount;
-                } else if (transaction.paidAmount > 0) {
-                    transaction.status = 'parcial';
-                } else {
-                    transaction.status = 'nao_pago';
-                }
-            }
-
-            transaction.updatedAt = new Date();
-            await transaction.save();
-
-            if (transaction.isControlled && transaction.controlId) {
-                const oppositeType = transaction.type === 'revenue' ? 'expense' : 'revenue';
-
-                await Transaction.updateOne(
-                    { controlId: transaction.controlId, type: oppositeType },
-                    {
-                        status: transaction.status,
-                        paidAmount: transaction.paidAmount,
-                        updatedAt: new Date(),
-                    }
-                );
-            }
-
-            const response = {
-                ...transaction.toObject(),
-                ownerPhone: transaction.ownerPhone,
-                counterpartyEmail: transaction.counterpartyEmail || undefined,
-                emailShare: transaction.emailShare || undefined,
-            };
-
-            res.json({
-                message: 'Status atualizado com sucesso',
-                transaction: response,
-            });
-        } catch (error: any) {
-            console.error('Erro ao atualizar status:', error);
-            res.status(500).json({ error: error.message });
-        }
-    },
-
-    async markStatus(req: Request, res: Response): Promise<void> {
-        try {
-            const { transactionId, idEmail, status } = req.body;
-
-            if (!transactionId || !idEmail || !status) {
-                res.status(400).json({ error: 'Campos obrigatórios: transactionId, idEmail, status' });
-                return;
-            }
-
-            // Validar status
-            const validStatuses = ['pendente', 'pago', 'nao_pago', 'parcial', 'cancelado'];
-            if (!validStatuses.includes(status)) {
                 res.status(400).json({
-                    error: `Status inválido: "${status}". Valores permitidos: ${validStatuses.join(', ')}`
+                    error: 'amount deve ser maior que zero'
                 });
+
                 return;
             }
 
-            const transaction = await Transaction.findById(transactionId);
-            if (!transaction) {
-                res.status(404).json({ error: 'Transação não encontrada' });
-                return;
-            }
+            const transaction = await Transaction.create({
 
-            if (transaction.idEmail !== idEmail) {
-                res.status(403).json({ error: 'Você não tem permissão para alterar esta transação' });
-                return;
-            }
+                idEmail,
 
-            transaction.status = status;
-            transaction.paidAmount = transaction.amount;
-            transaction.updatedAt = new Date();
-            await transaction.save();
+                sharedEmail: sharedEmail
+                    .trim()
+                    .toLowerCase(),
 
-            if (transaction.isControlled && transaction.controlId) {
-                const oppositeType = transaction.type === 'revenue' ? 'expense' : 'revenue';
+                type,
 
-                await Transaction.updateOne(
-                    { controlId: transaction.controlId, type: oppositeType },
-                    {
-                        status: status,
-                        paidAmount: transaction.amount,
-                        updatedAt: new Date(),
-                    }
-                );
-            }
+                name: name.trim(),
 
-            const response = {
-                ...transaction.toObject(),
-                ownerPhone: transaction.ownerPhone,
-                counterpartyEmail: transaction.counterpartyEmail || undefined,
-                emailShare: transaction.emailShare || undefined,
-            };
+                amount: Number(amount),
 
-            res.json({
-                message: `Transação marcada como ${status} com sucesso`,
-                transaction: response,
+                paidAmount: 0,
+
+                date: new Date(date),
+
+                isControlled: true,
+
+                status: 'nao_pago',
+
+                notes: notes?.trim(),
+
+                paymentRequest: {
+                    requested: false,
+                    approved: false,
+                    rejected: false,
+                },
             });
+
+            res.status(201).json({
+                message: 'Transação compartilhada criada com sucesso',
+                transaction,
+            });
+
         } catch (error: any) {
-            console.error('Erro ao marcar como pago:', error);
-            res.status(500).json({ error: error.message });
+
+            console.error(error);
+
+            res.status(500).json({
+                error: error.message || 'Erro interno'
+            });
+
         }
     },
+    // ==========================================================
+    // LISTAR TRANSAÇÕES
+    // ==========================================================
+    async listTransactions(
+        req: Request,
+        res: Response
+    ): Promise<void> {
 
-    async listTransactions(req: Request, res: Response): Promise<void> {
         try {
-            const { idEmail, includeShared, emailShare, status, month, year } = req.query;
 
-            if (!idEmail) {
-                res.status(400).json({ error: 'Parâmetro obrigatório: idEmail' });
+            const {
+                idEmail,
+                email,
+                status,
+                month,
+                year,
+            } = req.query;
+
+            if (!idEmail || !email) {
+                res.status(400).json({
+                    error: 'idEmail e email são obrigatórios'
+                });
+
                 return;
             }
 
             if (!month || !year) {
-                res.status(400).json({ error: 'Parâmetros month e year são obrigatórios' });
+                res.status(400).json({
+                    error: 'month e year são obrigatórios'
+                });
+
                 return;
             }
 
-            const monthNum = parseInt(String(month)) - 1;
-            const yearNum = parseInt(String(year));
+            const monthNum = Number(month) - 1;
+            const yearNum = Number(year);
 
-            if (monthNum < 0 || monthNum > 11 || isNaN(yearNum)) {
-                res.status(400).json({ error: 'month deve estar entre 1-12 e year deve ser válido' });
+            if (
+                isNaN(monthNum) ||
+                isNaN(yearNum) ||
+                monthNum < 0 ||
+                monthNum > 11
+            ) {
+                res.status(400).json({
+                    error: 'month ou year inválidos'
+                });
+
                 return;
             }
 
-            const startDate = new Date(Date.UTC(yearNum, monthNum, 0, 0, 0, 0, 0));
-            const endDate = new Date(Date.UTC(yearNum, monthNum + 1, 0, 23, 59, 59, 999));
+            const startDate = new Date(
+                yearNum,
+                monthNum,
+                1,
+                0,
+                0,
+                0,
+                0
+            );
+
+            const endDate = new Date(
+                yearNum,
+                monthNum + 1,
+                0,
+                23,
+                59,
+                59,
+                999
+            );
 
             const query: any = {
-                idEmail: idEmail,
                 date: {
-                    $gte: startDate, // Inclui o início do primeiro dia
-                    $lte: endDate    // Inclui o fim do último dia
-                }
+                    $gte: startDate,
+                    $lte: endDate,
+                },
+
+                $or: [
+                    {
+                        idEmail,
+                    },
+                    {
+                        sharedEmail: String(email)
+                            .trim()
+                            .toLowerCase(),
+                    },
+                ],
             };
 
-            if (status) query.status = status;
+            if (status) {
+                query.status = status;
+            }
 
-            let transactions = await Transaction.find(query)
+            const transactions = await Transaction.find(query)
                 .sort({ date: -1 })
                 .lean();
 
-            if (includeShared === 'true') {
-                if (!emailShare) {
-                    res.status(400).json({ error: 'emailShare é obrigatório quando includeShared é true' });
-                    return;
-                }
-                const shared = await Transaction.find({
-                    emailShare: emailShare,
-                    date: { $gte: startDate, $lte: endDate }
-                })
-                    .sort({ date: -1 })
-                    .lean();
-
-                transactions = [...transactions, ...shared];
-            }
-
             const responseTransactions = transactions.map(tx => ({
                 ...tx,
-                idEmail: tx.idEmail,
-                counterpartyEmail: tx.counterpartyEmail || undefined,
-                emailShare: tx.emailShare || undefined,
+
+                role:
+                    tx.idEmail === idEmail
+                        ? 'owner'
+                        : 'participant',
+
+                canEdit:
+                    tx.idEmail === idEmail,
+
+                canDelete:
+                    tx.idEmail === idEmail,
+
+                canApprovePayment:
+                    tx.idEmail === idEmail,
+
+                canRequestPayment:
+                    tx.sharedEmail?.toLowerCase() ===
+                    String(email).toLowerCase(),
             }));
+
+            // ==================================================
+            // RESUMO FINANCEIRO
+            // ==================================================
 
             const totalRevenue = transactions
                 .filter(tx => tx.type === 'revenue')
-                .reduce((sum, tx) => sum + (tx.amount || 0), 0);
+                .reduce(
+                    (sum, tx) =>
+                        sum + (tx.amount || 0),
+                    0
+                );
 
             const totalExpense = transactions
                 .filter(tx => tx.type === 'expense')
-                .reduce((sum, tx) => sum + (tx.amount || 0), 0);
+                .reduce(
+                    (sum, tx) =>
+                        sum + (tx.amount || 0),
+                    0
+                );
 
             const paidRevenue = transactions
-                .filter(tx => tx.type === 'revenue' && tx.status === 'pago')
-                .reduce((sum, tx) => sum + (tx.amount || 0), 0);
+                .filter(
+                    tx =>
+                        tx.type === 'revenue' &&
+                        tx.status === 'pago'
+                )
+                .reduce(
+                    (sum, tx) =>
+                        sum + (tx.amount || 0),
+                    0
+                );
 
             const paidExpense = transactions
-                .filter(tx => tx.type === 'expense' && tx.status === 'pago')
-                .reduce((sum, tx) => sum + (tx.amount || 0), 0);
+                .filter(
+                    tx =>
+                        tx.type === 'expense' &&
+                        tx.status === 'pago'
+                )
+                .reduce(
+                    (sum, tx) =>
+                        sum + (tx.amount || 0),
+                    0
+                );
 
-            const monthlyBalance = paidRevenue - paidExpense;
+            const monthlyBalance =
+                paidRevenue - paidExpense;
 
-            const accumulatedQuery = {
-                idEmail: idEmail,
-                date: { $lt: startDate }
-            };
+            // ==================================================
+            // SALDO ACUMULADO
+            // ==================================================
 
-            const previousTransactions = await Transaction.find(accumulatedQuery).lean();
+            const previousTransactions =
+                await Transaction.find({
+                    idEmail,
+                    date: {
+                        $lt: startDate,
+                    },
+                    status: 'pago',
+                }).lean();
 
-            const previousPaidRevenue = previousTransactions
-                .filter(tx => tx.type === 'revenue' && tx.status === 'pago')
-                .reduce((sum, tx) => sum + (tx.amount || 0), 0);
+            const previousRevenue =
+                previousTransactions
+                    .filter(
+                        tx => tx.type === 'revenue'
+                    )
+                    .reduce(
+                        (sum, tx) =>
+                            sum + tx.amount,
+                        0
+                    );
 
-            const previousPaidExpense = previousTransactions
-                .filter(tx => tx.type === 'expense' && tx.status === 'pago')
-                .reduce((sum, tx) => sum + (tx.amount || 0), 0);
+            const previousExpense =
+                previousTransactions
+                    .filter(
+                        tx => tx.type === 'expense'
+                    )
+                    .reduce(
+                        (sum, tx) =>
+                            sum + tx.amount,
+                        0
+                    );
 
-            const accumulatedBalance = (previousPaidRevenue - previousPaidExpense) + monthlyBalance;
+            const accumulatedBalance =
+                (
+                    previousRevenue -
+                    previousExpense
+                ) +
+                monthlyBalance;
 
             res.json({
+
                 period: {
-                    idEmail: idEmail,
-                    month: parseInt(String(month)),
-                    year: yearNum,
-                    startDate: startDate.toISOString(),
-                    endDate: endDate.toISOString()
+                    month: Number(month),
+                    year: Number(year),
+                    startDate,
+                    endDate,
                 },
+
                 summary: {
                     totalRevenue,
                     totalExpense,
+
+                    paidRevenue,
+                    paidExpense,
+
                     monthlyBalance,
-                    accumulatedBalance
+
+                    accumulatedBalance,
                 },
+
                 count: responseTransactions.length,
-                transactions: responseTransactions,
+
+                transactions:
+                    responseTransactions,
             });
+
         } catch (error: any) {
-            console.error('Erro ao listar transações:', error);
-            res.status(500).json({ error: error.message || 'Erro ao listar transações' });
-        }
-    },
 
-    async followUser(req: Request, res: Response): Promise<void> {
-        try {
-            const { idEmail, emailShare, aggregate } = req.body;
-
-            if (!idEmail || !emailShare) {
-                res.status(400).json({ error: 'idEmail e emailShare são obrigatórios' });
-                return;
-            }
-
-            if (idEmail === emailShare) {
-                res.status(400).json({ error: 'Não é possível seguir a si mesmo' });
-                return;
-            }
-
-            const result = await Transaction.updateMany(
-                { idEmail: idEmail },
-                { $set: { emailShare: emailShare, aggregate } }
+            console.error(
+                'Erro ao listar transações:',
+                error
             );
 
-            res.json({
-                message: `Agora você acompanha as transações de ${emailShare}`,
-                modifiedCount: result.modifiedCount,
+            res.status(500).json({
+                error:
+                    error.message ||
+                    'Erro interno'
             });
-        } catch (error: any) {
-            console.error('Erro ao seguir usuário:', error);
-            res.status(500).json({ error: error.message });
+
         }
     },
+    // ==========================================================
+    // ATUALIZAR TRANSAÇÃO
+    // ==========================================================
+    async updateTransaction(
+        req: Request,
+        res: Response
+    ): Promise<void> {
 
-    async updateTransaction(req: Request, res: Response): Promise<void> {
         try {
+
             const { transactionId } = req.params;
+
             const {
                 idEmail,
                 name,
                 amount,
                 date,
                 status,
-                notes,           // opcional
+                notes,
             } = req.body;
 
-            if (!transactionId || !idEmail) {
-                res.status(400).json({ error: 'transactionId e idEmail são obrigatórios' });
-                return;
-            }
-
-            const transaction = await Transaction.findOne({
-                _id: transactionId,
-                idEmail: idEmail,
-            });
+            const transaction =
+                await Transaction.findOne({
+                    _id: transactionId,
+                    idEmail,
+                });
 
             if (!transaction) {
-                res.status(404).json({ error: 'Transação não encontrada ou não pertence a este usuário' });
+                res.status(404).json({
+                    error: 'Transação não encontrada'
+                });
+
                 return;
             }
 
-            // ── Bloqueia edição em transações já pagas (regra comum no seu sistema) ──
             if (transaction.status === 'pago') {
-                res.status(400).json({ error: 'Não é permitido editar transação já marcada como paga' });
+                res.status(400).json({
+                    error: 'Não é permitido editar transação paga'
+                });
+
                 return;
             }
-
-            // ── Validações de campos enviados ──────────────────────────────────────
-            const updates: Partial<typeof transaction> = {};
 
             if (name !== undefined) {
-                if (typeof name !== 'string' || name.trim() === '') {
-                    res.status(400).json({ error: 'name deve ser uma string não vazia' });
-                    return;
-                }
-                updates.name = name.trim();
+                transaction.name = name.trim();
             }
 
             if (amount !== undefined) {
-                const newAmount = Number(amount);
-                if (isNaN(newAmount) || newAmount <= 0) {
-                    res.status(400).json({ error: 'amount deve ser um número maior que zero' });
+
+                const value = Number(amount);
+
+                if (value <= 0) {
+                    res.status(400).json({
+                        error: 'amount inválido'
+                    });
+
                     return;
                 }
-                updates.amount = newAmount;
-                // Se tinha paidAmount maior que o novo amount → ajusta
-                if ((transaction.paidAmount ?? 0) > newAmount) {
-                    updates.paidAmount = newAmount;
-                    updates.status = 'pago';
-                }
+
+                transaction.amount = value;
             }
 
             if (date !== undefined) {
-                const newDate = new Date(date);
-                if (isNaN(newDate.getTime())) {
-                    res.status(400).json({ error: 'Formato de data inválido' });
-                    return;
-                }
-
-                const today = new Date();
-                const transMonth = newDate.getMonth();
-                const transYear = newDate.getFullYear();
-                const currMonth = today.getMonth();
-                const currYear = today.getFullYear();
-
-                // Regra conservadora: só permite editar para mês atual ou futuro
-                if (transYear < currYear || (transYear === currYear && transMonth < currMonth)) {
-                    res.status(400).json({ error: 'Não é permitido alterar para datas em meses anteriores' });
-                    return;
-                }
-
-                updates.date = newDate;
+                transaction.date = new Date(date);
             }
 
-            if (status !== undefined) {
-                const validStatuses = ['pendente', 'pago', 'nao_pago', 'parcial', 'cancelado'];
-                if (!validStatuses.includes(status)) {
-                    res.status(400).json({
-                        error: `Status inválido. Valores permitidos: ${validStatuses.join(', ')}`
-                    });
-                    return;
-                }
-
-                updates.status = status;
-
-                // Consistência com paidAmount
-                if (status === 'pago') {
-                    updates.paidAmount = transaction.amount;
-                } else if (status === 'nao_pago') {
-                    updates.paidAmount = 0;
-                }
-                // 'parcial' deixa paidAmount como está (ou pode exigir paidAmount no body)
+            if (
+                status &&
+                VALID_STATUS.includes(status)
+            ) {
+                transaction.status = status;
             }
 
             if (notes !== undefined) {
-                updates.notes = String(notes).trim() || undefined;
+                transaction.notes = notes?.trim();
             }
 
-            // ── Se nada foi enviado para atualizar ──
-            if (Object.keys(updates).length === 0) {
-                res.status(400).json({ error: 'Nenhum campo válido foi enviado para atualização' });
-                return;
-            }
-
-            // Aplica as atualizações
-            Object.assign(transaction, updates);
-            transaction.updatedAt = new Date();
             await transaction.save();
 
-            // ── Se for transação controlada → propaga alterações relevantes ───────
-            if (transaction.isControlled && transaction.controlId) {
-                const oppositeType = transaction.type === 'revenue' ? 'expense' : 'revenue';
-
-                const oppositeUpdates: any = {
-                    updatedAt: new Date(),
-                };
-
-                if (updates.name) oppositeUpdates.name = updates.name;
-                if (updates.date) oppositeUpdates.date = updates.date;
-                if (updates.amount) oppositeUpdates.amount = updates.amount;
-                if (updates.status) oppositeUpdates.status = updates.status;
-                if (updates.paidAmount !== undefined) {
-                    oppositeUpdates.paidAmount = updates.paidAmount;
-                }
-
-                if (Object.keys(oppositeUpdates).length > 1) { // tem algo além de updatedAt
-                    await Transaction.updateOne(
-                        { controlId: transaction.controlId, type: oppositeType },
-                        { $set: oppositeUpdates }
-                    );
-                }
-            }
-
-            const response = {
-                ...transaction.toObject(),
-                idEmail: transaction.idEmail,
-                counterpartyEmail: transaction.counterpartyEmail || undefined,
-                emailShare: transaction.emailShare || undefined,
-            };
-
             res.json({
-                message: 'Transação atualizada com sucesso',
-                transaction: response,
+                message: 'Transação atualizada',
+                transaction,
             });
+
         } catch (error: any) {
-            console.error('Erro ao atualizar transação:', error);
-            res.status(500).json({ error: error.message || 'Erro interno no servidor' });
+
+            res.status(500).json({
+                error: error.message,
+            });
+
         }
     },
 
-    async deleteTransaction(req: Request, res: Response): Promise<void> {
+    // ==========================================================
+    // REMOVER TRANSAÇÃO
+    // ==========================================================
+    async deleteTransaction(
+        req: Request,
+        res: Response
+    ): Promise<void> {
+
         try {
-            const { transactionId, ownerPhone } = req.body;
 
-            if (!transactionId || !ownerPhone) {
-                res.status(400).json({ error: 'transactionId e ownerPhone são obrigatórios' });
-                return;
-            }
+            const {
+                transactionId,
+                idEmail,
+            } = req.body;
 
-            const transaction = await Transaction.findById(transactionId);
-            if (!transaction) {
-                res.status(404).json({ error: 'Transação não encontrada' });
-                return;
-            }
-
-            if (transaction.ownerPhone !== ownerPhone) {
-                res.status(403).json({ error: 'Não autorizado' });
-                return;
-            }
-
-            if (transaction.isControlled && transaction.controlId) {
-                await Transaction.deleteMany({ controlId: transaction.controlId });
-                res.json({ message: 'Transação controlada e sua contraparte foram removidas' });
-            } else {
-                await Transaction.findByIdAndDelete(transactionId);
-                res.json({ message: 'Transação removida com sucesso' });
-            }
-        } catch (error: any) {
-            console.error('Erro ao deletar transação:', error);
-            res.status(500).json({ error: error.message });
-        }
-    },
-
-    // ────────────────────────────────────────────────────────────────
-    // ADICIONAR VALOR EXTRA (registra no array additions)
-    // ────────────────────────────────────────────────────────────────
-    async addValue(req: Request, res: Response): Promise<void> {
-        try {
-            const { transactionId } = req.params;
-            const { ownerPhone, additionalAmount, description } = req.body;
-
-            if (!ownerPhone || additionalAmount == null || Number(additionalAmount) <= 0) {
-                res.status(400).json({ error: 'ownerPhone e additionalAmount (positivo) são obrigatórios' });
-                return
-            }
-            if (!description?.trim()) {
-                res.status(400).json({ error: 'description é obrigatória para identificar a adição' });
-                return
-            }
-
-            const transaction = await Transaction.findOne({
-                _id: transactionId,
-                ownerPhone: ownerPhone,
-            });
-
-            if (!transaction) {
-                res.status(404).json({ error: 'Transação não encontrada ou não pertence ao usuário' });
-                return
-            }
-
-            if (transaction.status === 'pago') {
-                res.status(400).json({ error: 'Não é possível adicionar valor em transação já paga' });
-                return
-            }
-
-            // Validação de mês
-            const today = new Date();
-            const transMonth = transaction.date.getMonth();
-            const transYear = transaction.date.getFullYear();
-            const currMonth = today.getMonth();
-            const currYear = today.getFullYear();
-
-            if (transYear < currYear || (transYear === currYear && transMonth < currMonth)) {
-                res.status(400).json({ error: 'Não é permitido adicionar valores em meses anteriores' });
-                return
-            }
-
-            const added = Number(additionalAmount);
-            transaction.amount += added;
-
-            transaction.additions = transaction.additions || [];
-            transaction.additions.push({
-                description: description.trim(),
-                amount: added,
-                addedAt: new Date(),
-                addedBy: ownerPhone,
-            });
-
-            transaction.updatedAt = new Date();
-            await transaction.save();
-
-            const response = {
-                ...transaction.toObject(),
-                ownerPhone: transaction.ownerPhone,
-                counterpartyEmail: transaction.counterpartyEmail || undefined,
-                emailShare: transaction.emailShare || undefined,
-            };
-
-            res.json({
-                message: 'Valor adicionado com sucesso',
-                transaction: response,
-            });
-        } catch (error: any) {
-            console.error('Erro ao adicionar valor:', error);
-            res.status(500).json({ error: error.message || 'Erro interno no servidor' });
-        }
-    },
-
-    // ────────────────────────────────────────────────────────────────
-    // SUBTRAIR / REMOVER VALOR (só se a description existir no array additions)
-    // ────────────────────────────────────────────────────────────────
-    async subtractValue(req: Request, res: Response): Promise<void> {
-        try {
-            const { transactionId } = req.params;
-            const { ownerPhone, description } = req.body;
-
-            if (!ownerPhone || !description?.trim()) {
-                res.status(400).json({ error: 'ownerPhone e description são obrigatórios' });
-                return
-            }
-
-            const transaction = await Transaction.findOne({
-                _id: transactionId,
-                ownerPhone: ownerPhone,
-            });
-
-            if (!transaction) {
-                res.status(404).json({ error: 'Transação não encontrada ou não pertence ao usuário' });
-                return
-            }
-
-            if (transaction.status === 'pago') {
-                res.status(400).json({ error: 'Não é possível subtrair de transação já paga' });
-                return
-            }
-
-            // Validação de mês
-            const today = new Date();
-            const transMonth = transaction.date.getMonth();
-            const transYear = transaction.date.getFullYear();
-            const currMonth = today.getMonth();
-            const currYear = today.getFullYear();
-
-            if (transYear < currYear || (transYear === currYear && transMonth < currMonth)) {
-                res.status(400).json({ error: 'Não é permitido subtrair valores em meses anteriores' });
-                return
-            }
-
-            transaction.additions = transaction.additions || [];
-            const index = transaction.additions.findIndex(item =>
-                !item.removed && item.description.trim().toLowerCase() === description.trim().toLowerCase()
-            );
-
-            if (index === -1) {
-                res.status(400).json({
-                    error: `Não encontrado adição ativa com a descrição "${description}". Subtração não permitida.`
+            const transaction =
+                await Transaction.findOne({
+                    _id: transactionId,
+                    idEmail,
                 });
-                return
+
+            if (!transaction) {
+
+                res.status(404).json({
+                    error: 'Transação não encontrada'
+                });
+
+                return;
             }
 
-            const removedAmount = transaction.additions[index].amount;
-            transaction.amount -= removedAmount;
-
-            // Soft-delete do item
-            transaction.additions[index].removed = true;
-            transaction.additions[index].removedAt = new Date();
-            transaction.additions[index].removedReason = 'Removido pelo usuário';
-
-            // Registro no notes (opcional, para log legível)
-            const entry = `${new Date().toLocaleString('pt-BR')}: -R$ ${removedAmount.toFixed(2)} (removido: ${description})`;
-            transaction.notes = transaction.notes ? `${transaction.notes}\n${entry}` : entry;
-
-            transaction.updatedAt = new Date();
-            await transaction.save();
-
-            const response = {
-                ...transaction.toObject(),
-                ownerPhone: transaction.ownerPhone,
-                counterpartyEmail: transaction.counterpartyEmail || undefined,
-                emailShare: transaction.emailShare || undefined,
-            };
+            await transaction.deleteOne();
 
             res.json({
-                message: `Adição "${description}" removida com sucesso`,
-                removedAmount,
-                transaction: response,
+                message: 'Transação removida'
             });
+
         } catch (error: any) {
-            console.error('Erro ao subtrair valor:', error);
-            res.status(500).json({ error: error.message || 'Erro interno no servidor' });
+
+            res.status(500).json({
+                error: error.message
+            });
+
+        }
+    },
+
+    // ==========================================================
+    // ALTERAR STATUS
+    // ==========================================================
+    async markStatus(
+        req: Request,
+        res: Response
+    ): Promise<void> {
+
+        try {
+
+            const {
+                transactionId,
+                idEmail,
+                status,
+            } = req.body;
+
+            if (!VALID_STATUS.includes(status)) {
+                res.status(400).json({
+                    error: 'Status inválido'
+                });
+                return;
+            }
+
+            const transaction =
+                await Transaction.findOne({
+                    _id: transactionId,
+                    idEmail,
+                });
+
+            if (!transaction) {
+                res.status(404).json({
+                    error: 'Transação não encontrada'
+                });
+                return;
+            }
+
+            transaction.status = status;
+
+            if (status === 'pago') {
+                transaction.paidAmount =
+                    transaction.amount;
+            }
+
+            if (
+                status === 'nao_pago' ||
+                status === 'pendente'
+            ) {
+                transaction.paidAmount = 0;
+            }
+
+            await transaction.save();
+
+            res.json({
+                message: 'Status atualizado',
+                transaction,
+            });
+
+        } catch (error: any) {
+
+            res.status(500).json({
+                error: error.message
+            });
+
+        }
+    },
+
+    // ==========================================================
+    // PAGAMENTO PARCIAL
+    // ==========================================================
+    async updatePaymentStatus(
+        req: Request,
+        res: Response
+    ): Promise<void> {
+
+        try {
+
+            const {
+                transactionId,
+                idEmail,
+                paidAmount,
+            } = req.body;
+
+            if (Number(paidAmount) < 0) {
+                res.status(400).json({
+                    error: 'paidAmount inválido'
+                });
+                return;
+            }
+
+            const transaction =
+                await Transaction.findOne({
+                    _id: transactionId,
+                    idEmail,
+                });
+
+            if (!transaction) {
+                res.status(404).json({
+                    error: 'Transação não encontrada'
+                });
+                return;
+            }
+
+            transaction.paidAmount =
+                Number(paidAmount);
+
+            if (
+                transaction.paidAmount >=
+                transaction.amount
+            ) {
+
+                transaction.paidAmount =
+                    transaction.amount;
+
+                transaction.status = 'pago';
+
+            } else if (
+                transaction.paidAmount > 0
+            ) {
+
+                transaction.status = 'parcial';
+
+            } else {
+
+                transaction.status = 'nao_pago';
+
+            }
+
+            await transaction.save();
+
+            res.json({
+                message: 'Pagamento atualizado',
+                transaction,
+            });
+
+        } catch (error: any) {
+
+            res.status(500).json({
+                error: error.message
+            });
+
+        }
+    },
+
+    // ==========================================================
+    // SOLICITAR PAGAMENTO
+    // ==========================================================
+    async requestPayment(
+        req: Request,
+        res: Response
+    ): Promise<void> {
+
+        try {
+
+            const {
+                transactionId,
+                email,
+                message,
+            } = req.body;
+
+            const transaction =
+                await Transaction.findById(
+                    transactionId
+                );
+
+            if (!transaction) {
+                res.status(404).json({
+                    error: 'Transação não encontrada'
+                });
+                return;
+            }
+
+            if (
+                transaction.sharedEmail?.toLowerCase() !==
+                email.toLowerCase()
+            ) {
+                res.status(403).json({
+                    error: 'Sem permissão'
+                });
+                return;
+            }
+
+            if (
+                transaction.paymentRequest?.requested
+            ) {
+                res.status(400).json({
+                    error:
+                        'Já existe uma solicitação pendente'
+                });
+                return;
+            }
+
+            transaction.paymentRequest = {
+                requested: true,
+                requestedAt: new Date(),
+                requestedBy: email,
+                message,
+                approved: false,
+                rejected: false,
+            };
+
+            await transaction.save();
+
+            res.json({
+                message:
+                    'Solicitação enviada'
+            });
+
+        } catch (error: any) {
+
+            res.status(500).json({
+                error: error.message
+            });
+
+        }
+    },
+
+    // ==========================================================
+    // APROVAR PAGAMENTO
+    // ==========================================================
+    async approvePayment(
+        req: Request,
+        res: Response
+    ): Promise<void> {
+
+        try {
+
+            const {
+                transactionId,
+                idEmail,
+            } = req.body;
+
+            const transaction =
+                await Transaction.findOne({
+                    _id: transactionId,
+                    idEmail,
+                });
+
+            if (!transaction) {
+                res.status(404).json({
+                    error: 'Transação não encontrada'
+                });
+                return;
+            }
+
+            transaction.status = 'pago';
+
+            transaction.paidAmount =
+                transaction.amount;
+
+            transaction.paymentRequest = {
+                ...(transaction.paymentRequest || {}),
+
+                approved: true,
+
+                approvedAt: new Date(),
+
+                approvedBy: idEmail,
+
+                rejected: false,
+
+                requested: false,
+            };
+
+            await transaction.save();
+
+            res.json({
+                message:
+                    'Pagamento aprovado'
+            });
+
+        } catch (error: any) {
+
+            res.status(500).json({
+                error: error.message
+            });
+
+        }
+    },
+
+    // ==========================================================
+    // REJEITAR PAGAMENTO
+    // ==========================================================
+    async rejectPayment(
+        req: Request,
+        res: Response
+    ): Promise<void> {
+
+        try {
+
+            const {
+                transactionId,
+                idEmail,
+                reason,
+            } = req.body;
+
+            const transaction =
+                await Transaction.findOne({
+                    _id: transactionId,
+                    idEmail,
+                });
+
+            if (!transaction) {
+
+                res.status(404).json({
+                    error: 'Transação não encontrada'
+                });
+
+                return;
+            }
+
+            transaction.paymentRequest = {
+                ...(transaction.paymentRequest || {}),
+
+                rejected: true,
+
+                rejectedAt: new Date(),
+
+                rejectedReason: reason,
+
+                approved: false,
+
+                requested: false,
+            };
+
+            await transaction.save();
+
+            res.json({
+                message:
+                    'Solicitação rejeitada'
+            });
+
+        } catch (error: any) {
+
+            res.status(500).json({
+                error: error.message
+            });
+
+        }
+    },
+
+    // ==========================================================
+    // ADICIONAR VALOR
+    // ==========================================================
+    async addValue(
+        req: Request,
+        res: Response
+    ): Promise<void> {
+
+        try {
+
+            const { transactionId } = req.params;
+
+            const {
+                idEmail,
+                additionalAmount,
+                description,
+            } = req.body;
+
+            if (
+                Number(additionalAmount) <= 0
+            ) {
+                res.status(400).json({
+                    error:
+                        'additionalAmount inválido'
+                });
+
+                return;
+            }
+
+            const transaction =
+                await Transaction.findOne({
+                    _id: transactionId,
+                    idEmail,
+                });
+
+            if (!transaction) {
+                res.status(404).json({
+                    error: 'Transação não encontrada'
+                });
+
+                return;
+            }
+
+            transaction.amount +=
+                Number(additionalAmount);
+
+            transaction.additions ??= [];
+
+            transaction.additions.push({
+                description,
+                amount: Number(additionalAmount),
+                addedAt: new Date(),
+                addedBy: idEmail,
+            });
+
+            await transaction.save();
+
+            res.json({
+                message: 'Valor adicionado',
+                transaction,
+            });
+
+        } catch (error: any) {
+
+            res.status(500).json({
+                error: error.message
+            });
+
+        }
+    },
+
+    // ==========================================================
+    // SUBTRAIR VALOR
+    // ==========================================================
+    async subtractValue(
+        req: Request,
+        res: Response
+    ): Promise<void> {
+
+        try {
+
+            const { transactionId } =
+                req.params;
+
+            const {
+                idEmail,
+                description,
+            } = req.body;
+
+            const transaction =
+                await Transaction.findOne({
+                    _id: transactionId,
+                    idEmail,
+                });
+
+            if (!transaction) {
+                res.status(404).json({
+                    error: 'Transação não encontrada'
+                });
+
+                return;
+            }
+
+            const addition =
+                transaction.additions?.find(
+                    item =>
+                        item.description ===
+                        description &&
+                        !item.removed
+                );
+
+            if (!addition) {
+
+                res.status(400).json({
+                    error: 'Adição não encontrada'
+                });
+
+                return;
+            }
+
+            addition.removed = true;
+            addition.removedAt = new Date();
+            addition.removedReason =
+                'Removido pelo usuário';
+
+            transaction.amount -=
+                addition.amount;
+
+            await transaction.save();
+
+            res.json({
+                message: 'Valor removido',
+                transaction,
+            });
+
+        } catch (error: any) {
+
+            res.status(500).json({
+                error: error.message
+            });
+
         }
     },
 };

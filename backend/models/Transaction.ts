@@ -1,13 +1,32 @@
 // src/models/Transaction.ts
+
 import { Schema, model, Document } from 'mongoose';
-import { ITransaction, TransactionType, TransactionStatus } from '../interfaces/transaction';
+import {
+    ITransaction,
+    TransactionStatus,
+    TransactionType,
+} from '../interfaces/transaction';
 
 const transactionSchema = new Schema<ITransaction & Document>(
     {
-        ownerPhone: {
+        /**
+         * UID Firebase do proprietário
+         */
+        idEmail: {
             type: String,
             required: true,
             index: true,
+        },
+
+        /**
+         * Email do usuário compartilhado
+         */
+        sharedEmail: {
+            type: String,
+            sparse: true,
+            index: true,
+            lowercase: true,
+            trim: true,
         },
 
         type: {
@@ -28,47 +47,35 @@ const transactionSchema = new Schema<ITransaction & Document>(
             min: 0,
         },
 
+        paidAmount: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+
         date: {
             type: Date,
             required: true,
         },
 
+        /**
+         * Compartilhada ou não
+         */
         isControlled: {
             type: Boolean,
             default: false,
         },
 
-        controlId: {
-            type: String,
-            sparse: true,
-            index: true,
-        },
-
-        counterpartyEmail: {
-            type: String,
-            sparse: true,
-        },
-        idEmail: {
-            type: String,
-            required: true,
-            index: true,
-        },
-
-        emailShare: {
-            type: String,
-            sparse: true,
-        },
-
         status: {
             type: String,
-            enum: ['pendente', 'pago', 'nao_pago', 'parcial', 'cancelado'] as TransactionStatus[],
+            enum: [
+                'pendente',
+                'pago',
+                'nao_pago',
+                'parcial',
+                'cancelado',
+            ] as TransactionStatus[],
             default: 'nao_pago',
-        },
-
-        paidAmount: {
-            type: Number,
-            default: 0,
-            min: 0,
         },
 
         notes: {
@@ -76,7 +83,11 @@ const transactionSchema = new Schema<ITransaction & Document>(
             trim: true,
         },
 
-        // Histórico de adições/subtrações (para permitir subtração controlada)
+        aggregate: {
+            type: Boolean,
+            default: false,
+        },
+
         additions: [
             {
                 description: {
@@ -84,64 +95,155 @@ const transactionSchema = new Schema<ITransaction & Document>(
                     required: true,
                     trim: true,
                 },
+
                 amount: {
                     type: Number,
                     required: true,
                     min: 0,
                 },
+
                 addedAt: {
                     type: Date,
                     default: Date.now,
                 },
+
                 addedBy: {
                     type: String,
-                    sparse: true, // telefone de quem adicionou
                 },
+
                 removed: {
                     type: Boolean,
                     default: false,
                 },
+
                 removedAt: {
                     type: Date,
-                    sparse: true,
                 },
+
                 removedReason: {
                     type: String,
                     trim: true,
-                    sparse: true,
                 },
             },
         ],
 
-        // Campos de compartilhamento
-        sharerPhone: {
-            type: String,
-            sparse: true,
-        },
+        /**
+         * Solicitação de pagamento
+         */
+        paymentRequest: {
+            requested: {
+                type: Boolean,
+                default: false,
+            },
 
-        aggregate: {
-            type: Boolean,
-            default: false,
+            requestedAt: {
+                type: Date,
+            },
+
+            requestedBy: {
+                type: String,
+                trim: true,
+                lowercase: true,
+            },
+
+            message: {
+                type: String,
+                trim: true,
+            },
+
+            approved: {
+                type: Boolean,
+                default: false,
+            },
+
+            approvedAt: {
+                type: Date,
+            },
+
+            approvedBy: {
+                type: String,
+            },
+
+            rejected: {
+                type: Boolean,
+                default: false,
+            },
+
+            rejectedAt: {
+                type: Date,
+            },
+
+            rejectedReason: {
+                type: String,
+                trim: true,
+            },
         },
     },
     {
-        timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' },
+        timestamps: {
+            createdAt: 'createdAt',
+            updatedAt: 'updatedAt',
+        },
     }
 );
 
-// Índices úteis
-transactionSchema.index({ ownerPhone: 1, date: -1 });
-transactionSchema.index({ sharerPhone: 1, aggregate: 1 });
-transactionSchema.index({ ownerPhone: 1, status: 1 });
-transactionSchema.index({ controlId: 1, type: 1 });
+/**
+ * Índices
+ */
 
-// Hook opcional: recalcular amount baseado nas additions ativas (se quiser automação extra)
+// Transações do proprietário
+transactionSchema.index({
+    idEmail: 1,
+    date: -1,
+});
+
+// Dashboard
+transactionSchema.index({
+    idEmail: 1,
+    status: 1,
+});
+
+// Compartilhadas comigo
+transactionSchema.index({
+    sharedEmail: 1,
+});
+
+// Compartilhadas + agregadas
+transactionSchema.index({
+    sharedEmail: 1,
+    aggregate: 1,
+});
+
+// Busca por status
+transactionSchema.index({
+    status: 1,
+});
+
+// Solicitações pendentes
+transactionSchema.index({
+    'paymentRequest.requested': 1,
+    'paymentRequest.approved': 1,
+});
+
+/**
+ * Garantir consistência do status
+ */
 transactionSchema.pre('save', function (next) {
-    if (this.isModified('additions')) {
-        const activeAdditions = this.additions?.filter(add => !add.removed) || [];
-        activeAdditions.reduce((sum, add) => sum + add.amount, 0);
+    if (this.paidAmount === undefined) {
+        this.paidAmount = 0;
     }
+
+    if (this.paidAmount >= this.amount && this.amount > 0) {
+        this.status = 'pago';
+        this.paidAmount = this.amount;
+    } else if (this.paidAmount > 0) {
+        this.status = 'parcial';
+    }
+
     next();
 });
 
-export default model<ITransaction & Document>('Transaction', transactionSchema);
+export default model<ITransaction & Document>(
+    'Transaction',
+    transactionSchema
+);

@@ -80,17 +80,83 @@ app.put("/products/:id", stockController.updateProduct);
 app.delete("/products/:id", stockController.deleteProduct);
 app.post("/products/:id/share", stockController.shareProduct);
 
-// ── Novo Sistema: Transactions (independente) ────────────────────────
-app.post("/transactions/simple", transactionController.createSimple);
-app.post("/transactions/controlled", transactionController.createControlled);
-app.put("/transactions/:transactionId", transactionController.updateTransaction);
-app.patch("/transactions/payment", transactionController.updatePaymentStatus);
-app.get("/transactions?", transactionController.listTransactions);
-app.patch("/transactions/status", transactionController.markStatus);
-app.post("/transactions/follow", transactionController.followUser);
-app.delete("/transactions", transactionController.deleteTransaction);
-app.patch("/transactions/:transactionId/add-value", transactionController.addValue);
-app.patch("/transactions/:transactionId/subtract-value", transactionController.subtractValue);
+/**
+ * ==========================================================
+ * TRANSAÇÕES
+ * ==========================================================
+ */
+
+// Criar receita/despesa simples
+app.post(
+    '/transactions/simple',
+    transactionController.createSimple
+);
+
+// Criar receita/despesa compartilhada
+app.post(
+    '/transactions/controlled',
+    transactionController.createControlled
+);
+
+// Listar transações
+app.get(
+    '/transactions',
+    transactionController.listTransactions
+);
+
+// Atualizar transação
+app.put(
+    '/transactions/:transactionId',
+    transactionController.updateTransaction
+);
+
+// Excluir transação
+app.delete(
+    '/transactions',
+    transactionController.deleteTransaction
+);
+
+// Alterar status
+app.patch(
+    '/transactions/status',
+    transactionController.markStatus
+);
+
+// Atualizar pagamento parcial
+app.patch(
+    '/transactions/payment',
+    transactionController.updatePaymentStatus
+);
+
+// Solicitar confirmação de pagamento
+app.patch(
+    '/transactions/request-payment',
+    transactionController.requestPayment
+);
+
+// Aprovar pagamento
+app.patch(
+    '/transactions/approve-payment',
+    transactionController.approvePayment
+);
+
+// Rejeitar pagamento
+app.patch(
+    '/transactions/reject-payment',
+    transactionController.rejectPayment
+);
+
+// Adicionar valor
+app.patch(
+    '/transactions/:transactionId/add-value',
+    transactionController.addValue
+);
+
+// Subtrair valor
+app.patch(
+    '/transactions/:transactionId/subtract-value',
+    transactionController.subtractValue
+);
 
 // Minhas OS
 app.post("/os", osController.create);
