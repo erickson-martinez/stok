@@ -181,7 +181,19 @@ const permissionController = {
             let permissionDoc = await Permission.findOne({ idEmail: idEmail });
 
             if (!permissionDoc) {
-                res.status(404).json({ error: `Permissões não encontradas para ${idEmail}` });
+                const newPermission = new Permission({
+                    idEmail: idEmail,
+                    permissions: permissions,
+                });
+
+                await newPermission.save();
+
+                res.status(201).json({
+                    success: true,
+                    message: `Permissão criada com sucesso para ${idEmail}`,
+                    idEmail: idEmail,
+                    permissions: newPermission.permissions,
+                });
                 return;
             }
 

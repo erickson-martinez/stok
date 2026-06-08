@@ -108,13 +108,15 @@ class RhController {
             res.status(400).json({ error: "ID da empresa é obrigatório" });
             return;
         }
+
         try {
             const employees = await Employee.find({ company: empresaId })
+
             const listEmployeesPromises = employees.map(async (emp: any) => {
+
                 const user = await User.findOne({ idEmail: emp.idEmail }).lean();
                 if (!user) {
-                    res.status(400).json({ error: "ID da empresa é obrigatório" });
-                    return;
+                    return null;
                 }
                 return {
                     name: decryptPhone(user.name),
@@ -125,9 +127,7 @@ class RhController {
                     userEmail: emp.idEmail,
                 };
             });
-
-            const listEmployees = await Promise.all(listEmployeesPromises);
-
+            const listEmployees = (await Promise.all(listEmployeesPromises)).filter((item) => item !== null);
             res.status(200).json({
                 success: true,
                 listEmployees
