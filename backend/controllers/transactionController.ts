@@ -224,13 +224,14 @@ const transactionController = {
                 year,
             } = req.query;
 
-            if (!idEmail || !email) {
+            if (!idEmail) {
                 res.status(400).json({
-                    error: 'idEmail e email são obrigatórios'
+                    error: 'idEmail é obrigatório'
                 });
 
                 return;
             }
+
 
             if (!month || !year) {
                 res.status(400).json({
