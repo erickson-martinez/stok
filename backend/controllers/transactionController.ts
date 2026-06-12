@@ -294,7 +294,7 @@ const transactionController = {
                             .toLowerCase(),
                     },
                     {
-                        targetEmailOrPhone: String(email)
+                        targetEmailOrPhone: String(targetEmailOrPhone)
                             .trim()
                             .toLowerCase(),
                     },
