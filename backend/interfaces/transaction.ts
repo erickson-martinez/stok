@@ -86,9 +86,13 @@ export interface ITransaction {
      * Email ou telefone do usuário relacionado
      * (quem deve ou quem receberá)
      */
-    sharedEmailOrPhone?: string;
+    sharedEmail?: string;
 
-    targetEmailOrPhone?: string;
+    targetEmail?: string;
+
+    sharedPhone?: string;
+
+    targetPhone?: string;
 
     type: TransactionType;
 

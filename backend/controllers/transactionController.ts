@@ -218,8 +218,10 @@ const transactionController = {
 
             const {
                 idEmail,
-                sharedEmailOrPhone,
-                targetEmailOrPhone,
+                sharedEmail,
+                targetEmail,
+                targetPhone,
+                sharedPhone,
                 status,
                 month,
                 year,
@@ -289,15 +291,23 @@ const transactionController = {
                         idEmail,
                     },
                     {
-                        sharedEmailOrPhone: String(sharedEmailOrPhone)
+                        sharedEmail: String(sharedEmail)
                             .trim()
                             .toLowerCase(),
                     },
                     {
-                        targetEmailOrPhone: String(targetEmailOrPhone)
+                        targetEmail: String(targetEmail)
                             .trim()
                             .toLowerCase(),
                     },
+                    {
+                        sharedPhone: String(sharedPhone)
+                            .trim(),
+                    },
+                    {
+                        targetPhone: String(targetPhone)
+                            .trim(),
+                    }
                 ],
             };
 
@@ -327,8 +337,9 @@ const transactionController = {
                     tx.idEmail === idEmail,
 
                 canRequestPayment:
-                    tx.targetEmailOrPhone?.toLowerCase() ===
-                    String(sharedEmailOrPhone).toLowerCase(),
+                    tx.targetEmail?.toLowerCase() ===
+                    String(sharedEmail).toLowerCase() ||
+                    tx.targetPhone?.trim() === String(sharedPhone).trim(),
             }));
 
             // ==================================================
@@ -756,6 +767,7 @@ const transactionController = {
             const {
                 transactionId,
                 email,
+                phone,
                 message,
             } = req.body;
 
@@ -772,8 +784,10 @@ const transactionController = {
             }
 
             if (
-                transaction.sharedEmailOrPhone?.toLowerCase() !==
-                email.toLowerCase()
+                transaction.sharedEmail?.toLowerCase() !==
+                email.toLowerCase() &&
+                transaction.sharedPhone?.trim() !==
+                phone.trim()
             ) {
                 res.status(403).json({
                     error: 'Sem permissão'
@@ -945,11 +959,18 @@ const transactionController = {
         req: Request,
         res: Response
     ): Promise<void> {
-        const { sharedEmailOrPhone, idEmail, aggregate } = req.body;
+        const { sharedEmail, sharedPhone, idEmail, aggregate } = req.body;
 
-        if (!sharedEmailOrPhone && !idEmail && !aggregate) {
+        if (!idEmail && !aggregate) {
             res.status(400).json({
-                error: 'Campos obrigatórios: sharedEmailOrPhone, idEmail, aggregate'
+                error: 'Campos obrigatórios: idEmail, aggregate'
+            });
+            return;
+        }
+
+        if (!sharedEmail || !sharedPhone) {
+            res.status(400).json({
+                error: 'Campos obrigatórios: sharedEmail, sharedPhone'
             });
             return;
         }
@@ -965,7 +986,7 @@ const transactionController = {
             }
             await Transaction.updateMany(
                 { idEmail: idEmail },
-                { $set: { sharedEmailOrPhone: sharedEmailOrPhone, aggregate: aggregate } }
+                { $set: { sharedEmail: sharedEmail, sharedPhone: sharedPhone, aggregate: aggregate } }
             );
             res.json({
                 message: 'Transações atualizadas com sucesso'

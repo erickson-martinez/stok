@@ -21,7 +21,7 @@ const transactionSchema = new Schema<ITransaction & Document>(
         /**
          * Email ou telefone do usuário compartilhado
          */
-        sharedEmailOrPhone: {
+        sharedEmail: {
             type: String,
             sparse: true,
             index: true,
@@ -29,11 +29,23 @@ const transactionSchema = new Schema<ITransaction & Document>(
             trim: true,
         },
 
-        targetEmailOrPhone: {
+        targetEmail: {
             type: String,
             sparse: true,
             index: true,
             lowercase: true,
+            trim: true,
+        },
+        targetPhone: {
+            type: String,
+            sparse: true,
+            index: true,
+            trim: true,
+        },
+        sharedPhone: {
+            type: String,
+            sparse: true,
+            index: true,
             trim: true,
         },
 
@@ -213,12 +225,22 @@ transactionSchema.index({
 
 // Compartilhadas comigo
 transactionSchema.index({
-    sharedEmailOrPhone: 1,
+    sharedEmail: 1,
 });
 
 // Compartilhadas + agregadas
 transactionSchema.index({
-    sharedEmailOrPhone: 1,
+    sharedEmail: 1,
+    aggregate: 1,
+});
+
+transactionSchema.index({
+    targetEmail: 1,
+    aggregate: 1,
+});
+
+transactionSchema.index({
+    targetPhone: 1,
     aggregate: 1,
 });
 
