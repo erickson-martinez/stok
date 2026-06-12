@@ -19,9 +19,9 @@ const transactionSchema = new Schema<ITransaction & Document>(
         },
 
         /**
-         * Email do usuário compartilhado
+         * Email ou telefone do usuário compartilhado
          */
-        sharedEmail: {
+        sharedEmailOrPhone: {
             type: String,
             sparse: true,
             index: true,

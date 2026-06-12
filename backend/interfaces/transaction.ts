@@ -83,10 +83,10 @@ export interface ITransaction {
     idEmail: string;
 
     /**
-     * Email do usuário relacionado
+     * Email ou telefone do usuário relacionado
      * (quem deve ou quem receberá)
      */
-    sharedEmail?: string;
+    sharedEmailOrPhone?: string;
 
     type: TransactionType;
 
@@ -145,7 +145,7 @@ export interface TransactionCreateDTO {
 
     notes?: string;
 
-    sharedEmail?: string;
+    sharedEmailOrPhone?: string;
 }
 
 export interface TransactionUpdateDTO {

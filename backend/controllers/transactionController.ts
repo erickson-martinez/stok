@@ -119,7 +119,7 @@ const transactionController = {
 
             const {
                 idEmail,
-                sharedEmail,
+                sharedEmailOrPhone,
                 type,
                 name,
                 amount,
@@ -129,7 +129,7 @@ const transactionController = {
 
             if (
                 !idEmail ||
-                !sharedEmail ||
+                !sharedEmailOrPhone ||
                 !type ||
                 !name ||
                 amount == null ||
@@ -164,7 +164,7 @@ const transactionController = {
 
                 idEmail,
 
-                sharedEmail: sharedEmail
+                sharedEmailOrPhone: sharedEmailOrPhone
                     .trim()
                     .toLowerCase(),
 
@@ -288,7 +288,7 @@ const transactionController = {
                         idEmail,
                     },
                     {
-                        sharedEmail: String(email)
+                        sharedEmailOrPhone: String(email)
                             .trim()
                             .toLowerCase(),
                     },
@@ -321,7 +321,7 @@ const transactionController = {
                     tx.idEmail === idEmail,
 
                 canRequestPayment:
-                    tx.sharedEmail?.toLowerCase() ===
+                    tx.sharedEmailOrPhone?.toLowerCase() ===
                     String(email).toLowerCase(),
             }));
 
@@ -766,7 +766,7 @@ const transactionController = {
             }
 
             if (
-                transaction.sharedEmail?.toLowerCase() !==
+                transaction.sharedEmailOrPhone?.toLowerCase() !==
                 email.toLowerCase()
             ) {
                 res.status(403).json({
