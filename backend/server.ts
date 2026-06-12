@@ -148,7 +148,7 @@ app.patch(
 );
 
 app.patch(
-    '/transactions/target',
+    '/transactions/follow',
     transactionController.followTransaction
 );
 
