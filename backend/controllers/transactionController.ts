@@ -934,6 +934,44 @@ const transactionController = {
         }
     },
 
+    //Compartilhar transação
+    async targetTransaction(
+        req: Request,
+        res: Response
+    ): Promise<void> {
+        const { targetEmailOrPhone, idEmail } = req.body;
+
+        if (!targetEmailOrPhone || !idEmail) {
+            res.status(400).json({
+                error: 'Campos obrigatórios: targetEmailOrPhone, idEmail'
+            });
+            return;
+        }
+
+        try {
+            const transactionsToTarget = await Transaction.find({ idEmail: idEmail });
+
+            if (transactionsToTarget.length === 0) {
+                res.status(404).json({
+                    error: 'Transações não encontradas'
+                });
+                return;
+            }
+            await Transaction.updateMany(
+                { idEmail: idEmail },
+                { $set: { targetEmailOrPhone: targetEmailOrPhone, isControlled: true } }
+            );
+            res.json({
+                message: 'Transações atualizadas com sucesso'
+            });
+        } catch (error: any) {
+
+            res.status(500).json({
+                error: error.message
+            });
+        }
+    },
+
     // ==========================================================
     // ADICIONAR VALOR
     // ==========================================================

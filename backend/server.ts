@@ -147,6 +147,11 @@ app.patch(
     transactionController.rejectPayment
 );
 
+app.patch(
+    '/transactions/target',
+    transactionController.targetTransaction
+);
+
 // Adicionar valor
 app.patch(
     '/transactions/:transactionId/add-value',

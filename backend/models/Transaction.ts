@@ -29,6 +29,14 @@ const transactionSchema = new Schema<ITransaction & Document>(
             trim: true,
         },
 
+        targetEmailOrPhone: {
+            type: String,
+            sparse: true,
+            index: true,
+            lowercase: true,
+            trim: true,
+        },
+
         type: {
             type: String,
             enum: ['revenue', 'expense'] as TransactionType[],
@@ -205,12 +213,12 @@ transactionSchema.index({
 
 // Compartilhadas comigo
 transactionSchema.index({
-    sharedEmail: 1,
+    sharedEmailOrPhone: 1,
 });
 
 // Compartilhadas + agregadas
 transactionSchema.index({
-    sharedEmail: 1,
+    sharedEmailOrPhone: 1,
     aggregate: 1,
 });
 

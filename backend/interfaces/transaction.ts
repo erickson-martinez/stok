@@ -88,6 +88,8 @@ export interface ITransaction {
      */
     sharedEmailOrPhone?: string;
 
+    targetEmailOrPhone?: string;
+
     type: TransactionType;
 
     name: string;
@@ -146,6 +148,8 @@ export interface TransactionCreateDTO {
     notes?: string;
 
     sharedEmailOrPhone?: string;
+
+    targetEmailOrPhone?: string;
 }
 
 export interface TransactionUpdateDTO {
