@@ -119,7 +119,8 @@ const transactionController = {
 
             const {
                 idEmail,
-                targetEmailOrPhone,
+                targetEmail,
+                targetPhone,
                 type,
                 name,
                 amount,
@@ -129,14 +130,14 @@ const transactionController = {
 
             if (
                 !idEmail ||
-                !targetEmailOrPhone ||
+                (!targetEmail || !targetPhone) ||
                 !type ||
                 !name ||
                 amount == null ||
                 !date
             ) {
                 res.status(400).json({
-                    error: 'Campos obrigatórios: idEmail, targetEmailOrPhone, type, name, amount, date'
+                    error: 'Campos obrigatórios: idEmail, targetEmail, targetPhone, type, name, amount, date'
                 });
 
                 return;
@@ -164,26 +165,18 @@ const transactionController = {
 
                 idEmail,
 
-                targetEmailOrPhone: targetEmailOrPhone
+                targetEmail: targetEmail
                     .trim()
                     .toLowerCase(),
-
+                targetPhone: targetPhone.trim(),
                 type,
-
                 name: name.trim(),
-
                 amount: Number(amount),
-
                 paidAmount: 0,
-
                 date: new Date(date),
-
                 isControlled: true,
-
                 status: 'nao_pago',
-
                 notes: notes?.trim(),
-
                 paymentRequest: {
                     requested: false,
                     approved: false,
