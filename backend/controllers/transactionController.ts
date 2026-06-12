@@ -119,7 +119,7 @@ const transactionController = {
 
             const {
                 idEmail,
-                sharedEmailOrPhone,
+                targetEmailOrPhone,
                 type,
                 name,
                 amount,
@@ -129,14 +129,14 @@ const transactionController = {
 
             if (
                 !idEmail ||
-                !sharedEmailOrPhone ||
+                !targetEmailOrPhone ||
                 !type ||
                 !name ||
                 amount == null ||
                 !date
             ) {
                 res.status(400).json({
-                    error: 'Campos obrigatórios: idEmail, sharedEmail, type, name, amount, date'
+                    error: 'Campos obrigatórios: idEmail, targetEmailOrPhone, type, name, amount, date'
                 });
 
                 return;
@@ -164,7 +164,7 @@ const transactionController = {
 
                 idEmail,
 
-                sharedEmailOrPhone: sharedEmailOrPhone
+                targetEmailOrPhone: targetEmailOrPhone
                     .trim()
                     .toLowerCase(),
 
@@ -219,6 +219,7 @@ const transactionController = {
             const {
                 idEmail,
                 email,
+                targetEmailOrPhone,
                 status,
                 month,
                 year,
@@ -292,6 +293,11 @@ const transactionController = {
                             .trim()
                             .toLowerCase(),
                     },
+                    {
+                        targetEmailOrPhone: String(email)
+                            .trim()
+                            .toLowerCase(),
+                    },
                 ],
             };
 
@@ -321,7 +327,7 @@ const transactionController = {
                     tx.idEmail === idEmail,
 
                 canRequestPayment:
-                    tx.sharedEmailOrPhone?.toLowerCase() ===
+                    tx.targetEmailOrPhone?.toLowerCase() ===
                     String(email).toLowerCase(),
             }));
 
@@ -935,15 +941,15 @@ const transactionController = {
     },
 
     //Compartilhar transação
-    async targetTransaction(
+    async followTransaction(
         req: Request,
         res: Response
     ): Promise<void> {
-        const { targetEmailOrPhone, idEmail } = req.body;
+        const { sharedEmailOrPhone, idEmail, aggregate } = req.body;
 
-        if (!targetEmailOrPhone || !idEmail) {
+        if (!sharedEmailOrPhone && !idEmail && !aggregate) {
             res.status(400).json({
-                error: 'Campos obrigatórios: targetEmailOrPhone, idEmail'
+                error: 'Campos obrigatórios: sharedEmailOrPhone, idEmail, aggregate'
             });
             return;
         }
@@ -959,7 +965,7 @@ const transactionController = {
             }
             await Transaction.updateMany(
                 { idEmail: idEmail },
-                { $set: { targetEmailOrPhone: targetEmailOrPhone, isControlled: true } }
+                { $set: { sharedEmailOrPhone: sharedEmailOrPhone, aggregate: aggregate } }
             );
             res.json({
                 message: 'Transações atualizadas com sucesso'
