@@ -218,7 +218,7 @@ const transactionController = {
 
             const {
                 idEmail,
-                email,
+                sharedEmailOrPhone,
                 targetEmailOrPhone,
                 status,
                 month,
@@ -289,7 +289,7 @@ const transactionController = {
                         idEmail,
                     },
                     {
-                        sharedEmailOrPhone: String(email)
+                        sharedEmailOrPhone: String(sharedEmailOrPhone)
                             .trim()
                             .toLowerCase(),
                     },
@@ -328,7 +328,7 @@ const transactionController = {
 
                 canRequestPayment:
                     tx.targetEmailOrPhone?.toLowerCase() ===
-                    String(email).toLowerCase(),
+                    String(sharedEmailOrPhone).toLowerCase(),
             }));
 
             // ==================================================
