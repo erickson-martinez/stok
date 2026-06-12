@@ -149,7 +149,7 @@ app.patch(
 
 app.patch(
     '/transactions/target',
-    transactionController.targetTransaction
+    transactionController.followTransaction
 );
 
 // Adicionar valor
