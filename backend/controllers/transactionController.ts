@@ -779,8 +779,8 @@ const transactionController = {
             if (
                 transaction.targetEmail !==
                 targetEmail &&
-                transaction.targetPhone?.trim() !==
-                targetPhone.trim() && transaction.idEmail !== idEmail) {
+                transaction.targetPhone !==
+                targetPhone && transaction.idEmail !== idEmail) {
                 res.status(403).json({
                     error: 'Sem permissão'
                 });
