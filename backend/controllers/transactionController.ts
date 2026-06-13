@@ -759,8 +759,9 @@ const transactionController = {
 
             const {
                 transactionId,
-                email,
-                phone,
+                targetPhone,
+                targetEmail,
+                idEmail,
                 message,
             } = req.body;
 
@@ -777,11 +778,10 @@ const transactionController = {
             }
 
             if (
-                transaction.sharedEmail?.toLowerCase() !==
-                email.toLowerCase() &&
-                transaction.sharedPhone?.trim() !==
-                phone.trim()
-            ) {
+                transaction.targetEmail?.toLowerCase() !==
+                targetEmail.toLowerCase() &&
+                transaction.targetPhone?.trim() !==
+                targetPhone.trim() && transaction.idEmail !== idEmail) {
                 res.status(403).json({
                     error: 'Sem permissão'
                 });
@@ -797,11 +797,19 @@ const transactionController = {
                 });
                 return;
             }
+            let quemFesRequest
+            if (idEmail && !targetEmail && !targetPhone) {
+                quemFesRequest = idEmail;
+            } else if (targetPhone && !targetEmail && !idEmail) {
+                quemFesRequest = targetPhone;
+            } else if (targetEmail && !targetPhone && !idEmail) {
+                quemFesRequest = targetEmail;
+            }
 
             transaction.paymentRequest = {
                 requested: true,
                 requestedAt: new Date(),
-                requestedBy: email,
+                requestedBy: quemFesRequest,
                 message,
                 approved: false,
                 rejected: false,
@@ -836,13 +844,15 @@ const transactionController = {
             const {
                 transactionId,
                 idEmail,
+                targetPhone,
+                targetEmail,
             } = req.body;
 
             const transaction =
                 await Transaction.findOne({
-                    _id: transactionId,
-                    idEmail,
+                    _id: transactionId
                 });
+
 
             if (!transaction) {
                 res.status(404).json({
@@ -851,8 +861,30 @@ const transactionController = {
                 return;
             }
 
-            transaction.status = 'pago';
+            let quemFesRequest
+            if (idEmail && !targetEmail && !targetPhone) {
+                quemFesRequest = idEmail;
+            } else if (targetPhone && !targetEmail && !idEmail) {
+                quemFesRequest = targetPhone;
+            } else if (targetEmail && !targetPhone && !idEmail) {
+                quemFesRequest = targetEmail;
+            }
 
+
+            if (transaction.type === 'revenue') {
+                if (transaction.idEmail === quemFesRequest) {
+                    transaction.status = 'pago';
+                } else if (
+                    (transaction.targetEmail?.toLowerCase() === quemFesRequest?.toLowerCase() && !targetPhone) ||
+                    (transaction.targetPhone?.trim() === quemFesRequest?.trim() && !targetEmail)) {
+                    transaction.status = 'pago';
+                } else {
+                    res.status(403).json({
+                        error: 'Sem permissão'
+                    });
+                    return;
+                }
+            }
             transaction.paidAmount =
                 transaction.amount;
 
@@ -863,7 +895,7 @@ const transactionController = {
 
                 approvedAt: new Date(),
 
-                approvedBy: idEmail,
+                approvedBy: quemFesRequest,
 
                 rejected: false,
 
