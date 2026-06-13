@@ -167,7 +167,7 @@ const transactionController = {
 
                 targetEmail: targetEmail
                     .trim()
-                    .toLowerCase(),
+                ,
                 targetPhone: targetPhone.trim(),
                 type,
                 name: name.trim(),
@@ -286,12 +286,12 @@ const transactionController = {
                     {
                         sharedEmail: String(sharedEmail)
                             .trim()
-                            .toLowerCase(),
+                        ,
                     },
                     {
                         targetEmail: String(targetEmail)
                             .trim()
-                            .toLowerCase(),
+                        ,
                     },
                     {
                         sharedPhone: String(sharedPhone)
@@ -330,9 +330,8 @@ const transactionController = {
                     tx.idEmail === idEmail,
 
                 canRequestPayment:
-                    tx.targetEmail?.toLowerCase() ===
-                    String(sharedEmail).toLowerCase() ||
-                    tx.targetPhone?.trim() === String(sharedPhone).trim(),
+                    tx.targetEmail === String(sharedEmail) ||
+                    tx.targetPhone === String(sharedPhone),
             }));
 
             // ==================================================
@@ -778,8 +777,8 @@ const transactionController = {
             }
 
             if (
-                transaction.targetEmail?.toLowerCase() !==
-                targetEmail.toLowerCase() &&
+                transaction.targetEmail !==
+                targetEmail &&
                 transaction.targetPhone?.trim() !==
                 targetPhone.trim() && transaction.idEmail !== idEmail) {
                 res.status(403).json({
@@ -875,8 +874,8 @@ const transactionController = {
                 if (transaction.idEmail === quemFesRequest) {
                     transaction.status = 'pago';
                 } else if (
-                    (transaction.targetEmail?.toLowerCase() === quemFesRequest?.toLowerCase() && !targetPhone) ||
-                    (transaction.targetPhone?.trim() === quemFesRequest?.trim() && !targetEmail)) {
+                    (transaction.targetEmail === quemFesRequest && !targetPhone) ||
+                    (transaction.targetPhone === quemFesRequest && !targetEmail)) {
                     transaction.status = 'pago';
                 } else {
                     res.status(403).json({
