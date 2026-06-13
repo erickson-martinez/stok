@@ -805,6 +805,21 @@ const transactionController = {
                 quemFesRequest = targetEmail;
             }
 
+            if (transaction.type === 'revenue') {
+                if (transaction.idEmail === quemFesRequest) {
+                    transaction.status = 'pendente';
+                } else if (
+                    (transaction.targetEmail === quemFesRequest && !targetPhone) ||
+                    (transaction.targetPhone === quemFesRequest && !targetEmail)) {
+                    transaction.status = 'pendente';
+                } else {
+                    res.status(403).json({
+                        error: 'Sem permissão'
+                    });
+                    return;
+                }
+            }
+
             transaction.paymentRequest = {
                 requested: true,
                 requestedAt: new Date(),
@@ -930,13 +945,14 @@ const transactionController = {
             const {
                 transactionId,
                 idEmail,
+                targetPhone,
+                targetEmail,
                 reason,
             } = req.body;
 
             const transaction =
                 await Transaction.findOne({
-                    _id: transactionId,
-                    idEmail,
+                    _id: transactionId
                 });
 
             if (!transaction) {
@@ -946,6 +962,31 @@ const transactionController = {
                 });
 
                 return;
+            }
+
+            let quemFesRequest
+            if (idEmail && !targetEmail && !targetPhone) {
+                quemFesRequest = idEmail;
+            } else if (targetPhone && !targetEmail && !idEmail) {
+                quemFesRequest = targetPhone;
+            } else if (targetEmail && !targetPhone && !idEmail) {
+                quemFesRequest = targetEmail;
+            }
+
+
+            if (transaction.type === 'revenue') {
+                if (transaction.idEmail === quemFesRequest) {
+                    transaction.status = 'nao_pago';
+                } else if (
+                    (transaction.targetEmail === quemFesRequest && !targetPhone) ||
+                    (transaction.targetPhone === quemFesRequest && !targetEmail)) {
+                    transaction.status = 'nao_pago';
+                } else {
+                    res.status(403).json({
+                        error: 'Sem permissão'
+                    });
+                    return;
+                }
             }
 
             transaction.paymentRequest = {
