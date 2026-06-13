@@ -130,7 +130,7 @@ const transactionController = {
 
             if (
                 !idEmail ||
-                (!targetEmail || !targetPhone) ||
+                (!targetEmail && !targetPhone) ||
                 !type ||
                 !name ||
                 amount == null ||
