@@ -961,9 +961,9 @@ const transactionController = {
             return;
         }
 
-        if (!sharedEmail || !sharedPhone) {
+        if (!sharedEmail && sharedPhone || sharedEmail && !sharedPhone) {
             res.status(400).json({
-                error: 'Campos obrigatórios: sharedEmail, sharedPhone'
+                error: 'Campos obrigatórios: sharedEmail e sharedPhone devem ser preenchidos juntos'
             });
             return;
         }
