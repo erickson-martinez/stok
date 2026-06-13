@@ -960,10 +960,9 @@ const transactionController = {
             });
             return;
         }
-
-        if (!sharedEmail && sharedPhone || sharedEmail && !sharedPhone) {
+        if (!sharedEmail && !sharedPhone) {
             res.status(400).json({
-                error: 'Campos obrigatórios: sharedEmail e sharedPhone devem ser preenchidos juntos'
+                error: 'É obrigatório informar pelo menos um: sharedEmail ou sharedPhone'
             });
             return;
         }
