@@ -363,41 +363,96 @@ const transactionController = {
 
             if (type === 'investment') {
 
+                const currentAmount = Number(amount);
+
                 const annualRate =
                     getAnnualRate(investment);
 
 
-                const today =
-                    calculateProjection(
-                        Number(amount),
-                        investment,
-                        1
+                const today = new Date();
+
+
+                const tomorrow = new Date(today);
+                tomorrow.setDate(
+                    tomorrow.getDate() + 1
+                );
+
+
+                const nextWeek = new Date(today);
+                nextWeek.setDate(
+                    nextWeek.getDate() + 7
+                );
+
+
+                const nextMonth = new Date(today);
+                nextMonth.setMonth(
+                    nextMonth.getMonth() + 1
+                );
+
+
+                const nextYear = new Date(today);
+                nextYear.setFullYear(
+                    nextYear.getFullYear() + 1
+                );
+
+
+                const dailyBusinessDays =
+                    countBusinessDays(
+                        today,
+                        tomorrow
                     );
 
 
-                const week =
-                    calculateProjection(
-                        Number(amount),
-                        investment,
-                        5
+                const weeklyBusinessDays =
+                    countBusinessDays(
+                        today,
+                        nextWeek
                     );
 
 
-                const month =
-                    calculateProjection(
-                        Number(amount),
-                        investment,
-                        21
+                const monthlyBusinessDays =
+                    countBusinessDays(
+                        today,
+                        nextMonth
                     );
 
 
-                const year =
+                const yearlyBusinessDays =
+                    countBusinessDays(
+                        today,
+                        nextYear
+                    );
+
+
+                const dailyProjection =
                     calculateProjection(
-                        Number(amount),
+                        currentAmount,
                         investment,
-                        getBusinessDaysInYear(
-                            new Date().getFullYear()
-                        )
+                        dailyBusinessDays
+                    );
+
+
+                const weeklyProjection =
+                    calculateProjection(
+                        currentAmount,
+                        investment,
+                        weeklyBusinessDays
+                    );
+
+
+                const monthlyProjection =
+                    calculateProjection(
+                        currentAmount,
+                        investment,
+                        monthlyBusinessDays
+                    );
+
+
+                const yearlyProjection =
+                    calculateProjection(
+                        currentAmount,
+                        investment,
+                        yearlyBusinessDays
                     );
 
 
@@ -415,44 +470,53 @@ const transactionController = {
 
                     daily: {
 
-                        businessDays: 1,
+                        businessDays:
+                            dailyBusinessDays,
 
-                        income: today.income,
+                        income:
+                            dailyProjection.income,
 
-                        finalAmount: today.finalAmount
+                        finalAmount:
+                            dailyProjection.finalAmount
                     },
 
 
                     weekly: {
 
-                        businessDays: 5,
+                        businessDays:
+                            weeklyBusinessDays,
 
-                        income: week.income,
+                        income:
+                            weeklyProjection.income,
 
-                        finalAmount: week.finalAmount
+                        finalAmount:
+                            weeklyProjection.finalAmount
                     },
 
 
                     monthly: {
 
-                        businessDays: 21,
+                        businessDays:
+                            monthlyBusinessDays,
 
-                        income: month.income,
+                        income:
+                            monthlyProjection.income,
 
-                        finalAmount: month.finalAmount
+                        finalAmount:
+                            monthlyProjection.finalAmount
                     },
 
 
                     yearly: {
 
                         businessDays:
-                            getBusinessDaysInYear(
-                                new Date().getFullYear()
-                            ),
+                            yearlyBusinessDays,
 
-                        income: year.income,
+                        income:
+                            yearlyProjection.income,
 
-                        finalAmount: year.finalAmount
+                        finalAmount:
+                            yearlyProjection.finalAmount
                     }
                 };
             }
