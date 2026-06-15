@@ -51,7 +51,11 @@ const transactionSchema = new Schema<ITransaction & Document>(
 
         type: {
             type: String,
-            enum: ['revenue', 'expense'] as TransactionType[],
+            enum: [
+                'revenue',
+                'expense',
+                'investment'
+            ] as TransactionType[],
             required: true,
         },
 
@@ -101,6 +105,50 @@ const transactionSchema = new Schema<ITransaction & Document>(
         notes: {
             type: String,
             trim: true,
+        },
+
+        investment: {
+            institution: {
+                type: String,
+                trim: true,
+            },
+
+            category: {
+                type: String,
+                enum: [
+                    'RDB',
+                    'CDB',
+                    'LCI',
+                    'LCA',
+                    'Tesouro',
+                    'Fundo'
+                ],
+            },
+
+            profitability: {
+                type: {
+                    type: String,
+                    enum: [
+                        'CDI',
+                        'FIXED',
+                        'IPCA'
+                    ],
+                },
+
+                percentage: {
+                    type: Number,
+                    min: 0,
+                },
+            },
+
+            liquidity: {
+                type: String,
+                trim: true,
+            },
+
+            maturityDate: {
+                type: Date,
+            },
         },
 
         aggregate: {

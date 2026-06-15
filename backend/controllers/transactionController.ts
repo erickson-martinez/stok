@@ -3,6 +3,216 @@
 import { Request, Response } from 'express';
 import Transaction from '../models/Transaction';
 
+// CDI atual (pode futuramente vir do Banco Central)
+const CDI_ANNUAL = 14.40;
+
+/**
+ * Retorna a quantidade de dias úteis de um ano
+ */
+function getBusinessDaysInYear(
+    year: number
+): number {
+
+    let count = 0;
+
+    const date = new Date(
+        year,
+        0,
+        1
+    );
+
+    const endDate = new Date(
+        year,
+        11,
+        31
+    );
+
+
+    while (date <= endDate) {
+
+        if (isBusinessDay(date)) {
+            count++;
+        }
+
+        date.setDate(
+            date.getDate() + 1
+        );
+    }
+
+    return count;
+}
+
+/**
+ * Verifica se é dia útil
+ * Futuramente adicionar feriados
+ */
+function isBusinessDay(date: Date): boolean {
+
+    const day = date.getDay();
+
+    // Domingo = 0
+    // Sábado = 6
+    return day !== 0 && day !== 6;
+}
+
+
+function calculateDailyRate(
+    annualRate: number,
+    year: number
+): number {
+
+    const businessDays =
+        getBusinessDaysInYear(year);
+
+    return (
+        Math.pow(
+            1 + (annualRate / 100),
+            1 / businessDays
+        ) - 1
+    );
+}
+
+
+/**
+ * Calcula a taxa anual de um investimento
+ */
+function getAnnualRate(
+    investment: any
+): number {
+
+    if (!investment) {
+        return 0;
+    }
+
+    const {
+        profitability
+    } = investment;
+
+
+    switch (profitability.type) {
+
+        case 'CDI':
+
+            return (
+                CDI_ANNUAL *
+                (profitability.percentage / 100)
+            );
+
+
+        case 'FIXED':
+
+            return profitability.percentage;
+
+
+        // Futuramente:
+        // IPCA + percentual
+        case 'IPCA':
+
+            return profitability.percentage;
+
+
+        default:
+            return 0;
+    }
+}
+
+
+/**
+ * Calcula projeção por quantidade de dias úteis
+ */
+function calculateProjection(
+    initialAmount: number,
+    investment: any,
+    days: number
+) {
+
+    const annualRate =
+        getAnnualRate(investment);
+
+
+    const dailyRate =
+        calculateDailyRate(
+            annualRate,
+            new Date().getFullYear()
+        );
+
+
+    let balance = initialAmount;
+
+
+    for (
+        let i = 0;
+        i < days;
+        i++
+    ) {
+
+        const income =
+            balance * dailyRate;
+
+
+        balance += income;
+    }
+
+
+    return {
+
+        initialAmount,
+
+        annualRate,
+
+        dailyRate,
+
+        income:
+            Number(
+                (
+                    balance -
+                    initialAmount
+                ).toFixed(2)
+            ),
+
+        finalAmount:
+            Number(
+                balance.toFixed(2)
+            ),
+    };
+}
+
+
+/**
+ * Retorna quantos dias úteis existem
+ * entre duas datas
+ */
+function countBusinessDays(
+    startDate: Date,
+    endDate: Date
+): number {
+
+    let count = 0;
+
+
+    const current =
+        new Date(startDate);
+
+
+    while (current <= endDate) {
+
+
+        if (isBusinessDay(current)) {
+
+            count++;
+
+        }
+
+
+        current.setDate(
+            current.getDate() + 1
+        );
+    }
+
+
+    return count;
+}
+
 const VALID_STATUS = [
     'pendente',
     'pago',
@@ -31,7 +241,9 @@ const transactionController = {
                 date,
                 status,
                 notes,
+                investment,
             } = req.body;
+
 
             if (
                 !idEmail ||
@@ -47,15 +259,99 @@ const transactionController = {
                 return;
             }
 
+
             if (
-                !['revenue', 'expense'].includes(type)
+                ![
+                    'revenue',
+                    'expense',
+                    'investment'
+                ].includes(type)
             ) {
                 res.status(400).json({
-                    error: 'type deve ser revenue ou expense'
+                    error: 'type deve ser revenue, expense ou investment'
                 });
 
                 return;
             }
+
+
+            // Validações somente para investimento
+            if (type === 'investment') {
+
+                if (!investment) {
+                    res.status(400).json({
+                        error: 'investment é obrigatório quando type for investment'
+                    });
+
+                    return;
+                }
+
+
+                if (!investment.institution?.trim()) {
+                    res.status(400).json({
+                        error: 'institution é obrigatório'
+                    });
+
+                    return;
+                }
+
+
+                const validCategories = [
+                    'RDB',
+                    'CDB',
+                    'LCI',
+                    'LCA',
+                    'Tesouro',
+                    'Fundo',
+                ];
+
+
+                if (
+                    !validCategories.includes(
+                        investment.category
+                    )
+                ) {
+                    res.status(400).json({
+                        error: 'category inválida'
+                    });
+
+                    return;
+                }
+
+
+                const validProfitabilityTypes = [
+                    'CDI',
+                    'FIXED',
+                    'IPCA',
+                ];
+
+
+                if (
+                    !investment.profitability?.type ||
+                    !validProfitabilityTypes.includes(
+                        investment.profitability.type
+                    )
+                ) {
+                    res.status(400).json({
+                        error: 'profitability.type inválido'
+                    });
+
+                    return;
+                }
+
+
+                if (
+                    investment.profitability.percentage == null ||
+                    Number(investment.profitability.percentage) <= 0
+                ) {
+                    res.status(400).json({
+                        error: 'profitability.percentage deve ser maior que zero'
+                    });
+
+                    return;
+                }
+            }
+
 
             if (Number(amount) <= 0) {
                 res.status(400).json({
@@ -65,7 +361,9 @@ const transactionController = {
                 return;
             }
 
+
             const transaction = await Transaction.create({
+
                 idEmail,
 
                 type,
@@ -74,15 +372,30 @@ const transactionController = {
 
                 amount: Number(amount),
 
-                paidAmount: 0,
+
+                paidAmount:
+                    type === 'investment'
+                        ? Number(amount)
+                        : 0,
+
 
                 date: new Date(date),
 
+
                 isControlled: false,
 
-                status: status || 'nao_pago',
+
+                status:
+                    type === 'investment'
+                        ? 'pago'
+                        : status || 'nao_pago',
+
 
                 notes: notes?.trim(),
+
+
+                investment,
+
 
                 paymentRequest: {
                     requested: false,
@@ -90,6 +403,7 @@ const transactionController = {
                     rejected: false,
                 }
             });
+
 
             res.status(201).json({
                 message: 'Transação criada com sucesso',
@@ -500,7 +814,10 @@ const transactionController = {
                 return;
             }
 
-            if (transaction.status === 'pago') {
+            if (
+                transaction.status === 'pago' &&
+                transaction.type === 'investment'
+            ) {
                 res.status(400).json({
                     error: 'Não é permitido editar transação paga'
                 });
@@ -1106,8 +1423,17 @@ const transactionController = {
                 return;
             }
 
-            transaction.amount +=
-                Number(additionalAmount);
+            const value = Number(additionalAmount);
+
+            transaction.amount += value;
+            // Se for investimento, o novo aporte já está aplicado
+            if (transaction.type === 'investment') {
+
+                transaction.paidAmount =
+                    transaction.amount;
+
+                transaction.status = 'pago';
+            }
 
             transaction.additions ??= [];
 

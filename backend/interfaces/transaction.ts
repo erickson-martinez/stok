@@ -2,7 +2,10 @@
 
 import { Types } from 'mongoose';
 
-export type TransactionType = 'revenue' | 'expense';
+export type TransactionType =
+    | 'revenue'
+    | 'expense'
+    | 'investment';
 
 export type TransactionStatus =
     | 'pendente'
@@ -129,6 +132,32 @@ export interface ITransaction {
     /**
      * Fluxo de confirmação de pagamento
      */
+
+    investment?: {
+        institution: string;
+
+        category:
+        | 'RDB'
+        | 'CDB'
+        | 'LCI'
+        | 'LCA'
+        | 'Tesouro'
+        | 'Fundo';
+
+        profitability: {
+            type:
+            | 'CDI'
+            | 'FIXED'
+            | 'IPCA';
+
+            percentage: number;
+        };
+
+        liquidity?: string;
+
+        maturityDate?: Date;
+    }
+
     paymentRequest?: IPaymentRequest;
 
     createdAt?: Date;
