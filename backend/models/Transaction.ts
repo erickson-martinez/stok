@@ -108,22 +108,6 @@ const transactionSchema = new Schema<ITransaction & Document>(
         },
 
         investment: {
-            institution: {
-                type: String,
-                trim: true,
-            },
-
-            category: {
-                type: String,
-                enum: [
-                    'RDB',
-                    'CDB',
-                    'LCI',
-                    'LCA',
-                    'Tesouro',
-                    'Fundo'
-                ],
-            },
 
             profitability: {
                 type: {
@@ -137,18 +121,61 @@ const transactionSchema = new Schema<ITransaction & Document>(
 
                 percentage: {
                     type: Number,
-                    min: 0,
+                }
+            },
+
+
+            calculation: {
+
+                cdiAnnual: Number,
+
+                annualRate: Number,
+
+                createdAt: Date,
+            },
+
+
+            projection: {
+
+                daily: {
+
+                    businessDays: Number,
+
+                    income: Number,
+
+                    finalAmount: Number,
                 },
-            },
 
-            liquidity: {
-                type: String,
-                trim: true,
-            },
 
-            maturityDate: {
-                type: Date,
-            },
+                weekly: {
+
+                    businessDays: Number,
+
+                    income: Number,
+
+                    finalAmount: Number,
+                },
+
+
+                monthly: {
+
+                    businessDays: Number,
+
+                    income: Number,
+
+                    finalAmount: Number,
+                },
+
+
+                yearly: {
+
+                    businessDays: Number,
+
+                    income: Number,
+
+                    finalAmount: Number,
+                }
+            }
         },
 
         aggregate: {

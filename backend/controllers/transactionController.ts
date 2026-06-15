@@ -361,6 +361,102 @@ const transactionController = {
                 return;
             }
 
+            if (type === 'investment') {
+
+                const annualRate =
+                    getAnnualRate(investment);
+
+
+                const today =
+                    calculateProjection(
+                        Number(amount),
+                        investment,
+                        1
+                    );
+
+
+                const week =
+                    calculateProjection(
+                        Number(amount),
+                        investment,
+                        5
+                    );
+
+
+                const month =
+                    calculateProjection(
+                        Number(amount),
+                        investment,
+                        21
+                    );
+
+
+                const year =
+                    calculateProjection(
+                        Number(amount),
+                        investment,
+                        getBusinessDaysInYear(
+                            new Date().getFullYear()
+                        )
+                    );
+
+
+                investment.calculation = {
+
+                    cdiAnnual: CDI_ANNUAL,
+
+                    annualRate,
+
+                    createdAt: new Date()
+                };
+
+
+                investment.projection = {
+
+                    daily: {
+
+                        businessDays: 1,
+
+                        income: today.income,
+
+                        finalAmount: today.finalAmount
+                    },
+
+
+                    weekly: {
+
+                        businessDays: 5,
+
+                        income: week.income,
+
+                        finalAmount: week.finalAmount
+                    },
+
+
+                    monthly: {
+
+                        businessDays: 21,
+
+                        income: month.income,
+
+                        finalAmount: month.finalAmount
+                    },
+
+
+                    yearly: {
+
+                        businessDays:
+                            getBusinessDaysInYear(
+                                new Date().getFullYear()
+                            ),
+
+                        income: year.income,
+
+                        finalAmount: year.finalAmount
+                    }
+                };
+            }
+
 
             const transaction = await Transaction.create({
 

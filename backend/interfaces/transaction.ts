@@ -134,15 +134,6 @@ export interface ITransaction {
      */
 
     investment?: {
-        institution: string;
-
-        category:
-        | 'RDB'
-        | 'CDB'
-        | 'LCI'
-        | 'LCA'
-        | 'Tesouro'
-        | 'Fundo';
 
         profitability: {
             type:
@@ -153,10 +144,39 @@ export interface ITransaction {
             percentage: number;
         };
 
-        liquidity?: string;
+        calculation: {
+            cdiAnnual: number;
+            annualRate: number;
+            createdAt: Date;
+        };
 
-        maturityDate?: Date;
-    }
+        projection: {
+
+            daily: {
+                businessDays: number;
+                income: number;
+                finalAmount: number;
+            };
+
+            weekly: {
+                businessDays: number;
+                income: number;
+                finalAmount: number;
+            };
+
+            monthly: {
+                businessDays: number;
+                income: number;
+                finalAmount: number;
+            };
+
+            yearly: {
+                businessDays: number;
+                income: number;
+                finalAmount: number;
+            };
+        };
+    };
 
     paymentRequest?: IPaymentRequest;
 
