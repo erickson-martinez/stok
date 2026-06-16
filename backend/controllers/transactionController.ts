@@ -4,7 +4,7 @@ import { Request, Response } from 'express';
 import Transaction from '../models/Transaction';
 
 // CDI atual (pode futuramente vir do Banco Central)
-const CDI_ANNUAL = 14.40;
+const CDI_ANNUAL = 14.75;
 
 /**
  * Retorna a quantidade de dias úteis de um ano
