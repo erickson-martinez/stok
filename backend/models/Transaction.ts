@@ -96,6 +96,7 @@ const transactionSchema = new Schema<ITransaction & Document>(
                 'pendente',
                 'pago',
                 'nao_pago',
+                'investimento',
                 'parcial',
                 'cancelado',
             ] as TransactionStatus[],

@@ -7,6 +7,7 @@ const VALID_STATUS = [
     'pendente',
     'pago',
     'nao_pago',
+    'investimento',
     'parcial',
     'cancelado',
 ];
@@ -103,7 +104,7 @@ const transactionController = {
 
                 status:
                     type === 'investment'
-                        ? 'pago'
+                        ? 'investimento'
                         : status || 'nao_pago',
 
                 notes: notes?.trim(),

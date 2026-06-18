@@ -11,6 +11,7 @@ export type TransactionStatus =
     | 'pendente'
     | 'pago'
     | 'nao_pago'
+    | 'investimento'
     | 'parcial'
     | 'cancelado';
 
