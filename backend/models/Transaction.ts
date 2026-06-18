@@ -108,74 +108,21 @@ const transactionSchema = new Schema<ITransaction & Document>(
         },
 
         investment: {
-
-            profitability: {
-                type: {
-                    type: String,
-                    enum: [
-                        'CDI',
-                        'FIXED',
-                        'IPCA'
-                    ],
-                },
-
-                percentage: {
-                    type: Number,
-                }
+            porcentage: {
+                type: Number,
+                min: 0,
             },
-
-
-            calculation: {
-
-                cdiAnnual: Number,
-
-                annualRate: Number,
-
-                createdAt: Date,
+            renderDay: {
+                type: Number,
+                min: 0,
             },
-
-
-            projection: {
-
-                daily: {
-
-                    businessDays: Number,
-
-                    income: Number,
-
-                    finalAmount: Number,
-                },
-
-
-                weekly: {
-
-                    businessDays: Number,
-
-                    income: Number,
-
-                    finalAmount: Number,
-                },
-
-
-                monthly: {
-
-                    businessDays: Number,
-
-                    income: Number,
-
-                    finalAmount: Number,
-                },
-
-
-                yearly: {
-
-                    businessDays: Number,
-
-                    income: Number,
-
-                    finalAmount: Number,
-                }
-            }
+            type: {
+                type: String,
+                enum: [
+                    'CDI',
+                    'CDB'
+                ],
+            },
         },
 
         aggregate: {

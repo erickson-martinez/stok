@@ -134,48 +134,9 @@ export interface ITransaction {
      */
 
     investment?: {
-
-        profitability: {
-            type:
-            | 'CDI'
-            | 'FIXED'
-            | 'IPCA';
-
-            percentage: number;
-        };
-
-        calculation: {
-            cdiAnnual: number;
-            annualRate: number;
-            createdAt: Date;
-        };
-
-        projection: {
-
-            daily: {
-                businessDays: number;
-                income: number;
-                finalAmount: number;
-            };
-
-            weekly: {
-                businessDays: number;
-                income: number;
-                finalAmount: number;
-            };
-
-            monthly: {
-                businessDays: number;
-                income: number;
-                finalAmount: number;
-            };
-
-            yearly: {
-                businessDays: number;
-                income: number;
-                finalAmount: number;
-            };
-        };
+        percentage: number;
+        renderDay: number;
+        type: 'CDI' | 'CDB';
     };
 
     paymentRequest?: IPaymentRequest;

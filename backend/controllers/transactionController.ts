@@ -3,216 +3,6 @@
 import { Request, Response } from 'express';
 import Transaction from '../models/Transaction';
 
-// CDI atual (pode futuramente vir do Banco Central)
-const CDI_ANNUAL = 14.75;
-
-/**
- * Retorna a quantidade de dias úteis de um ano
- */
-function getBusinessDaysInYear(
-    year: number
-): number {
-
-    let count = 0;
-
-    const date = new Date(
-        year,
-        0,
-        1
-    );
-
-    const endDate = new Date(
-        year,
-        11,
-        31
-    );
-
-
-    while (date <= endDate) {
-
-        if (isBusinessDay(date)) {
-            count++;
-        }
-
-        date.setDate(
-            date.getDate() + 1
-        );
-    }
-
-    return count;
-}
-
-/**
- * Verifica se é dia útil
- * Futuramente adicionar feriados
- */
-function isBusinessDay(date: Date): boolean {
-
-    const day = date.getDay();
-
-    // Domingo = 0
-    // Sábado = 6
-    return day !== 0 && day !== 6;
-}
-
-
-function calculateDailyRate(
-    annualRate: number,
-    year: number
-): number {
-
-    const businessDays =
-        getBusinessDaysInYear(year);
-
-    return (
-        Math.pow(
-            1 + (annualRate / 100),
-            1 / businessDays
-        ) - 1
-    );
-}
-
-
-/**
- * Calcula a taxa anual de um investimento
- */
-function getAnnualRate(
-    investment: any
-): number {
-
-    if (!investment) {
-        return 0;
-    }
-
-    const {
-        profitability
-    } = investment;
-
-
-    switch (profitability.type) {
-
-        case 'CDI':
-
-            return (
-                CDI_ANNUAL *
-                (profitability.percentage / 100)
-            );
-
-
-        case 'FIXED':
-
-            return profitability.percentage;
-
-
-        // Futuramente:
-        // IPCA + percentual
-        case 'IPCA':
-
-            return profitability.percentage;
-
-
-        default:
-            return 0;
-    }
-}
-
-
-/**
- * Calcula projeção por quantidade de dias úteis
- */
-function calculateProjection(
-    initialAmount: number,
-    investment: any,
-    days: number
-) {
-
-    const annualRate =
-        getAnnualRate(investment);
-
-
-    const dailyRate =
-        calculateDailyRate(
-            annualRate,
-            new Date().getFullYear()
-        );
-
-
-    let balance = initialAmount;
-
-
-    for (
-        let i = 0;
-        i < days;
-        i++
-    ) {
-
-        const income =
-            balance * dailyRate;
-
-
-        balance += income;
-    }
-
-
-    return {
-
-        initialAmount,
-
-        annualRate,
-
-        dailyRate,
-
-        income:
-            Number(
-                (
-                    balance -
-                    initialAmount
-                ).toFixed(2)
-            ),
-
-        finalAmount:
-            Number(
-                balance.toFixed(2)
-            ),
-    };
-}
-
-
-/**
- * Retorna quantos dias úteis existem
- * entre duas datas
- */
-function countBusinessDays(
-    startDate: Date,
-    endDate: Date
-): number {
-
-    let count = 0;
-
-
-    const current =
-        new Date(startDate);
-
-
-    while (current <= endDate) {
-
-
-        if (isBusinessDay(current)) {
-
-            count++;
-
-        }
-
-
-        current.setDate(
-            current.getDate() + 1
-        );
-    }
-
-
-    return count;
-}
-
 const VALID_STATUS = [
     'pendente',
     'pago',
@@ -230,7 +20,6 @@ const transactionController = {
         req: Request,
         res: Response
     ): Promise<void> {
-
         try {
 
             const {
@@ -244,7 +33,6 @@ const transactionController = {
                 investment,
             } = req.body;
 
-
             if (
                 !idEmail ||
                 !type ||
@@ -255,307 +43,78 @@ const transactionController = {
                 res.status(400).json({
                     error: 'Campos obrigatórios: idEmail, type, name, amount, date'
                 });
-
                 return;
             }
 
-
             if (
-                ![
-                    'revenue',
-                    'expense',
-                    'investment'
-                ].includes(type)
+                !['revenue', 'expense', 'investment']
+                    .includes(type)
             ) {
                 res.status(400).json({
                     error: 'type deve ser revenue, expense ou investment'
                 });
-
                 return;
             }
 
-
-            // Validações somente para investimento
             if (type === 'investment') {
 
                 if (!investment) {
                     res.status(400).json({
-                        error: 'investment é obrigatório quando type for investment'
+                        error: 'investment é obrigatório'
                     });
-
                     return;
                 }
 
-
-                if (!investment.institution?.trim()) {
+                if (investment.percentage == null) {
                     res.status(400).json({
-                        error: 'institution é obrigatório'
+                        error: 'percentage é obrigatório'
                     });
-
                     return;
                 }
 
-
-                const validCategories = [
-                    'RDB',
-                    'CDB',
-                    'LCI',
-                    'LCA',
-                    'Tesouro',
-                    'Fundo',
-                ];
-
-
-                if (
-                    !validCategories.includes(
-                        investment.category
-                    )
-                ) {
+                if (investment.renderDay == null) {
                     res.status(400).json({
-                        error: 'category inválida'
+                        error: 'renderDay é obrigatório'
                     });
-
                     return;
                 }
 
+                investment.percentage =
+                    Number(investment.percentage);
 
-                const validProfitabilityTypes = [
-                    'CDI',
-                    'FIXED',
-                    'IPCA',
-                ];
-
-
-                if (
-                    !investment.profitability?.type ||
-                    !validProfitabilityTypes.includes(
-                        investment.profitability.type
-                    )
-                ) {
-                    res.status(400).json({
-                        error: 'profitability.type inválido'
-                    });
-
-                    return;
-                }
-
-
-                if (
-                    investment.profitability.percentage == null ||
-                    Number(investment.profitability.percentage) <= 0
-                ) {
-                    res.status(400).json({
-                        error: 'profitability.percentage deve ser maior que zero'
-                    });
-
-                    return;
-                }
+                investment.renderDay =
+                    Number(investment.renderDay);
             }
-
-
-            if (Number(amount) <= 0) {
-                res.status(400).json({
-                    error: 'amount deve ser maior que zero'
-                });
-
-                return;
-            }
-
-            if (type === 'investment') {
-
-                const currentAmount = Number(amount);
-
-                const annualRate =
-                    getAnnualRate(investment);
-
-
-                const today = new Date();
-
-
-                const tomorrow = new Date(today);
-                tomorrow.setDate(
-                    tomorrow.getDate() + 1
-                );
-
-
-                const nextWeek = new Date(today);
-                nextWeek.setDate(
-                    nextWeek.getDate() + 7
-                );
-
-
-                const nextMonth = new Date(today);
-                nextMonth.setMonth(
-                    nextMonth.getMonth() + 1
-                );
-
-
-                const nextYear = new Date(today);
-                nextYear.setFullYear(
-                    nextYear.getFullYear() + 1
-                );
-
-
-                const dailyBusinessDays =
-                    countBusinessDays(
-                        today,
-                        tomorrow
-                    );
-
-
-                const weeklyBusinessDays =
-                    countBusinessDays(
-                        today,
-                        nextWeek
-                    );
-
-
-                const monthlyBusinessDays =
-                    countBusinessDays(
-                        today,
-                        nextMonth
-                    );
-
-
-                const yearlyBusinessDays =
-                    countBusinessDays(
-                        today,
-                        nextYear
-                    );
-
-
-                const dailyProjection =
-                    calculateProjection(
-                        currentAmount,
-                        investment,
-                        dailyBusinessDays
-                    );
-
-
-                const weeklyProjection =
-                    calculateProjection(
-                        currentAmount,
-                        investment,
-                        weeklyBusinessDays
-                    );
-
-
-                const monthlyProjection =
-                    calculateProjection(
-                        currentAmount,
-                        investment,
-                        monthlyBusinessDays
-                    );
-
-
-                const yearlyProjection =
-                    calculateProjection(
-                        currentAmount,
-                        investment,
-                        yearlyBusinessDays
-                    );
-
-
-                investment.calculation = {
-
-                    cdiAnnual: CDI_ANNUAL,
-
-                    annualRate,
-
-                    createdAt: new Date()
-                };
-
-
-                investment.projection = {
-
-                    daily: {
-
-                        businessDays:
-                            dailyBusinessDays,
-
-                        income:
-                            dailyProjection.income,
-
-                        finalAmount:
-                            dailyProjection.finalAmount
-                    },
-
-
-                    weekly: {
-
-                        businessDays:
-                            weeklyBusinessDays,
-
-                        income:
-                            weeklyProjection.income,
-
-                        finalAmount:
-                            weeklyProjection.finalAmount
-                    },
-
-
-                    monthly: {
-
-                        businessDays:
-                            monthlyBusinessDays,
-
-                        income:
-                            monthlyProjection.income,
-
-                        finalAmount:
-                            monthlyProjection.finalAmount
-                    },
-
-
-                    yearly: {
-
-                        businessDays:
-                            yearlyBusinessDays,
-
-                        income:
-                            yearlyProjection.income,
-
-                        finalAmount:
-                            yearlyProjection.finalAmount
-                    }
-                };
-            }
-
 
             const transaction = await Transaction.create({
-
                 idEmail,
-
                 type,
-
                 name: String(name).trim(),
-
                 amount: Number(amount),
-
 
                 paidAmount:
                     type === 'investment'
                         ? Number(amount)
                         : 0,
 
-
                 date: new Date(date),
 
-
                 isControlled: false,
-
 
                 status:
                     type === 'investment'
                         ? 'pago'
                         : status || 'nao_pago',
 
-
                 notes: notes?.trim(),
 
-
-                investment,
-
+                investment:
+                    type === 'investment'
+                        ? {
+                            percentage: investment.percentage,
+                            renderDay: investment.renderDay
+                        }
+                        : undefined,
 
                 paymentRequest: {
                     requested: false,
@@ -563,7 +122,6 @@ const transactionController = {
                     rejected: false,
                 }
             });
-
 
             res.status(201).json({
                 message: 'Transação criada com sucesso',
@@ -577,7 +135,6 @@ const transactionController = {
             res.status(500).json({
                 error: error.message || 'Erro interno'
             });
-
         }
     },
 
