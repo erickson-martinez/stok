@@ -147,16 +147,17 @@ const updateUser = async (req: Request, res: Response): Promise<void> => {
 // Atualizar idEmail do usuário
 const updateIdEmail = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { currentIdEmail, newIdEmail } = req.body;
+        const { idEmail } = req.params;
+        const { newIdEmail } = req.body;
 
-        if (!currentIdEmail || !newIdEmail) {
+        if (!idEmail || !newIdEmail) {
             res.status(400).json({
-                error: "Informe currentIdEmail e newIdEmail"
+                error: "Informe idEmail e newIdEmail"
             });
             return;
         }
 
-        const user = await User.findOne({ idEmail: currentIdEmail });
+        const user = await User.findOne({ idEmail: idEmail });
 
         if (!user) {
             res.status(404).json({

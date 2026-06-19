@@ -71,7 +71,7 @@ app.get("/user", UserController.getUser);
 app.get("/users", UserController.getUsers);
 app.post("/users", UserController.createUser);
 app.post("/users/auth", UserController.authenticateUser);
-app.patch("/user/idEmail", UserController.updateIdEmail);
+app.patch("/user/:idEmail", UserController.updateIdEmail);
 app.patch("/users/:idEmail", UserController.updateUser);
 
 // ── Estoque / Produtos ───────────────────────────────────────────────
