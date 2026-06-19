@@ -109,7 +109,7 @@ const transactionSchema = new Schema<ITransaction & Document>(
         },
 
         investment: {
-            porcentage: {
+            percentage: {
                 type: Number,
                 min: 0,
             },
