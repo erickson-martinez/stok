@@ -1150,7 +1150,7 @@ const transactionController = {
                 transaction.paidAmount =
                     transaction.amount;
 
-                transaction.status = 'pago';
+                transaction.status = 'investimento';
             }
 
             transaction.additions ??= [];
