@@ -101,7 +101,7 @@ const createUser = async (req: Request, res: Response): Promise<void> => {
 // Atualizar usuário
 const updateUser = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { idEmail } = req.params; // Identifica o usuário pelo telefone
+        const { idEmail } = req.params;
         const { name, pass } = req.body;
 
         // Verifica se há algo para atualizar
@@ -145,56 +145,42 @@ const updateUser = async (req: Request, res: Response): Promise<void> => {
 };
 
 // Atualizar idEmail do usuário
-const updateidEmail = async (req: Request, res: Response): Promise<void> => {
+const updateIdEmail = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { phone, pass, idEmail } = req.body;
+        const { currentIdEmail, newIdEmail } = req.body;
 
-        // Verifica se há algo para atualizar
-        if (!phone && !pass && !idEmail) {
-            res.status(400).json({ error: "Forneça pelo menos um campo para atualizar (nome, senha ou idEmail)" });
-            return;
-        }
-
-        const user = await User.findOne({ idEmail: idEmail });
-        if (!user) {
-            res.status(404).json({ error: "Usuário não encontrado" });
-            return;
-        }
-
-        // Atualiza o nome, se fornecido
-        if (phone) {
-            user.phone = phone;
-        }
-
-        // Atualiza a senha, se fornecida, com validação e criptografia
-        if (pass) {
-            const passwordValidation = validatePassword(pass);
-            if (!passwordValidation.isValid) {
-                res.status(400).json({ error: passwordValidation.error });
-                return;
-            }
-            user.password = encryptPassword(pass);
-            await User.findByIdAndUpdate(user._id, { password: user.password });
-        }
-
-        const allUsers = await User.find();
-
-        const users = allUsers.filter(user => decryptPassword(user.phone) === phone && decryptPassword(user.password) === pass);
-
-        if (!users || users.length === 0) {
-            res.status(404).json({ error: "Usuário não encontrado" });
-            return;
-        }
-
-        if (user?.idEmail !== phone) {
-            await User.findByIdAndUpdate(user._id, {
-                idEmail: user.phone
+        if (!currentIdEmail || !newIdEmail) {
+            res.status(400).json({
+                error: "Informe currentIdEmail e newIdEmail"
             });
+            return;
         }
 
-        res.json({ message: "Usuário atualizado com sucesso", user: { name: user.name, phone: user.phone } });
+        const user = await User.findOne({ idEmail: currentIdEmail });
+
+        if (!user) {
+            res.status(404).json({
+                error: "Usuário não encontrado"
+            });
+            return;
+        }
+
+        user.idEmail = newIdEmail;
+        await user.save();
+
+        res.status(200).json({
+            message: "idEmail atualizado com sucesso",
+            user: {
+                name: user.name,
+                idEmail: user.idEmail
+            }
+        });
+
     } catch (error) {
-        res.status(500).json({ error: "Erro ao atualizar usuário", details: (error as Error).message });
+        res.status(500).json({
+            error: "Erro ao atualizar idEmail",
+            details: (error as Error).message
+        });
     }
 };
 
@@ -306,4 +292,4 @@ const authenticateUser = async (req: Request, res: Response): Promise<void> => {
     }
 };
 
-export default { createUser, getUser, getUsers, authenticateUser, updateUser, updateidEmail };
+export default { createUser, getUser, getUsers, authenticateUser, updateUser, updateIdEmail };
