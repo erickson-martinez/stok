@@ -282,6 +282,13 @@ transactionSchema.index({
  * Garantir consistência do status
  */
 transactionSchema.pre('save', function (next) {
+
+    if (this.type === 'investment') {
+        this.status = 'investimento';
+        this.paidAmount = this.amount;
+        return next();
+    }
+
     if (this.paidAmount === undefined) {
         this.paidAmount = 0;
     }

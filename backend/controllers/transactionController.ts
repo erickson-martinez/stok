@@ -87,6 +87,7 @@ const transactionController = {
                     Number(investment.renderDay);
             }
 
+            console.log('Criando transação:', status)
             const transaction = await Transaction.create({
                 idEmail,
                 type,
@@ -102,10 +103,7 @@ const transactionController = {
 
                 isControlled: false,
 
-                status:
-                    type === 'investment'
-                        ? 'investimento'
-                        : status || 'nao_pago',
+                status: status || 'nao_pago',
 
                 notes: notes?.trim(),
 
