@@ -148,7 +148,7 @@ const updateUser = async (req: Request, res: Response): Promise<void> => {
 const updateIdEmail = async (req: Request, res: Response): Promise<void> => {
     try {
         const { idEmail } = req.params;
-        const { newIdEmail } = req.body;
+        const { newIdEmail, email } = req.body;
 
         if (!idEmail || !newIdEmail) {
             res.status(400).json({
@@ -167,6 +167,7 @@ const updateIdEmail = async (req: Request, res: Response): Promise<void> => {
         }
 
         user.idEmail = newIdEmail;
+        user.email = email; // Atualiza o campo email também, se fornecido
         await user.save();
 
         res.status(200).json({

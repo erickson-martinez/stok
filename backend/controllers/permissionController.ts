@@ -233,7 +233,7 @@ const permissionController = {
     async updateidEmailPermissions(req: Request, res: Response): Promise<void> {
         try {
             const { idEmail } = req.query;
-            const { idEmailPermissions } = req.body;
+            const { idEmailPermissions, email } = req.body;
 
             // Validar idEmail
             if (!idEmail) {
@@ -263,6 +263,9 @@ const permissionController = {
             }
 
             permissionDoc.idEmail = idEmailPermissions;
+            if (email) {
+                permissionDoc.email = email; // Atualiza o campo email também, se fornecido
+            }
             permissionDoc.updatedAt = new Date();
             await permissionDoc.save();
 
