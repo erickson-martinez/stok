@@ -228,6 +228,7 @@ app.delete("/companies/:id", companyController.deleteCompany);
 app.post("/permissions", permissionController.createPermission);
 app.get("/permissions/:idEmail?", permissionController.getPermissions);
 app.patch("/permissions", permissionController.updatePermissions);
+app.patch("/permissions/:idEmail", permissionController.updateidEmailPermissions);
 app.delete("/permissions/:idEmail", permissionController.deletePermissions);
 
 app.post('/work-records/clock-in', workRecordController.clockIn);

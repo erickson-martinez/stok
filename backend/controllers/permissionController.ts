@@ -230,6 +230,54 @@ const permissionController = {
         }
     },
 
+    async updateidEmailPermissions(req: Request, res: Response): Promise<void> {
+        try {
+            const { idEmail } = req.query;
+            const { idEmailPermissions } = req.body;
+
+            // Validar idEmail
+            if (!idEmail) {
+                res.status(400).json({ error: "idEmail é obrigatório" });
+                return;
+            }
+
+            if (typeof idEmail !== "string" || idEmail.trim() === "") {
+                res.status(400).json({ error: "idEmail deve ser uma string válida" });
+                return;
+            }
+
+
+            // Validar idEmailPermissions
+            if (idEmailPermissions === undefined) {
+                res.status(400).json({
+                    error: "Campo 'idEmailPermissions' é obrigatório",
+                });
+                return;
+            }
+
+            let permissionDoc = await Permission.findOne({ idEmail: idEmail });
+
+            if (!permissionDoc) {
+                res.status(404).json({ error: `Permissões não encontradas para ${idEmail}` });
+                return;
+            }
+
+            permissionDoc.idEmail = idEmailPermissions;
+            permissionDoc.updatedAt = new Date();
+            await permissionDoc.save();
+
+            res.status(200).json({
+                success: true,
+                message: `Permissões de ${idEmail} atualizadas com sucesso`,
+                idEmail: idEmailPermissions,
+                permissions: permissionDoc.permissions,
+            });
+        } catch (error: any) {
+            console.error("Erro ao atualizar permissões:", error);
+            res.status(500).json({ error: error.message || "Erro ao atualizar permissões" });
+        }
+    },
+
     // Deletar permissões de um usuário
     async deletePermissions(req: Request, res: Response): Promise<void> {
         try {
