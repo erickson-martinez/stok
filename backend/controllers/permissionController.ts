@@ -232,7 +232,7 @@ const permissionController = {
 
     async updateidEmailPermissions(req: Request, res: Response): Promise<void> {
         try {
-            const { idEmail } = req.query;
+            const { idEmail } = req.params;
             const { idEmailPermissions, email } = req.body;
 
             // Validar idEmail
