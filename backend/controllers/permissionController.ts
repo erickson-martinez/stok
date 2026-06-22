@@ -266,6 +266,8 @@ const permissionController = {
             if (email) {
                 permissionDoc.email = email; // Atualiza o campo email também, se fornecido
             }
+            permissionDoc.permissions = permissionDoc.permissions; // Mantém as permissões existentes
+
             permissionDoc.updatedAt = new Date();
             await permissionDoc.save();
 
