@@ -117,6 +117,11 @@ app.delete(
     transactionController.deleteTransaction
 );
 
+app.patch(
+    '/transactions/:idEmail',
+    transactionController.updateTransactionIdEmail
+);
+
 // Alterar status
 app.patch(
     '/transactions/status',

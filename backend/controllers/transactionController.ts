@@ -591,6 +591,50 @@ const transactionController = {
         }
     },
 
+    async updateTransactionIdEmail(
+        req: Request,
+        res: Response
+    ): Promise<void> {
+
+        try {
+
+            const { idEmail } = req.params;
+
+            const {
+                newIdEmail
+            } = req.body;
+
+            const transaction =
+                await Transaction.find({
+                    idEmail: idEmail
+                });
+
+            if (!transaction || transaction.length === 0) {
+                res.status(404).json({
+                    error: 'Transação não encontrada'
+                });
+
+                return;
+            }
+            transaction.forEach(async (tx) => {
+                tx.idEmail = newIdEmail;
+                await tx.save();
+            });
+
+            res.json({
+                message: 'Transações atualizadas',
+                transaction,
+            });
+
+        } catch (error: any) {
+
+            res.status(500).json({
+                error: error.message,
+            });
+
+        }
+    },
+
     // ==========================================================
     // REMOVER TRANSAÇÃO
     // ==========================================================
