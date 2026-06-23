@@ -524,7 +524,7 @@ const transactionController = {
 
             if (!transaction) {
                 res.status(404).json({
-                    error: 'Transação não encontrada'
+                    error: 'Transação não encontrada update'
                 });
 
                 return;
@@ -611,7 +611,7 @@ const transactionController = {
 
             if (!transaction || transaction.length === 0) {
                 res.status(404).json({
-                    error: 'Transação não encontrada'
+                    error: 'Transação não encontrada updateTransactionIdEmail'
                 });
 
                 return;
@@ -659,7 +659,7 @@ const transactionController = {
             if (!transaction) {
 
                 res.status(404).json({
-                    error: 'Transação não encontrada'
+                    error: 'Transação não encontrada deleteTransaction'
                 });
 
                 return;
@@ -696,22 +696,20 @@ const transactionController = {
                 status,
             } = req.body;
 
-            if (!VALID_STATUS.includes(status)) {
+            if (!idEmail || !transactionId || !status) {
                 res.status(400).json({
-                    error: 'Status inválido'
+                    error: 'Campos obrigatórios: transactionId, idEmail, status'
                 });
                 return;
             }
 
             const transaction =
                 await Transaction.findOne({
-                    _id: transactionId,
-                    idEmail,
+                    _id: transactionId
                 });
-
             if (!transaction) {
                 res.status(404).json({
-                    error: 'Transação não encontrada'
+                    error: `Transação não encontrada ${transactionId}`
                 });
                 return;
             }
@@ -777,7 +775,7 @@ const transactionController = {
 
             if (!transaction) {
                 res.status(404).json({
-                    error: 'Transação não encontrada'
+                    error: `Transação não encontrada ${transactionId}`
                 });
                 return;
             }
@@ -848,7 +846,7 @@ const transactionController = {
 
             if (!transaction) {
                 res.status(404).json({
-                    error: 'Transação não encontrada'
+                    error: 'Transação não encontrada requestPayment'
                 });
                 return;
             }
@@ -947,7 +945,7 @@ const transactionController = {
 
             if (!transaction) {
                 res.status(404).json({
-                    error: 'Transação não encontrada'
+                    error: 'Transação não encontrada approvePayment'
                 });
                 return;
             }
@@ -1035,7 +1033,7 @@ const transactionController = {
             if (!transaction) {
 
                 res.status(404).json({
-                    error: 'Transação não encontrada'
+                    error: 'Transação não encontrada rejectPayment'
                 });
 
                 return;
@@ -1177,7 +1175,7 @@ const transactionController = {
 
             if (!transaction) {
                 res.status(404).json({
-                    error: 'Transação não encontrada'
+                    error: 'Transação não encontrada addValue'
                 });
 
                 return;
@@ -1246,7 +1244,7 @@ const transactionController = {
 
             if (!transaction) {
                 res.status(404).json({
-                    error: 'Transação não encontrada'
+                    error: 'Transação não encontrada subtractValue'
                 });
 
                 return;

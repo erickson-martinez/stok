@@ -117,11 +117,6 @@ app.delete(
     transactionController.deleteTransaction
 );
 
-app.patch(
-    '/transactions/:idEmail',
-    transactionController.updateTransactionIdEmail
-);
-
 // Alterar status
 app.patch(
     '/transactions/status',
@@ -167,6 +162,12 @@ app.patch(
 app.patch(
     '/transactions/:transactionId/subtract-value',
     transactionController.subtractValue
+);
+
+
+app.patch(
+    '/transactions/:idEmail?',
+    transactionController.updateTransactionIdEmail
 );
 
 // Minhas OS
