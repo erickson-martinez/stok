@@ -702,37 +702,6 @@ const transactionController = {
         }
     },
 
-    async transferToInvestment(
-        req: Request,
-        res: Response
-    ): Promise<void> {
-        try {
-            const {
-                transactionId,
-                idEmail,
-                investmentDetails
-            } = req.body;
-
-            const transaction = await Transaction.findOne({
-                _id: transactionId,
-                idEmail,
-            });
-
-            if (!transaction) {
-                res.status(404).json({
-                    error: 'Transação não encontrada transferToInvestment'
-                });
-                return;
-            }
-
-        } catch (error: any) {
-
-            res.status(500).json({
-                error: error.message
-            });
-        }
-    },
-
     // ==========================================================
     // ALTERAR STATUS
     // ==========================================================
