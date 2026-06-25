@@ -108,6 +108,11 @@ const transactionSchema = new Schema<ITransaction & Document>(
             trim: true,
         },
 
+        affectsCash: {
+            type: Boolean,
+            default: true,
+        },
+
         investment: {
             percentage: {
                 type: Number,

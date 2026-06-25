@@ -94,6 +94,8 @@ export interface ITransaction {
 
     targetEmail?: string;
 
+    affectsCash?: boolean;
+
     sharedPhone?: string;
 
     targetPhone?: string;

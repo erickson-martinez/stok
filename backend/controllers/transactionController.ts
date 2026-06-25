@@ -32,6 +32,7 @@ const transactionController = {
                 status,
                 notes,
                 investment,
+                affectsCash,
             } = req.body;
 
             if (
@@ -87,11 +88,13 @@ const transactionController = {
                     Number(investment.renderDay);
             }
 
-            console.log('Criando transação:', status)
             const transaction = await Transaction.create({
                 idEmail,
+
                 type,
+
                 name: String(name).trim(),
+
                 amount: Number(amount),
 
                 paidAmount:
@@ -107,11 +110,16 @@ const transactionController = {
 
                 notes: notes?.trim(),
 
+                affectsCash:
+                    affectsCash === undefined
+                        ? type !== 'investment'
+                        : Boolean(affectsCash),
+
                 investment:
                     type === 'investment'
                         ? {
                             percentage: investment.percentage,
-                            renderDay: investment.renderDay
+                            renderDay: investment.renderDay,
                         }
                         : undefined,
 
@@ -119,7 +127,7 @@ const transactionController = {
                     requested: false,
                     approved: false,
                     rejected: false,
-                }
+                },
             });
 
             res.status(201).json({
@@ -387,8 +395,9 @@ const transactionController = {
             const paidRevenue = transactions
                 .filter(
                     tx =>
+                        tx.status === 'pago' &&
                         tx.type === 'revenue' &&
-                        tx.status === 'pago'
+                        tx.affectsCash !== false
                 )
                 .reduce(
                     (sum, tx) =>
@@ -399,8 +408,14 @@ const transactionController = {
             const paidExpense = transactions
                 .filter(
                     tx =>
-                        tx.type === 'expense' &&
-                        tx.status === 'pago'
+                        tx.status === 'pago' &&
+                        (
+                            tx.type === 'expense' ||
+                            (
+                                tx.type === 'investment' &&
+                                tx.affectsCash === true
+                            )
+                        )
                 )
                 .reduce(
                     (sum, tx) =>
@@ -427,7 +442,9 @@ const transactionController = {
             const previousRevenue =
                 previousTransactions
                     .filter(
-                        tx => tx.type === 'revenue'
+                        tx =>
+                            tx.type === 'revenue' &&
+                            tx.affectsCash !== false
                     )
                     .reduce(
                         (sum, tx) =>
@@ -438,7 +455,12 @@ const transactionController = {
             const previousExpense =
                 previousTransactions
                     .filter(
-                        tx => tx.type === 'expense'
+                        tx =>
+                            tx.type === 'expense' ||
+                            (
+                                tx.type === 'investment' &&
+                                tx.affectsCash === true
+                            )
                     )
                     .reduce(
                         (sum, tx) =>
@@ -677,6 +699,37 @@ const transactionController = {
                 error: error.message
             });
 
+        }
+    },
+
+    async transferToInvestment(
+        req: Request,
+        res: Response
+    ): Promise<void> {
+        try {
+            const {
+                transactionId,
+                idEmail,
+                investmentDetails
+            } = req.body;
+
+            const transaction = await Transaction.findOne({
+                _id: transactionId,
+                idEmail,
+            });
+
+            if (!transaction) {
+                res.status(404).json({
+                    error: 'Transação não encontrada transferToInvestment'
+                });
+                return;
+            }
+
+        } catch (error: any) {
+
+            res.status(500).json({
+                error: error.message
+            });
         }
     },
 
