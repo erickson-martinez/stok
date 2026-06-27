@@ -3,11 +3,13 @@
 import mongoose, { Document, Schema } from "mongoose";
 
 export type ProductUnit =
-    | "unit"
-    | "kg"
-    | "package"
-    | "box"
-    | "liter";
+    | "unidade"
+    | "pacote"
+    | "quilo"
+    | "grama"
+    | "caixa"
+    | "litro"
+    | "metro";
 
 export interface IShoppingItem extends Document {
 
@@ -79,13 +81,15 @@ const shoppingItemSchema = new Schema(
         unit: {
             type: String,
             enum: [
-                "unit",
-                "kg",
-                "package",
-                "box",
-                "liter"
+                "unidade",
+                "pacote",
+                "quilo",
+                "grama",
+                "caixa",
+                "litro",
+                "metro"
             ],
-            default: "unit"
+            default: "unidade"
         },
 
         packageQuantity: {
