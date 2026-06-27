@@ -13,71 +13,140 @@ export interface IShoppingItem extends Document {
 
     shoppingListId: mongoose.Types.ObjectId;
 
-    productId: mongoose.Types.ObjectId;
+    name: string;
 
-    quantity: number;
+    brand?: string;
+
+    barcode?: string;
+
+    category?: string;
 
     unit: ProductUnit;
 
-    notes?: string;
+    packageQuantity?: number | null;
+
+    quantity: number;
+
+    price?: number | null;
+
+    storeId?: mongoose.Types.ObjectId | null;
 
     checked: boolean;
+
+    notes?: string;
 
     createdAt?: Date;
 
     updatedAt?: Date;
 }
 
-const shoppingItemSchema = new Schema({
+const shoppingItemSchema = new Schema(
 
-    shoppingListId: {
-        type: Schema.Types.ObjectId,
-        ref: "ShoppingList",
-        required: true,
-        index: true
+    {
+
+        shoppingListId: {
+            type: Schema.Types.ObjectId,
+            ref: "ShoppingList",
+            required: true,
+            index: true
+        },
+
+        name: {
+            type: String,
+            required: true,
+            trim: true,
+            index: true
+        },
+
+        brand: {
+            type: String,
+            trim: true,
+            default: ""
+        },
+
+        barcode: {
+            type: String,
+            trim: true,
+            default: ""
+        },
+
+        category: {
+            type: String,
+            trim: true,
+            default: ""
+        },
+
+        unit: {
+            type: String,
+            enum: [
+                "unit",
+                "kg",
+                "package",
+                "box",
+                "liter"
+            ],
+            default: "unit"
+        },
+
+        packageQuantity: {
+            type: Number,
+            default: null,
+            min: 0
+        },
+
+        quantity: {
+            type: Number,
+            required: false,
+            default: 1,
+            min: 1
+        },
+
+        price: {
+            type: Number,
+            default: null,
+            min: 0
+        },
+
+        storeId: {
+            type: Schema.Types.ObjectId,
+            ref: "Store",
+            default: null,
+            index: true
+        },
+
+        checked: {
+            type: Boolean,
+            default: false
+        },
+
+        notes: {
+            type: String,
+            trim: true,
+            default: ""
+        }
+
     },
 
-    productId: {
-        type: Schema.Types.ObjectId,
-        ref: "Product",
-        required: true,
-        index: true
-    },
-
-    quantity: {
-        type: Number,
-        required: true,
-        default: 1,
-        min: 0
-    },
-
-    unit: {
-        type: String,
-        enum: [
-            "unit",
-            "kg",
-            "package",
-            "box",
-            "liter"
-        ],
-        default: "unit"
-    },
-
-    notes: {
-        type: String,
-        trim: true,
-        default: ""
-    },
-
-    checked: {
-        type: Boolean,
-        default: false
-    }
-
-},
     {
         timestamps: true
-    });
+    }
+
+);
+
+// Índices para pesquisa
+shoppingItemSchema.index({
+    shoppingListId: 1,
+    checked: 1
+});
+
+shoppingItemSchema.index({
+    name: "text",
+    brand: "text"
+});
+
+shoppingItemSchema.index({
+    barcode: 1
+});
 
 export default mongoose.model<IShoppingItem>(
     "ShoppingItem",

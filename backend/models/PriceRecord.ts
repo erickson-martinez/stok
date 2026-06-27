@@ -1,76 +1,151 @@
-// models/PriceRecord.ts
+//models/PriceRecord.ts
 
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface IPriceRecord extends Document {
 
-    productId: mongoose.Types.ObjectId;
+    name: string;
 
-    storeId: mongoose.Types.ObjectId;
+    brand?: string;
+
+    barcode?: string;
+
+    category?: string;
+
+    packageQuantity?: number;
+
+    unit: string;
 
     price: number;
 
-    promotion: boolean;
-
-    observedAt: Date;
+    storeId?: mongoose.Types.ObjectId | null;
 
     createdBy: string;
 
+    observedAt: Date;
+
+    source:
+
+    | "user"
+
+    | "store_api"
+
+    | "government"
+
+    | "ocr"
+
+    | "import";
+
     confidence: number;
 
-    createdAt?: Date;
-
-    updatedAt?: Date;
 }
 
 const priceRecordSchema = new Schema({
 
-    productId: {
-        type: Schema.Types.ObjectId,
-        ref: "Product",
+    name: {
+
+        type: String,
+
         required: true,
+
         index: true
+
+    },
+
+    brand: String,
+
+    barcode: String,
+
+    category: String,
+
+    packageQuantity: Number,
+
+    unit: String,
+
+    price: {
+
+        type: Number,
+
+        required: true
+
     },
 
     storeId: {
+
         type: Schema.Types.ObjectId,
+
         ref: "Store",
-        required: true,
-        index: true
-    },
 
-    price: {
-        type: Number,
-        required: true,
-        min: 0
-    },
+        default: null
 
-    promotion: {
-        type: Boolean,
-        default: false
-    },
-
-    observedAt: {
-        type: Date,
-        default: Date.now
     },
 
     createdBy: {
+
         type: String,
+
         required: true
+
+    },
+
+    observedAt: {
+
+        type: Date,
+
+        default: Date.now
+
+    },
+
+    source: {
+
+        type: String,
+
+        enum: [
+
+            "user",
+
+            "store_api",
+
+            "government",
+
+            "ocr",
+
+            "import"
+
+        ],
+
+        default: "user"
+
     },
 
     confidence: {
+
         type: Number,
-        default: 100,
-        min: 0,
-        max: 100
+
+        default: 100
+
     }
 
 },
     {
         timestamps: true
     });
+
+priceRecordSchema.index({
+
+    name: 1,
+
+    brand: 1,
+
+    barcode: 1,
+
+    packageQuantity: 1,
+
+    unit: 1,
+
+    storeId: 1
+
+});
 
 export default mongoose.model<IPriceRecord>(
     "PriceRecord",
