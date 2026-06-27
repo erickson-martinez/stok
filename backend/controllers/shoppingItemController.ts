@@ -1,7 +1,7 @@
 // controllers/shoppingItemController.ts
 
 import { Request, Response } from "express";
-import ShoppingItem, { IShoppingItem } from "../models/ShoppingItem";
+import ShoppingItem from "../models/ShoppingItem";
 
 const shoppingItemController = {
 

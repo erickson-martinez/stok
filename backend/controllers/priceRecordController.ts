@@ -1,7 +1,7 @@
 // controllers/priceRecordController.ts
 
 import { Request, Response } from "express";
-import PriceRecord, { IPriceRecord } from "../models/PriceRecord";
+import PriceRecord from "../models/PriceRecord";
 
 const priceRecordController = {
 

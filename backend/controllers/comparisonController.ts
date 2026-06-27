@@ -4,7 +4,7 @@ import { Request, Response } from "express";
 
 const comparisonController = {
 
-    async compareShoppingList(req: Request, res: Response): Promise<void> {
+    async compareShoppingList(_req: Request, res: Response): Promise<void> {
 
         res.status(501).json({
             message: "Not implemented yet."
@@ -12,7 +12,7 @@ const comparisonController = {
 
     },
 
-    async compareProduct(req: Request, res: Response): Promise<void> {
+    async compareProduct(_req: Request, res: Response): Promise<void> {
 
         res.status(501).json({
             message: "Not implemented yet."
@@ -20,7 +20,7 @@ const comparisonController = {
 
     },
 
-    async getBestStore(req: Request, res: Response): Promise<void> {
+    async getBestStore(_req: Request, res: Response): Promise<void> {
 
         res.status(501).json({
             message: "Not implemented yet."
