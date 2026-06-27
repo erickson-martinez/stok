@@ -11,7 +11,7 @@ import companyConfigController from "./controllers/companyConfigController";
 import stockController from "./controllers/stockController";   // Sistema antigo
 import transactionController from "./controllers/transactionController"; // Novo sistema independente
 import activityController from "./controllers/activityController";
-import marketController from "./controllers/marketController";
+import storeController from "./controllers/storeController";
 import shoppingListController from "./controllers/shoppingListController";
 import productPriceController from "./controllers/productPriceController";
 import bookController from "./controllers/bookControllers";
@@ -185,11 +185,11 @@ app.get("/activity/:phone", activityController.getActivities);
 app.post("/activity", activityController.createOrUpdateActivity);
 app.delete("/activity", activityController.deleteActivity);
 
-app.get("/markets", marketController.getMarketsAll);
-app.get("/markets/:name", marketController.getMarkets);
-app.post("/markets", marketController.saveMarket);
-app.patch("/markets/:id", marketController.updateMarket);
-app.delete("/markets", marketController.deleteMarket);
+// Stores
+app.get("/stores", storeController.getStores);
+app.post("/stores", storeController.createStore);
+app.patch("/stores/:id", storeController.updateStore);
+app.delete("/stores/:id", storeController.deleteStore);
 
 // Shopping Lists
 app.get("/shopping-lists/:idUser", shoppingListController.getShoppingLists);

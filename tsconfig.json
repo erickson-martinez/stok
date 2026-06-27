@@ -2,31 +2,22 @@
   "compilerOptions": {
     // Versão do JavaScript gerado
     "target": "ES2022",
-
     // Sistema de módulos (recomendado para Node.js moderno)
     "module": "NodeNext",
-
     // Resolve módulos como o Node.js faz
     "moduleResolution": "NodeNext",
-
     // Pasta de saída dos arquivos compilados
     "outDir": "./dist",
-
     // Pasta raiz do código fonte
     "rootDir": "./",
-
     // Gera arquivos .d.ts (útil se for uma lib, opcional aqui)
     "declaration": false,
-
     // Remove comentários do código gerado
     "removeComments": true,
-
     // Permite import default de módulos sem default export
     "esModuleInterop": true,
-
     // Permite importações sem extensão .js (útil em alguns casos)
     "allowSyntheticDefaultImports": true,
-
     // Força checagem estrita (recomendado)
     "strict": true,
     "noImplicitAny": true,
@@ -38,37 +29,30 @@
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-
     // Pula checagem de tipos em arquivos .d.ts de bibliotecas
     // ← ISSO resolve o erro TS2307 com whatsapp-api-js no Render
     "skipLibCheck": true,
-
     // Força consistência nos nomes de arquivos (case-sensitive)
     "forceConsistentCasingInFileNames": true,
-
     // Resolve JSON imports
     "resolveJsonModule": true,
-
     // Suporte a paths (opcional, mas útil em projetos maiores)
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": [
+        "./*"
+      ]
     },
-
     // Evita emitir arquivos se houver erro
     "noEmitOnError": true,
-
     // Source maps (útil para debug)
     "sourceMap": true
   },
-
   "include": [
     "backend/**/*",
     "src/**/*",
     "*.ts",
     "*.tsx"
   ],
-
   "exclude": [
     "node_modules",
     "dist",

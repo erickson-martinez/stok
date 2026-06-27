@@ -1,7 +1,7 @@
 // shoppingListController.ts
 import { Request, Response } from 'express';
 import ShoppingList, { IShoppingList, IProduct } from '../models/ShoppingList';
-import Market from '../models/Market';
+import Market from '../models/Store';
 import ProductPrice from '../models/ProductPrice';
 import mongoose from 'mongoose';
 

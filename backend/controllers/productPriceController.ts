@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import ProductPrice from '../models/ProductPrice';
-import Market from '../models/Market';
+import Market from '../models/Store';
 
 const productPriceController = {
     // Salvar ou atualizar preço de produto (sem histórico)
