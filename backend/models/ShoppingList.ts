@@ -1,5 +1,4 @@
 // models/ShoppingList.ts
-
 import mongoose, { Document, Schema } from "mongoose";
 
 export type ShoppingListStatus =
@@ -20,6 +19,13 @@ export interface IShoppingList extends Document {
     sharedWith: string[];
 
     status: ShoppingListStatus;
+
+    metadata?: {
+        date?: Date;
+        storeId?: mongoose.Types.ObjectId | null;
+        latitude?: number | null;
+        longitude?: number | null;
+    };
 
     createdAt?: Date;
 
@@ -63,6 +69,30 @@ const shoppingListSchema = new Schema({
             "archived"
         ],
         default: "active"
+    },
+
+    metadata: {
+
+        date: {
+            type: Date
+        },
+
+        storeId: {
+            type: Schema.Types.ObjectId,
+            ref: "Store",
+            default: null
+        },
+
+        latitude: {
+            type: Number,
+            default: null
+        },
+
+        longitude: {
+            type: Number,
+            default: null
+        }
+
     }
 
 },

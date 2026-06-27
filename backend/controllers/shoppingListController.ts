@@ -60,6 +60,7 @@ const shoppingListController = {
                 name,
                 description,
                 favorite,
+                metadata,
                 sharedWith,
                 status
             } = req.body;
@@ -76,7 +77,9 @@ const shoppingListController = {
 
                 sharedWith,
 
-                status
+                status,
+
+                metadata
 
             });
 
