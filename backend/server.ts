@@ -50,7 +50,7 @@ app.use(express.urlencoded({ extended: true }));
 // Rota básica de teste/saúde
 app.get("/", (_req, res) => {
     res.send(
-        "API V1.1.1.0 - Servidor Online\n" +
+        "API V1.1.2.0 - Servidor Online\n" +
         `Data atual: ${new Date().toISOString()}\n`
     );
 });

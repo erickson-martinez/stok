@@ -19,6 +19,14 @@ const shoppingItemController = {
 
             const filter: any = {};
 
+            if (!shoppingListId) {
+
+                return void res.status(400).json({
+
+                    message: "shoppingListId query parameter is required."
+                });
+            }
+
             if (id) filter._id = id;
 
             if (shoppingListId) filter.shoppingListId = shoppingListId;
@@ -38,7 +46,6 @@ const shoppingItemController = {
             if (checked !== undefined) {
 
                 filter.checked = checked === "true";
-
             }
 
             if (storeId) {
