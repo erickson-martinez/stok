@@ -66,296 +66,194 @@ mongoose.connect(mongoUri)
 // Rotas WhatsApp
 //app.use('/whatsapp', whatsappRouter);
 
-// ── Usuários ─────────────────────────────────────────────────────────
-app.get("/user", UserController.getUser);
-app.get("/users", UserController.getUsers);
-app.post("/users", UserController.createUser);
-app.post("/users/auth", UserController.authenticateUser);
-app.patch("/user/:idEmail", UserController.updateIdEmail);
-app.patch("/users/:idEmail", UserController.updateUser);
-
-// ── Estoque / Produtos ───────────────────────────────────────────────
-app.get("/products/:idUser", stockController.getProducts);
-app.post("/products", stockController.createProduct);
-app.put("/products/:id", stockController.updateProduct);
-app.delete("/products/:id", stockController.deleteProduct);
-app.post("/products/:id/share", stockController.shareProduct);
-
-/**
- * ==========================================================
- * TRANSAÇÕES
- * ==========================================================
- */
-
-// Criar receita/despesa simples
-app.post(
-    '/transactions/simple',
-    transactionController.createSimple
-);
-
-// Criar receita/despesa compartilhada
-app.post(
-    '/transactions/controlled',
-    transactionController.createControlled
-);
-
-// Listar transações
-app.get(
-    '/transactions',
-    transactionController.listTransactions
-);
-
-// Atualizar transação
-app.put(
-    '/transactions/:transactionId',
-    transactionController.updateTransaction
-);
-
-// Excluir transação
-app.delete(
-    '/transactions',
-    transactionController.deleteTransaction
-);
-
-// Alterar status
-app.patch(
-    '/transactions/status',
-    transactionController.markStatus
-);
-
-// Atualizar pagamento parcial
-app.patch(
-    '/transactions/payment',
-    transactionController.updatePaymentStatus
-);
-
-// Solicitar confirmação de pagamento
-app.patch(
-    '/transactions/request-payment',
-    transactionController.requestPayment
-);
-
-// Aprovar pagamento
-app.patch(
-    '/transactions/approve-payment',
-    transactionController.approvePayment
-);
-
-// Rejeitar pagamento
-app.patch(
-    '/transactions/reject-payment',
-    transactionController.rejectPayment
-);
-
-app.patch(
-    '/transactions/follow',
-    transactionController.followTransaction
-);
-
-// Adicionar valor
-app.patch(
-    '/transactions/:transactionId/add-value',
-    transactionController.addValue
-);
-
-// Subtrair valor
-app.patch(
-    '/transactions/:transactionId/subtract-value',
-    transactionController.subtractValue
-);
-
-
-app.patch(
-    '/transactions/:idEmail?',
-    transactionController.updateTransactionIdEmail
-);
-
-// Minhas OS
-app.post("/os", osController.create);
-app.get("/os/my", osController.getMyOrders);
-app.patch("/os/:id/cancel", osController.cancel);
-
-// Gestão da empresa
-app.get("/os/company", osController.getCompanyOrders);
-app.patch("/os/:id/resolve", osController.resolve);
-app.patch("/os/:id/start", osController.start);
-
-// ── Outras funcionalidades ───────────────────────────────────────────
-app.get("/activity/:phone", activityController.getActivities);
-app.post("/activity", activityController.createOrUpdateActivity);
-app.delete("/activity", activityController.deleteActivity);
-
-// Stores
-app.get("/stores", storeController.getStores);
-app.post("/stores", storeController.createStore);
-app.patch("/stores/:id", storeController.updateStore);
-app.delete("/stores/:id", storeController.deleteStore);
-
-// Shopping Lists
-app.get("/shopping-lists/:idUser", shoppingListController.getShoppingLists);
-app.get("/shopping-lists/shared/:idUser", shoppingListController.getSharedShoppingLists);
-app.post("/shopping-lists", shoppingListController.createShoppingList);
-app.post("/shopping-lists/:listId/share", shoppingListController.shareShoppingList);
-app.put("/shopping-lists/:listId/products", shoppingListController.saveProduct);
-app.delete("/shopping-lists/:listId/products", shoppingListController.deleteProduct);
-app.put("/shopping-lists/:listId", shoppingListController.updateList);
-app.put("/shopping-lists/:listId/complete", shoppingListController.completeList);
-app.delete("/shopping-lists/:listId", shoppingListController.deleteList);
-
-// Preços de produtos
-app.post("/product-price", productPriceController.saveProductPrice);
-app.get("/product-price/:productName/:days", productPriceController.getRecentProductPrices);
-app.get("/product-price/:productName/:marketId", productPriceController.getMarketProductPrice);
-app.post("/product-price/compare", productPriceController.comparePrices);
-
-// Livros
-app.get("/books/:idUser", bookController.getBooks);
-app.get("/books/:id", bookController.getBookById);
-app.post("/books/:idUser", bookController.createBook);
-app.put("/books/:id", bookController.updateBook);
-app.delete("/books/:id", bookController.deleteBook);
-app.post("/books/:id/transfer", bookController.transferBook);
-
-// Agendamentos
-app.get("/schedules/:idUser", scheduleController.getSchedules);
-app.post("/schedules", scheduleController.createSchedule);
-app.put("/schedules/:id", scheduleController.updateSchedule);
-app.delete("/schedules/:id", scheduleController.deleteSchedule);
-
-// Empresas
-app.post("/companies", companyController.createCompany);
-app.get("/companies/:idEmail?", companyController.getCompanies);
-app.get("/companies/details/:id", companyController.getCompanyById);
-app.put("/companies/:id", companyController.updateCompany);
-app.patch("/companies/:id/status", companyController.updateStatus);
-app.delete("/companies/:id", companyController.deleteCompany);
-
-// Permissões (Configurações de Acesso)
-app.post("/permissions", permissionController.createPermission);
-app.get("/permissions/:idEmail?", permissionController.getPermissions);
-app.patch("/permissions", permissionController.updatePermissions);
-app.patch("/permissions/:idEmail", permissionController.updateidEmailPermissions);
-app.delete("/permissions/:idEmail", permissionController.deletePermissions);
-
-app.post('/work-records/clock-in', workRecordController.clockIn);
-app.patch('/work-records/:id/clock-out', workRecordController.clockOut);
-app.get("/work-records", workRecordController.list);
-app.patch("/work-records/:id/approve", workRecordController.approve);
-app.patch("/work-records/:id/reject", workRecordController.reject);
-app.delete("/work-records/:id", workRecordController.delete); // opcional
-
-app.post("/rh/link-user", rhController.linkUserToCompany);
-app.get("/rh/:empresaId/employees", rhController.listEmployees);
-app.get("/rh/company/:idEmail", rhController.listCompanyByEmployee);
-app.delete("/rh/unlink/:linkId", rhController.unlinkUser);
-app.patch("/rh/link/:linkId/status", rhController.updateLinkStatus);
-app.get("/rh/user/companies", rhController.getUserCompanies);
-
 // ── Costs ───────────────────────────────────────────────
-
-app.post(
-    "/api/costs",
-    costController.createCost
-);
-
-app.get(
-    "/api/costs",
-    costController.getCosts
-);
-
-app.get(
-    "/api/costs/:id",
-    costController.getCostById
-);
-
-app.put(
-    "/api/costs/:id",
-    costController.updateCost
-);
-
-app.delete(
-    "/api/costs/:id",
-    costController.deleteCost
-);
+app.post("/api/v1/costs", costController.createCost);
+app.get("/api/v1/costs", costController.getCosts);
+app.get("/api/v1/costs/:id", costController.getCostById);
+app.put("/api/v1/costs/:id", costController.updateCost);
+app.delete("/api/v1/costs/:id", costController.deleteCost);
 
 // Rotas de configuração
-app.post('/api/config', ConfigController.createConfig);
-app.get('/api/config/:phone', ConfigController.getConfig);
-app.get('/api/config/product/:burger', ConfigController.getProduct);
-app.get('/api/config/caixa/:phone', ConfigController.getCaixa);
-app.get('/api/config/delivery/:phone', ConfigController.getDelivery);
-app.patch('/api/config', ConfigController.updateConfig);
-app.patch('/api/config/caixa-open/:phone/:open', ConfigController.updateCaixaOpenDay);
+app.post('/api/v1/config', ConfigController.createConfig);
+app.get('/api/v1/config/:phone', ConfigController.getConfig);
+app.get('/api/v1/config/product/:burger', ConfigController.getProduct);
+app.get('/api/v1/config/caixa/:phone', ConfigController.getCaixa);
+app.get('/api/v1/config/delivery/:phone', ConfigController.getDelivery);
+app.patch('/api/v1/config', ConfigController.updateConfig);
+app.patch('/api/v1/config/caixa-open/:phone/:open', ConfigController.updateCaixaOpenDay);
 
 // Rotas de produtos
-app.post('/api/products/burgers', ProductBurgerController.createProductBurger);
-app.get('/api/products/burgers', ProductBurgerController.getAllProductsBurger);
-app.get('/api/products/burgers/:id', ProductBurgerController.getProductBurgerById);
-app.put('/api/products/burgers/:id', ProductBurgerController.updateProductBurger);
-app.delete('/api/products/burgers/:id', ProductBurgerController.deleteProductBurger);
+app.post('/api/v1/products/burgers', ProductBurgerController.createProductBurger);
+app.get('/api/v1/products/burgers', ProductBurgerController.getAllProductsBurger);
+app.get('/api/v1/products/burgers/:id', ProductBurgerController.getProductBurgerById);
+app.put('/api/v1/products/burgers/:id', ProductBurgerController.updateProductBurger);
+app.delete('/api/v1/products/burgers/:id', ProductBurgerController.deleteProductBurger);
 
 // Rotas de barbeiros
-app.post("/api/barbers", barberController.createBarber);
-app.get("/api/barbers", barberController.getBarbers);
-app.get("/api/barbers/:id", barberController.getBarberById);
-app.put("/api/barbers/:id", barberController.updateBarber);
-app.delete("/api/barbers/:id", barberController.deleteBarber);
+app.post("/api/v1/barbers", barberController.createBarber);
+app.get("/api/v1/barbers", barberController.getBarbers);
+app.get("/api/v1/barbers/:id", barberController.getBarberById);
+app.put("/api/v1/barbers/:id", barberController.updateBarber);
+app.delete("/api/v1/barbers/:id", barberController.deleteBarber);
 
 // ── Barber Products ───────────────────────────────────────
-app.post("/api/barber-products", barberProductController.createProduct);
-app.get("/api/barber-products", barberProductController.getProducts);
-app.get("/api/barber-products/:id", barberProductController.getProductById);
-app.put("/api/barber-products/:id", barberProductController.updateProduct);
-app.patch("/api/barber-products/:id/stock", barberProductController.updateStock);
-app.delete("/api/barber-products/:id", barberProductController.deleteProduct);
+app.post("/api/v1/barber-products", barberProductController.createProduct);
+app.get("/api/v1/barber-products", barberProductController.getProducts);
+app.get("/api/v1/barber-products/:id", barberProductController.getProductById);
+app.put("/api/v1/barber-products/:id", barberProductController.updateProduct);
+app.patch("/api/v1/barber-products/:id/stock", barberProductController.updateStock);
+app.delete("/api/v1/barber-products/:id", barberProductController.deleteProduct);
 
 // ── Appointment Barber ──────────────────────────────────
-app.post("/api/appointment-barbers", appointmentBarberController.createAppointment);
-app.get("/api/appointment-barbers", appointmentBarberController.getAppointments);
-app.get("/api/appointment-barbers/:id", appointmentBarberController.getAppointmentById);
-app.put("/api/appointment-barbers/:id", appointmentBarberController.updateAppointment);
-app.patch("/api/appointment-barbers/:id/status", appointmentBarberController.updateStatus);
-app.patch("/api/appointment-barbers/:id/cancel", appointmentBarberController.cancelAppointment);
-app.delete("/api/appointment-barbers/:id", appointmentBarberController.deleteAppointment);
+app.post("/api/v1/appointment-barbers", appointmentBarberController.createAppointment);
+app.get("/api/v1/appointment-barbers", appointmentBarberController.getAppointments);
+app.get("/api/v1/appointment-barbers/:id", appointmentBarberController.getAppointmentById);
+app.put("/api/v1/appointment-barbers/:id", appointmentBarberController.updateAppointment);
+app.patch("/api/v1/appointment-barbers/:id/status", appointmentBarberController.updateStatus);
+app.patch("/api/v1/appointment-barbers/:id/cancel", appointmentBarberController.cancelAppointment);
+app.delete("/api/v1/appointment-barbers/:id", appointmentBarberController.deleteAppointment);
 
 // ── Barber Services ──────────────────────────────────────
-app.post("/api/barber-services", barberServiceController.createService);
-app.get("/api/barber-services", barberServiceController.getServices);
-app.get("/api/barber-services/:id", barberServiceController.getServiceById);
-app.put("/api/barber-services/:id", barberServiceController.updateService);
-app.delete("/api/barber-services/:id", barberServiceController.deleteService);
+app.post("/api/v1/barber-services", barberServiceController.createService);
+app.get("/api/v1/barber-services", barberServiceController.getServices);
+app.get("/api/v1/barber-services/:id", barberServiceController.getServiceById);
+app.put("/api/v1/barber-services/:id", barberServiceController.updateService);
+app.delete("/api/v1/barber-services/:id", barberServiceController.deleteService);
 
 // Rotas de pedidos
-app.post('/api/orders', OrdersController.createOrder);
-app.get('/api/orders/:burger', OrdersController.getAllOrders);
-app.get('/api/orders/delivery/:burger/:status?', OrdersController.getDeliveryOrders);
-app.get('/api/orders/my-delivery/:burger/:name', OrdersController.getMyDeliveryOrders);
-app.get('/api/orders/:id', OrdersController.getOrderById);
-app.get('/api/orders/phone/:phone', OrdersController.getOrderByPhone);
-app.put('/api/orders/:id', OrdersController.updateOrder);
-app.patch('/api/orders/:id/status/:name?', OrdersController.updateOrderStatus);
-app.patch('/api/orders/:id/payment', OrdersController.updateOrderPayment);
-app.delete('/api/orders/:id', OrdersController.deleteOrder);
+app.post('/api/v1/orders', OrdersController.createOrder);
+app.get('/api/v1/orders/:burger', OrdersController.getAllOrders);
+app.get('/api/v1/orders/delivery/:burger/:status?', OrdersController.getDeliveryOrders);
+app.get('/api/v1/orders/my-delivery/:burger/:name', OrdersController.getMyDeliveryOrders);
+app.get('/api/v1/orders/:id', OrdersController.getOrderById);
+app.get('/api/v1/orders/phone/:phone', OrdersController.getOrderByPhone);
+app.put('/api/v1/orders/:id', OrdersController.updateOrder);
+app.patch('/api/v1/orders/:id/status/:name?', OrdersController.updateOrderStatus);
+app.patch('/api/v1/orders/:id/payment', OrdersController.updateOrderPayment);
+app.delete('/api/v1/orders/:id', OrdersController.deleteOrder);
 
 // ── Company Config ──────────────────────────────────────
-app.get(
-    "/api/company-config/:linkId",
-    companyConfigController.getConfig
-);
-app.put(
-    "/api/company-config/:linkId",
-    companyConfigController.upsertConfig
-);
-app.delete(
-    "/api/company-config/:linkId",
-    companyConfigController.deleteConfig
-);
+app.get("/api/v1/company-config/:linkId", companyConfigController.getConfig);
+app.put("/api/v1/company-config/:linkId", companyConfigController.upsertConfig);
+app.delete("/api/v1/company-config/:linkId", companyConfigController.deleteConfig);
 
 // Rotas de pedidos do cliente
-app.get('/api/client', OrderClientController.getClientOrder);
-app.get('/api/client/all', OrderClientController.getClientOrders);
-app.patch('/api/order-client/:id/payment', OrderClientController.updateClientOrderPayment);
-app.patch('/api/order-client/:id/status', OrderClientController.updateClientOrderStatus);
+app.get('/api/v1/client', OrderClientController.getClientOrder);
+app.get('/api/v1/client/all', OrderClientController.getClientOrders);
+app.patch('/api/v1/order-client/:id/payment', OrderClientController.updateClientOrderPayment);
+app.patch('/api/v1/order-client/:id/status', OrderClientController.updateClientOrderStatus);
+
+// ── Users ───────────────────────────────────────────────
+app.get("/api/v1/user", UserController.getUser);
+app.get("/api/v1/users", UserController.getUsers);
+app.post("/api/v1/users", UserController.createUser);
+app.post("/api/v1/users/auth", UserController.authenticateUser);
+app.patch("/api/v1/user/:idEmail", UserController.updateIdEmail);
+app.patch("/api/v1/users/:idEmail", UserController.updateUser);
+
+// ── Products (Legacy) ──────────────────────────────────
+app.get("/api/v1/products/:idUser", stockController.getProducts);
+app.post("/api/v1/products", stockController.createProduct);
+app.put("/api/v1/products/:id", stockController.updateProduct);
+app.delete("/api/v1/products/:id", stockController.deleteProduct);
+app.post("/api/v1/products/:id/share", stockController.shareProduct);
+
+// ── Transactions ───────────────────────────────────────
+app.post("/api/v1/transactions/simple", transactionController.createSimple);
+app.post("/api/v1/transactions/controlled", transactionController.createControlled);
+app.get("/api/v1/transactions", transactionController.listTransactions);
+app.put("/api/v1/transactions/:transactionId", transactionController.updateTransaction);
+app.delete("/api/v1/transactions", transactionController.deleteTransaction);
+app.patch("/api/v1/transactions/status", transactionController.markStatus);
+app.patch("/api/v1/transactions/payment", transactionController.updatePaymentStatus);
+app.patch("/api/v1/transactions/request-payment", transactionController.requestPayment);
+app.patch("/api/v1/transactions/approve-payment", transactionController.approvePayment);
+app.patch("/api/v1/transactions/reject-payment", transactionController.rejectPayment);
+app.patch("/api/v1/transactions/follow", transactionController.followTransaction);
+app.patch("/api/v1/transactions/:transactionId/add-value", transactionController.addValue);
+app.patch("/api/v1/transactions/:transactionId/subtract-value", transactionController.subtractValue);
+app.patch("/api/v1/transactions/:idEmail?", transactionController.updateTransactionIdEmail);
+
+// ── OS ─────────────────────────────────────────────────
+app.post("/api/v1/os", osController.create);
+app.get("/api/v1/os/my", osController.getMyOrders);
+app.patch("/api/v1/os/:id/cancel", osController.cancel);
+app.get("/api/v1/os/company", osController.getCompanyOrders);
+app.patch("/api/v1/os/:id/resolve", osController.resolve);
+app.patch("/api/v1/os/:id/start", osController.start);
+
+// ── Activities ─────────────────────────────────────────
+app.get("/api/v1/activity/:phone", activityController.getActivities);
+app.post("/api/v1/activity", activityController.createOrUpdateActivity);
+app.delete("/api/v1/activity", activityController.deleteActivity);
+
+// ── Stores ─────────────────────────────────────────────
+app.get("/api/v1/stores", storeController.getStores);
+app.post("/api/v1/stores", storeController.createStore);
+app.patch("/api/v1/stores/:id", storeController.updateStore);
+app.delete("/api/v1/stores/:id", storeController.deleteStore);
+
+// ── Shopping Lists ─────────────────────────────────────
+app.get("/api/v1/shopping-lists/:idUser", shoppingListController.getShoppingLists);
+app.get("/api/v1/shopping-lists/shared/:idUser", shoppingListController.getSharedShoppingLists);
+app.post("/api/v1/shopping-lists", shoppingListController.createShoppingList);
+app.post("/api/v1/shopping-lists/:listId/share", shoppingListController.shareShoppingList);
+app.put("/api/v1/shopping-lists/:listId/products", shoppingListController.saveProduct);
+app.delete("/api/v1/shopping-lists/:listId/products", shoppingListController.deleteProduct);
+app.put("/api/v1/shopping-lists/:listId", shoppingListController.updateList);
+app.put("/api/v1/shopping-lists/:listId/complete", shoppingListController.completeList);
+app.delete("/api/v1/shopping-lists/:listId", shoppingListController.deleteList);
+
+// ── Product Prices ─────────────────────────────────────
+app.post("/api/v1/product-price", productPriceController.saveProductPrice);
+app.get("/api/v1/product-price/:productName/:days", productPriceController.getRecentProductPrices);
+app.get("/api/v1/product-price/:productName/:marketId", productPriceController.getMarketProductPrice);
+app.post("/api/v1/product-price/compare", productPriceController.comparePrices);
+
+// ── Books ──────────────────────────────────────────────
+app.get("/api/v1/books/:idUser", bookController.getBooks);
+app.get("/api/v1/books/:id", bookController.getBookById);
+app.post("/api/v1/books/:idUser", bookController.createBook);
+app.put("/api/v1/books/:id", bookController.updateBook);
+app.delete("/api/v1/books/:id", bookController.deleteBook);
+app.post("/api/v1/books/:id/transfer", bookController.transferBook);
+
+// ── Schedules ──────────────────────────────────────────
+app.get("/api/v1/schedules/:idUser", scheduleController.getSchedules);
+app.post("/api/v1/schedules", scheduleController.createSchedule);
+app.put("/api/v1/schedules/:id", scheduleController.updateSchedule);
+app.delete("/api/v1/schedules/:id", scheduleController.deleteSchedule);
+
+// ── Companies ──────────────────────────────────────────
+app.post("/api/v1/companies", companyController.createCompany);
+app.get("/api/v1/companies/:idEmail?", companyController.getCompanies);
+app.get("/api/v1/companies/details/:id", companyController.getCompanyById);
+app.put("/api/v1/companies/:id", companyController.updateCompany);
+app.patch("/api/v1/companies/:id/status", companyController.updateStatus);
+app.delete("/api/v1/companies/:id", companyController.deleteCompany);
+
+// ── Permissions ────────────────────────────────────────
+app.post("/api/v1/permissions", permissionController.createPermission);
+app.get("/api/v1/permissions/:idEmail?", permissionController.getPermissions);
+app.patch("/api/v1/permissions", permissionController.updatePermissions);
+app.patch("/api/v1/permissions/:idEmail", permissionController.updateidEmailPermissions);
+app.delete("/api/v1/permissions/:idEmail", permissionController.deletePermissions);
+
+// ── Work Records ───────────────────────────────────────
+app.post("/api/v1/work-records/clock-in", workRecordController.clockIn);
+app.patch("/api/v1/work-records/:id/clock-out", workRecordController.clockOut);
+app.get("/api/v1/work-records", workRecordController.list);
+app.patch("/api/v1/work-records/:id/approve", workRecordController.approve);
+app.patch("/api/v1/work-records/:id/reject", workRecordController.reject);
+app.delete("/api/v1/work-records/:id", workRecordController.delete);
+
+// ── RH ─────────────────────────────────────────────────
+app.post("/api/v1/rh/link-user", rhController.linkUserToCompany);
+app.get("/api/v1/rh/:empresaId/employees", rhController.listEmployees);
+app.get("/api/v1/rh/company/:idEmail", rhController.listCompanyByEmployee);
+app.delete("/api/v1/rh/unlink/:linkId", rhController.unlinkUser);
+app.patch("/api/v1/rh/link/:linkId/status", rhController.updateLinkStatus);
+app.get("/api/v1/rh/user/companies", rhController.getUserCompanies);
 
 
 // Iniciar servidor
