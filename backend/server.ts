@@ -13,7 +13,6 @@ import transactionController from "./controllers/transactionController"; // Novo
 import activityController from "./controllers/activityController";
 import storeController from "./controllers/storeController";
 import shoppingListController from "./controllers/shoppingListController";
-import productPriceController from "./controllers/productPriceController";
 import bookController from "./controllers/bookControllers";
 import scheduleController from "./controllers/scheduleController";
 import companyController from "./controllers/companyController";
@@ -29,6 +28,10 @@ import barberController from "./controllers/barberController";
 import barberProductController from "./controllers/barberProductController";
 import barberServiceController from "./controllers/barberServiceController";
 import appointmentBarberController from "./controllers/appointmentBarberController";
+import productController from "./controllers/productController";
+import comparisonController from "./controllers/comparisonController";
+import priceRecordController from "./controllers/priceRecordController";
+import shoppingItemController from "./controllers/shoppingItemController";
 
 dotenv.config();
 
@@ -47,7 +50,7 @@ app.use(express.urlencoded({ extended: true }));
 // Rota básica de teste/saúde
 app.get("/", (_req, res) => {
     res.send(
-        "API V1 - Servidor Online\n" +
+        "API V1.0.0 - Servidor Online\n" +
         `Data atual: ${new Date().toISOString()}\n`
     );
 });
@@ -158,6 +161,11 @@ app.put("/api/v1/products/:id", stockController.updateProduct);
 app.delete("/api/v1/products/:id", stockController.deleteProduct);
 app.post("/api/v1/products/:id/share", stockController.shareProduct);
 
+app.get("/api/v1/products", productController.getProducts);
+app.post("/api/v1/products", productController.createProduct);
+app.patch("/api/v1/products/:id", productController.updateProduct);
+app.delete("/api/v1/products/:id", productController.deleteProduct);
+
 // ── Transactions ───────────────────────────────────────
 app.post("/api/v1/transactions/simple", transactionController.createSimple);
 app.post("/api/v1/transactions/controlled", transactionController.createControlled);
@@ -193,22 +201,34 @@ app.post("/api/v1/stores", storeController.createStore);
 app.patch("/api/v1/stores/:id", storeController.updateStore);
 app.delete("/api/v1/stores/:id", storeController.deleteStore);
 
-// ── Shopping Lists ─────────────────────────────────────
-app.get("/api/v1/shopping-lists/:idUser", shoppingListController.getShoppingLists);
-app.get("/api/v1/shopping-lists/shared/:idUser", shoppingListController.getSharedShoppingLists);
-app.post("/api/v1/shopping-lists", shoppingListController.createShoppingList);
-app.post("/api/v1/shopping-lists/:listId/share", shoppingListController.shareShoppingList);
-app.put("/api/v1/shopping-lists/:listId/products", shoppingListController.saveProduct);
-app.delete("/api/v1/shopping-lists/:listId/products", shoppingListController.deleteProduct);
-app.put("/api/v1/shopping-lists/:listId", shoppingListController.updateList);
-app.put("/api/v1/shopping-lists/:listId/complete", shoppingListController.completeList);
-app.delete("/api/v1/shopping-lists/:listId", shoppingListController.deleteList);
+// ── Products ───────────────────────────────────────────
+app.get("/api/v1/products", productController.getProducts);
+app.post("/api/v1/products", productController.createProduct);
+app.patch("/api/v1/products/:id", productController.updateProduct);
+app.delete("/api/v1/products/:id", productController.deleteProduct);
 
-// ── Product Prices ─────────────────────────────────────
-app.post("/api/v1/product-price", productPriceController.saveProductPrice);
-app.get("/api/v1/product-price/:productName/:days", productPriceController.getRecentProductPrices);
-app.get("/api/v1/product-price/:productName/:marketId", productPriceController.getMarketProductPrice);
-app.post("/api/v1/product-price/compare", productPriceController.comparePrices);
+// ── Shopping Lists ─────────────────────────────────────
+app.get("/api/v1/shopping-lists", shoppingListController.getShoppingLists);
+app.post("/api/v1/shopping-lists", shoppingListController.createShoppingList);
+app.patch("/api/v1/shopping-lists/:id", shoppingListController.updateShoppingList);
+app.delete("/api/v1/shopping-lists/:id", shoppingListController.deleteShoppingList);
+
+// ── Shopping Items ─────────────────────────────────────
+app.get("/api/v1/shopping-items", shoppingItemController.getShoppingItems);
+app.post("/api/v1/shopping-items", shoppingItemController.createShoppingItem);
+app.patch("/api/v1/shopping-items/:id", shoppingItemController.updateShoppingItem);
+app.delete("/api/v1/shopping-items/:id", shoppingItemController.deleteShoppingItem);
+
+// ── Price Records ──────────────────────────────────────
+app.get("/api/v1/price-records", priceRecordController.getPriceRecords);
+app.post("/api/v1/price-records", priceRecordController.createPriceRecord);
+app.patch("/api/v1/price-records/:id", priceRecordController.updatePriceRecord);
+app.delete("/api/v1/price-records/:id", priceRecordController.deletePriceRecord);
+
+// ── Comparisons ────────────────────────────────────────
+app.post("/api/v1/comparisons/shopping-list", comparisonController.compareShoppingList);
+app.post("/api/v1/comparisons/product", comparisonController.compareProduct);
+app.get("/api/v1/comparisons/best-store", comparisonController.getBestStore);
 
 // ── Books ──────────────────────────────────────────────
 app.get("/api/v1/books/:idUser", bookController.getBooks);
