@@ -48,9 +48,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Rota básica de teste/saúde
-app.get("/", (_req, res) => {
+app.get("/api/v1", (_req, res) => {
     res.send(
-        "API V1.1.2.0 - Servidor Online\n" +
+        "API V1.1.3.0 - Servidor Online\n" +
         `Data atual: ${new Date().toISOString()}\n`
     );
 });

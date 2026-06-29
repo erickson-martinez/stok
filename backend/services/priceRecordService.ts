@@ -1,6 +1,7 @@
 // services/priceRecordService.ts
 
 import PriceRecord from "../models/PriceRecord";
+import ShoppingList from "../models/ShoppingList";
 import { IShoppingItem } from "../models/ShoppingItem";
 
 class PriceRecordService {
@@ -11,72 +12,51 @@ class PriceRecordService {
             return;
         }
 
+        const shoppingList = await ShoppingList.findById(
+            shoppingItem.shoppingListId
+        );
+
+        if (!shoppingList) {
+            return;
+        }
+
+        const storeId =
+            shoppingList.metadata?.storeId ?? null;
+
         const filter = {
-
             name: shoppingItem.name,
-
             brand: shoppingItem.brand,
-
             barcode: shoppingItem.barcode,
-
             packageQuantity: shoppingItem.packageQuantity,
-
             unit: shoppingItem.unit,
-
-            storeId: shoppingItem.storeId
-
+            storeId
         };
 
         await PriceRecord.findOneAndUpdate(
-
             filter,
-
             {
-
                 $set: {
-
                     name: shoppingItem.name,
-
                     brand: shoppingItem.brand,
-
                     barcode: shoppingItem.barcode,
-
                     category: shoppingItem.category,
-
                     unit: shoppingItem.unit,
-
                     packageQuantity: shoppingItem.packageQuantity,
-
                     price: shoppingItem.price,
-
-                    storeId: shoppingItem.storeId,
-
+                    storeId,
                     observedAt: new Date(),
-
-                    createdBy: shoppingItem.shoppingListId,
-
+                    createdBy: shoppingList.userId,
                     source: "user",
-
                     confidence: 100
-
                 }
-
             },
-
             {
-
                 upsert: true,
-
                 new: true,
-
                 runValidators: true
-
             }
-
         );
-
     }
-
 }
 
 export default new PriceRecordService();

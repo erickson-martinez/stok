@@ -16,11 +16,8 @@ class ShoppingItemService {
     }
 
     async update(
-
         id: string,
-
         data: Partial<IShoppingItem>
-
     ): Promise<IShoppingItem | null> {
 
         const shoppingItem = await ShoppingItem.findByIdAndUpdate(
@@ -28,17 +25,12 @@ class ShoppingItemService {
             id,
 
             {
-
                 $set: data
-
             },
 
             {
-
                 new: true,
-
                 runValidators: true
-
             }
 
         );
@@ -67,14 +59,13 @@ class ShoppingItemService {
 
         return ShoppingItem.find(filter)
 
-            .populate("shoppingListId", "name")
-
-            .populate("storeId", "organization name")
+            .populate(
+                "shoppingListId",
+                "name metadata"
+            )
 
             .sort({
-
                 createdAt: 1
-
             });
 
     }

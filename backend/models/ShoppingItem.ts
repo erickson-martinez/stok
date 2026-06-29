@@ -14,70 +14,50 @@ export type ProductUnit =
 export interface IShoppingItem extends Document {
 
     shoppingListId: mongoose.Types.ObjectId;
-
     name: string;
-
     brand?: string;
-
     barcode?: string;
-
     category?: string;
-
     unit: ProductUnit;
-
     packageQuantity?: number | null;
-
     quantity: number;
-
     price?: number | null;
-
-    storeId?: mongoose.Types.ObjectId | null;
-
     checked: boolean;
-
     notes?: string;
-
     createdAt?: Date;
-
     updatedAt?: Date;
 }
 
 const shoppingItemSchema = new Schema(
 
     {
-
         shoppingListId: {
             type: Schema.Types.ObjectId,
             ref: "ShoppingList",
             required: true,
             index: true
         },
-
         name: {
             type: String,
             required: true,
             trim: true,
             index: true
         },
-
         brand: {
             type: String,
             trim: true,
             default: ""
         },
-
         barcode: {
             type: String,
             trim: true,
             default: ""
         },
-
         category: {
             type: String,
             trim: true,
             default: ""
         },
-
         unit: {
             type: String,
             enum: [
@@ -91,46 +71,32 @@ const shoppingItemSchema = new Schema(
             ],
             default: "unidade"
         },
-
         packageQuantity: {
             type: Number,
             default: null,
             min: 0
         },
-
         quantity: {
             type: Number,
             required: false,
             default: 1,
             min: 1
         },
-
         price: {
             type: Number,
             default: null,
             min: 0
         },
-
-        storeId: {
-            type: Schema.Types.ObjectId,
-            ref: "Store",
-            default: null,
-            index: true
-        },
-
         checked: {
             type: Boolean,
             default: false
         },
-
         notes: {
             type: String,
             trim: true,
             default: ""
         }
-
     },
-
     {
         timestamps: true
     }
