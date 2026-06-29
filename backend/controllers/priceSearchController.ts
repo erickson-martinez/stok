@@ -3,6 +3,16 @@
 import { Request, Response } from "express";
 import PriceRecord from "../models/PriceRecord";
 
+const normalize = (value: string): string => {
+
+    return value
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+
+};
+
 const priceSearchController = {
 
     async search(req: Request, res: Response): Promise<void> {
@@ -43,84 +53,52 @@ const priceSearchController = {
              */
             if (q) {
 
-                const search = String(q)
+                const search = normalize(String(q));
 
-                    .normalize("NFD")
-
-                    .replace(/[\u0300-\u036f]/g, "")
-
-                    .toLowerCase()
-
-                    .trim();
-
-                // Procura apenas produtos cujo nome começa com o texto
-                filter.nameSearch = {
-
-                    $regex: "^" + search,
-
-                    $options: "i"
-
-                };
+                filter.nameSearch = new RegExp(
+                    "^" + search,
+                    "i"
+                );
 
             }
 
             const priceRecords = await PriceRecord.find(filter)
 
                 .populate({
-
                     path: "storeId",
-
                     model: "Store",
-
                     select: "organization name city state"
-
                 })
 
                 .sort({
-
                     observedAt: -1
-
                 })
 
                 .limit(Number(limit));
 
             /**
-             * Filtro por cidade/estado
+             * Filtro por cidade / estado
              */
             const filtered = priceRecords.filter((record: any) => {
 
                 if (!record.storeId) {
-
                     return true;
-
                 }
 
                 if (
-
                     city &&
-
                     record.storeId.city?.toLowerCase() !==
-
                     String(city).toLowerCase()
-
                 ) {
-
                     return false;
-
                 }
 
                 if (
-
                     state &&
-
                     record.storeId.state?.toLowerCase() !==
-
                     String(state).toLowerCase()
-
                 ) {
-
                     return false;
-
                 }
 
                 return true;
@@ -128,47 +106,52 @@ const priceSearchController = {
             });
 
             /**
-             * DTO enviado ao Front
+             * DTO para o Front
              */
-            const result = filtered.map((record: any) => ({
+            const result = filtered.map((record: any) => {
 
-                id: record._id,
+                const storeName = record.storeId
+                    ? `${record.storeId.organization} - ${record.storeId.name}`
+                    : "Loja desconhecida";
 
-                name: record.name,
+                return {
 
-                brand: record.brand,
+                    id: record._id,
 
-                barcode: record.barcode,
+                    name: record.name,
 
-                category: record.category,
+                    brand: record.brand,
 
-                packageQuantity: record.packageQuantity,
+                    label: `${record.name}${record.brand ? " - " + record.brand : ""}`,
 
-                unit: record.unit,
+                    price: record.price,
 
-                price: record.price,
+                    packageQuantity: record.packageQuantity,
 
-                observedAt: record.observedAt,
+                    unit: record.unit,
 
-                confidence: record.confidence,
+                    barcode: record.barcode,
 
-                store: record.storeId
-                    ? {
+                    category: record.category,
 
-                        id: record.storeId._id,
+                    observedAt: record.observedAt,
 
-                        organization: record.storeId.organization,
+                    subtitle: `${storeName} (${new Date(record.observedAt).toLocaleDateString("pt-BR")})`,
 
-                        name: record.storeId.name,
+                    store: record.storeId
+                        ? {
+                            id: record.storeId._id,
+                            organization: record.storeId.organization,
+                            name: record.storeId.name,
+                            displayName: storeName,
+                            city: record.storeId.city,
+                            state: record.storeId.state
+                        }
+                        : null
 
-                        city: record.storeId.city,
+                };
 
-                        state: record.storeId.state
-
-                    }
-                    : null
-
-            }));
+            });
 
             res.status(200).json(result);
 
