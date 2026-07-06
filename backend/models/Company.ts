@@ -19,7 +19,6 @@ export interface ICompany extends Document {
 const CompanySchema: Schema = new Schema({
     name: { type: String, required: true },
     cnpj: { type: String, unique: true, sparse: true },
-    phone: { type: String, unique: true, sparse: true },
     email: { type: String },
     address: { type: String },
     linkId: { type: String, unique: true, sparse: true }, // Campo para armazenar o linkId

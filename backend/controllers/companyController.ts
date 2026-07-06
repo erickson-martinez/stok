@@ -24,7 +24,7 @@ class CompanyController {
     // Criar nova empresa
     async createCompany(req: Request, res: Response): Promise<void> {
         try {
-            const { name, cnpj, phone, email, address, city, linkId, state, zipCode, status, owner } = req.body;
+            const { name, cnpj, email, address, city, linkId, state, zipCode, status, idEmail } = req.body;
 
             // Validação básica
             if (!name) {
@@ -32,46 +32,9 @@ class CompanyController {
                 return;
             }
 
-            if (!owner) {
-                res.status(400).json({ error: "Telefone do proprietário é obrigatório" });
+            if (!idEmail) {
+                res.status(400).json({ error: "ID do e-mail é obrigatório" });
                 return;
-            }
-
-            // Buscar todos usuários e descriptografar para encontrar o proprietário
-            const targetPhone = String(owner).trim();
-            const users = await User.find({}).lean();
-            const userMap = new Map<string, string>();
-            const userExists = users.some(u => decryptPhone(u.phone) === targetPhone);
-
-            users.forEach(user => {
-                const plainPhone = decryptPhone(user.phone);
-                userMap.set(plainPhone, user.phone); // plain → encrypted
-            });
-
-            const encryptedPhone = userMap.get(targetPhone);
-            console.log("Telefone proprietário (criptografado):", encryptedPhone);
-
-            // Se o proprietário não existe, criar um novo usuário
-            if (!userExists) {
-                try {
-                    const defaultPassword = "Teste@9898@9898";
-                    const hashedPassword = await bcrypt.hash(defaultPassword, 10);
-
-                    const newUser = new User({
-                        name: "Proprietário",
-                        phone: encryptedPhone,
-                        password: hashedPassword,
-                    });
-
-                    const savedUser = await newUser.save();
-                    (savedUser._id as mongoose.Types.ObjectId).toString();
-
-                    console.log(`Novo usuário criado automaticamente: ${targetPhone}`);
-                } catch (userCreateError: any) {
-                    console.error("Erro ao criar usuário proprietário:", userCreateError);
-                    res.status(500).json({ error: "Erro ao criar usuário proprietário" });
-                    return;
-                }
             }
 
             // Verificar se CNPJ já existe (se fornecido)
@@ -86,7 +49,6 @@ class CompanyController {
             const newCompany = new Company({
                 name,
                 cnpj,
-                phone,
                 linkId,
                 email,
                 address,
@@ -94,22 +56,24 @@ class CompanyController {
                 state,
                 zipCode,
                 status: status || 'ativo',
-                owner: encryptedPhone,
+                idEmail,
+                createdAt: new Date(),
+                updatedAt: new Date(),
             });
 
             await newCompany.save();
 
             // Criar permissões automáticas para o owner
             try {
-                if (encryptedPhone) {
+                if (idEmail) {
 
                     // Verificar se já existe permissão
-                    const existingPermission = await Permission.findOne({ userPhone: encryptedPhone });
+                    const existingPermission = await Permission.findOne({ userEmail: idEmail });
 
                     if (!existingPermission) {
                         const defaultPermissions = ["rh", "aprovarHoras", "chamados"];
                         await Permission.create({
-                            userPhone: encryptedPhone,
+                            userEmail: idEmail,
                             permissions: defaultPermissions,
                         });
                     }
@@ -171,7 +135,7 @@ class CompanyController {
     async updateCompany(req: Request, res: Response): Promise<void> {
         try {
             const { id, status } = req.params;
-            const { name, cnpj, phone, email, address, linkId, city, state, zipCode } = req.body;
+            const { name, cnpj, idEmail, email, address, linkId, city, state, zipCode } = req.body;
 
             // Verificar se CNPJ já existe em outra empresa
             if (cnpj) {
@@ -187,7 +151,7 @@ class CompanyController {
                 {
                     name,
                     cnpj,
-                    phone,
+                    idEmail,
                     linkId,
                     email,
                     address,
