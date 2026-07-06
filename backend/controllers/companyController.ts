@@ -1,9 +1,6 @@
 import { Request, Response } from "express";
-import mongoose from "mongoose";
 import crypto from "crypto";
-import bcrypt from "bcrypt";
 import Company from "../models/Company";
-import User from "../models/User";
 import Permission from "../models/Permission";
 
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
