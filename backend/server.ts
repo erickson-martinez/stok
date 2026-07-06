@@ -37,12 +37,24 @@ dotenv.config();
 
 const app: Express = express();
 
+
+const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : [];
+
 // Configuração CORS - ajuste em produção!
-app.use(cors({
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-}));
+app.use(
+    cors({
+        origin(origin, callback) {
+            if (!origin) return callback(null, true);
+
+            if (allowedOrigins.includes(origin)) {
+                return callback(null, true);
+            }
+
+            callback(new Error("Origin não permitida."));
+        },
+        credentials: true
+    })
+);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

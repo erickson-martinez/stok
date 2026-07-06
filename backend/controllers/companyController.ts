@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import crypto from "crypto";
 import Company from "../models/Company";
 import Permission from "../models/Permission";
 class CompanyController {
