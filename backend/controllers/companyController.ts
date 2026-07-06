@@ -2,21 +2,6 @@ import { Request, Response } from "express";
 import crypto from "crypto";
 import Company from "../models/Company";
 import Permission from "../models/Permission";
-
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
-
-const decryptPhone = (encrypted: string): string => {
-    const [iv, encryptedText] = encrypted.split(":");
-    const decipher = crypto.createDecipheriv(
-        "aes-256-cbc",
-        Buffer.from(ENCRYPTION_KEY, "hex"),
-        Buffer.from(iv, "hex")
-    );
-    let decrypted = decipher.update(encryptedText, "hex", "utf8");
-    decrypted += decipher.final("utf8");
-    return decrypted;
-};
-
 class CompanyController {
     // Criar nova empresa
     async createCompany(req: Request, res: Response): Promise<void> {
