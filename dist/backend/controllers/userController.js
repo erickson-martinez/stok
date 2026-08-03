@@ -20,7 +20,13 @@ const encryptPassword = (password) => {
     return iv.toString("hex") + ":" + encrypted;
 };
 const decryptPassword = (encrypted) => {
+    if (!encrypted) {
+        return "";
+    }
     const [iv, encryptedText] = encrypted.split(":");
+    if (!iv || !encryptedText) {
+        return encrypted;
+    }
     const decipher = crypto_1.default.createDecipheriv("aes-256-cbc", Buffer.from(ENCRYPTION_KEY, "hex"), Buffer.from(iv, "hex"));
     let decrypted = decipher.update(encryptedText, "hex", "utf8");
     decrypted += decipher.final("utf8");
@@ -53,8 +59,8 @@ const validatePassword = (password) => {
 };
 const createUser = async (req, res) => {
     try {
-        const { name, pass, phone, idEmail, email } = req.body;
-        if (!name || !pass || !phone || !idEmail || !email) {
+        const { name, pass, idEmail, email } = req.body;
+        if (!name || !pass || !idEmail || !email) {
             res.status(400).json({ error: "Nome, senha, telefone, ID do email e email são obrigatórios" });
             return;
         }
@@ -66,9 +72,8 @@ const createUser = async (req, res) => {
         const user = new User_1.default({
             name: encryptPassword(name),
             password: encryptPassword(pass),
-            phone: encryptPassword(phone),
             idEmail: idEmail,
-            email: encryptPassword(email),
+            email: email,
         });
         await user.save();
         res.status(201).json({ user });
@@ -95,7 +100,8 @@ const updateUser = async (req, res) => {
             return;
         }
         if (name) {
-            user.name = name;
+            user.name = encryptPassword(name);
+            await User_1.default.findByIdAndUpdate(user._id, { name: user.name });
         }
         if (pass) {
             const passwordValidation = validatePassword(pass);

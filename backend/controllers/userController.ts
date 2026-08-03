@@ -26,8 +26,16 @@ const encryptPassword = (password: string): string => {
     return iv.toString("hex") + ":" + encrypted;
 };
 
-const decryptPassword = (encrypted: string): string => {
+const decryptPassword = (encrypted?: string): string => {
+    if (!encrypted) {
+        return "";
+    }
+
     const [iv, encryptedText] = encrypted.split(":");
+    if (!iv || !encryptedText) {
+        return encrypted;
+    }
+
     const decipher = crypto.createDecipheriv(
         "aes-256-cbc",
         Buffer.from(ENCRYPTION_KEY, "hex"),
@@ -123,7 +131,8 @@ const updateUser = async (req: Request, res: Response): Promise<void> => {
 
         // Atualiza o nome, se fornecido
         if (name) {
-            user.name = name;
+            user.name = encryptPassword(name);
+            await User.findByIdAndUpdate(user._id, { name: user.name });
         }
 
         // Atualiza a senha, se fornecida, com validação e criptografia
