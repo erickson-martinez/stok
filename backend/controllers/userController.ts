@@ -87,7 +87,7 @@ const createUser = async (req: Request, res: Response): Promise<void> => {
             name: encryptPassword(name),
             password: encryptPassword(pass),
             idEmail: idEmail,
-            email: encryptPassword(email),
+            email: email,
         });
 
         await user.save();
