@@ -70,9 +70,9 @@ const validatePassword = (password: string): { isValid: boolean; error?: string 
 // Criar um novo usuário
 const createUser = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { name, pass, phone, idEmail, email } = req.body;
+        const { name, pass, idEmail, email } = req.body;
 
-        if (!name || !pass || !phone || !idEmail || !email) {
+        if (!name || !pass || !idEmail || !email) {
             res.status(400).json({ error: "Nome, senha, telefone, ID do email e email são obrigatórios" });
             return;
         }
@@ -86,7 +86,6 @@ const createUser = async (req: Request, res: Response): Promise<void> => {
         const user = new User({
             name: encryptPassword(name),
             password: encryptPassword(pass),
-            phone: encryptPassword(phone),
             idEmail: idEmail,
             email: encryptPassword(email),
         });
