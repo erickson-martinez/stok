@@ -4,20 +4,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.handleIncomingMessage = handleIncomingMessage;
-// whatsapp/handlers/messageHandler.ts
 const userCache_1 = require("../../utils/userCache");
 const transactionController_1 = __importDefault(require("../../controllers/transactionController"));
-/**
- * Handler principal que recebe toda mensagem de texto do WhatsApp
- * @param from Número do remetente (+55...)
- * @param text Conteúdo da mensagem
- * @param name Nome do contato (se disponível)
- * @returns Texto da resposta a ser enviada
- */
 async function handleIncomingMessage(from, text, name) {
     const lowerText = text.trim().toLowerCase();
     const userGreeting = name ? `Olá ${name}` : 'Olá';
-    // Resposta padrão / ajuda
     let response = `${userGreeting}! Aqui estão os comandos disponíveis:\n\n` +
         `despesa: Nome valor data [pago/pendente]\n` +
         `  ex: despesa: Aluguel 1500 10/02 pago\n` +
@@ -30,14 +21,10 @@ async function handleIncomingMessage(from, text, name) {
         `os: Descrição       → abre ordem de serviço\n\n` +
         `Digite um comando para começar!`;
     try {
-        // Busca usuário com cache (muito mais rápido depois da 1ª vez)
         const userInfo = await (0, userCache_1.getUserByPhone)(from);
         if (!userInfo) {
             return 'Usuário não encontrado no sistema. Por favor, cadastre-se primeiro.';
         }
-        // ────────────────────────────────────────────────────────────────
-        // Parse de DESPESA (mais robusto)
-        // ────────────────────────────────────────────────────────────────
         const despesaRegex = /^despesa:\s*(.+?)\s+([\d,.]+)\s+(\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?)(?:\s+(pago|pendente))?\s*$/i;
         const despesaMatch = lowerText.match(despesaRegex);
         if (despesaMatch) {
@@ -47,7 +34,6 @@ async function handleIncomingMessage(from, text, name) {
             if (isNaN(amount) || amount <= 0) {
                 return 'Valor inválido. Use números maiores que zero (ex: 1500 ou 1.500,50)';
             }
-            // Parse de data flexível
             let date;
             try {
                 const parts = dataStr.split(/[/-]/);
@@ -63,15 +49,14 @@ async function handleIncomingMessage(from, text, name) {
                 return 'Data inválida. Use formato DD/MM ou DD-MM (ex: 10/02 ou 10-02-2026)';
             }
             const isPaid = statusStr.toLowerCase() === 'pago';
-            // Mock req/res para chamar o controller sem alterar ele
             let result = null;
             const mockReq = {
                 body: {
-                    ownerPhone: from, // plain → o controller encripta internamente
+                    ownerPhone: from,
                     type: 'expense',
                     name: nome,
                     amount,
-                    date: date.toISOString().split('T')[0], // YYYY-MM-DD
+                    date: date.toISOString().split('T')[0],
                     status: isPaid ? 'pago' : 'nao_pago',
                 }
             };
@@ -97,9 +82,6 @@ async function handleIncomingMessage(from, text, name) {
                 `• Data: ${date.toLocaleDateString('pt-BR')}\n` +
                 `• Status: ${isPaid ? 'Paga' : 'Pendente'}`;
         }
-        // ────────────────────────────────────────────────────────────────
-        // RECEITA (similar à despesa)
-        // ────────────────────────────────────────────────────────────────
         const receitaRegex = /^receita:\s*(.+?)\s+([\d,.]+)\s+(\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?)\s*$/i;
         const receitaMatch = lowerText.match(receitaRegex);
         if (receitaMatch) {
@@ -129,7 +111,7 @@ async function handleIncomingMessage(from, text, name) {
                     name: nome,
                     amount,
                     date: date.toISOString().split('T')[0],
-                    status: 'nao_pago' // receita geralmente começa como "recebida" ou ajuste
+                    status: 'nao_pago'
                 }
             };
             const mockRes = {
@@ -153,9 +135,6 @@ async function handleIncomingMessage(from, text, name) {
                 `• Valor: R$ ${amount.toFixed(2)}\n` +
                 `• Data: ${date.toLocaleDateString('pt-BR')}`;
         }
-        // ────────────────────────────────────────────────────────────────
-        // SALDO (mês atual)
-        // ────────────────────────────────────────────────────────────────
         if (lowerText === 'saldo') {
             const today = new Date();
             const currentMonth = today.getMonth() + 1;
@@ -186,16 +165,11 @@ async function handleIncomingMessage(from, text, name) {
                 `Mês atual (${today.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}): R$ ${monthly.toFixed(2)}\n` +
                 `Acumulado: R$ ${accumulated.toFixed(2)}`;
         }
-        // ────────────────────────────────────────────────────────────────
-        // Outros comandos podem ser adicionados aqui no futuro
-        // ex: if (lowerText === 'dívidas') { ... }
-        // ex: if (lowerText.startsWith('ponto entrar')) { ... }
     }
     catch (err) {
         console.error('[WhatsApp Message Handler] Erro:', err);
         return 'Ocorreu um erro interno ao processar sua mensagem. Tente novamente ou contate o suporte.';
     }
-    // Se nenhum comando reconhecido → retorna ajuda
     return response;
 }
 //# sourceMappingURL=messageHandler.js.map

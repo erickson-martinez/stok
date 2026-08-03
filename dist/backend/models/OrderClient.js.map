@@ -1,0 +1,1 @@
+{"version":3,"file":"OrderClient.js","sourceRoot":"","sources":["../../../backend/models/OrderClient.ts"],"names":[],"mappings":";;;AAAA,uCAAyC;AAGzC,qCAAiC;AAEjC,MAAM,iBAAiB,GAAG,IAAI,iBAAM,CAAe;IAE/C,GAAG,cAAK,CAAC,MAAM,CAAC,GAAG;IAEnB,WAAW,EAAE,MAAM;CACtB,CAAC,CAAC;AAEU,QAAA,WAAW,GAAG,IAAA,gBAAK,EAAe,aAAa,EAAE,iBAAiB,CAAC,CAAC"}

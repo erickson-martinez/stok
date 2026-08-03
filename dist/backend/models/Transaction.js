@@ -1,16 +1,45 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-// src/models/Transaction.ts
 const mongoose_1 = require("mongoose");
 const transactionSchema = new mongoose_1.Schema({
-    ownerPhone: {
+    idEmail: {
         type: String,
         required: true,
         index: true,
     },
+    sharedEmail: {
+        type: String,
+        sparse: true,
+        index: true,
+        lowercase: true,
+        trim: true,
+    },
+    targetEmail: {
+        type: String,
+        sparse: true,
+        index: true,
+        lowercase: true,
+        trim: true,
+    },
+    targetPhone: {
+        type: String,
+        sparse: true,
+        index: true,
+        trim: true,
+    },
+    sharedPhone: {
+        type: String,
+        sparse: true,
+        index: true,
+        trim: true,
+    },
     type: {
         type: String,
-        enum: ['revenue', 'expense'],
+        enum: [
+            'revenue',
+            'expense',
+            'investment'
+        ],
         required: true,
     },
     name: {
@@ -23,6 +52,11 @@ const transactionSchema = new mongoose_1.Schema({
         required: true,
         min: 0,
     },
+    paidAmount: {
+        type: Number,
+        default: 0,
+        min: 0,
+    },
     date: {
         type: Date,
         required: true,
@@ -31,30 +65,47 @@ const transactionSchema = new mongoose_1.Schema({
         type: Boolean,
         default: false,
     },
-    controlId: {
-        type: String,
-        sparse: true,
-        index: true,
-    },
-    counterpartyPhone: {
-        type: String,
-        sparse: true,
-    },
     status: {
         type: String,
-        enum: ['pendente', 'pago', 'nao_pago', 'parcial', 'cancelado'],
+        enum: [
+            'pendente',
+            'pago',
+            'nao_pago',
+            'investimento',
+            'parcial',
+            'cancelado',
+        ],
         default: 'nao_pago',
-    },
-    paidAmount: {
-        type: Number,
-        default: 0,
-        min: 0,
     },
     notes: {
         type: String,
         trim: true,
     },
-    // Histórico de adições/subtrações (para permitir subtração controlada)
+    affectsCash: {
+        type: Boolean,
+        default: true,
+    },
+    investment: {
+        percentage: {
+            type: Number,
+            min: 0,
+        },
+        renderDay: {
+            type: Number,
+            min: 0,
+        },
+        type: {
+            type: String,
+            enum: [
+                'CDI',
+                'CDB'
+            ],
+        },
+    },
+    aggregate: {
+        type: Boolean,
+        default: false,
+    },
     additions: [
         {
             description: {
@@ -73,7 +124,6 @@ const transactionSchema = new mongoose_1.Schema({
             },
             addedBy: {
                 type: String,
-                sparse: true, // telefone de quem adicionou
             },
             removed: {
                 type: Boolean,
@@ -81,37 +131,103 @@ const transactionSchema = new mongoose_1.Schema({
             },
             removedAt: {
                 type: Date,
-                sparse: true,
             },
             removedReason: {
                 type: String,
                 trim: true,
-                sparse: true,
             },
         },
     ],
-    // Campos de compartilhamento
-    sharerPhone: {
-        type: String,
-        sparse: true,
-    },
-    aggregate: {
-        type: Boolean,
-        default: false,
+    paymentRequest: {
+        requested: {
+            type: Boolean,
+            default: false,
+        },
+        requestedAt: {
+            type: Date,
+        },
+        requestedBy: {
+            type: String,
+            trim: true,
+            lowercase: true,
+        },
+        message: {
+            type: String,
+            trim: true,
+        },
+        approved: {
+            type: Boolean,
+            default: false,
+        },
+        approvedAt: {
+            type: Date,
+        },
+        approvedBy: {
+            type: String,
+        },
+        rejected: {
+            type: Boolean,
+            default: false,
+        },
+        rejectedAt: {
+            type: Date,
+        },
+        rejectedReason: {
+            type: String,
+            trim: true,
+        },
     },
 }, {
-    timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' },
+    timestamps: {
+        createdAt: 'createdAt',
+        updatedAt: 'updatedAt',
+    },
 });
-// Índices úteis
-transactionSchema.index({ ownerPhone: 1, date: -1 });
-transactionSchema.index({ sharerPhone: 1, aggregate: 1 });
-transactionSchema.index({ ownerPhone: 1, status: 1 });
-transactionSchema.index({ controlId: 1, type: 1 });
-// Hook opcional: recalcular amount baseado nas additions ativas (se quiser automação extra)
+transactionSchema.index({
+    idEmail: 1,
+    date: -1,
+});
+transactionSchema.index({
+    idEmail: 1,
+    status: 1,
+});
+transactionSchema.index({
+    sharedEmail: 1,
+});
+transactionSchema.index({
+    sharedEmail: 1,
+    aggregate: 1,
+});
+transactionSchema.index({
+    targetEmail: 1,
+    aggregate: 1,
+});
+transactionSchema.index({
+    targetPhone: 1,
+    aggregate: 1,
+});
+transactionSchema.index({
+    status: 1,
+});
+transactionSchema.index({
+    'paymentRequest.requested': 1,
+    'paymentRequest.approved': 1,
+});
 transactionSchema.pre('save', function (next) {
-    if (this.isModified('additions')) {
-        const activeAdditions = this.additions?.filter(add => !add.removed) || [];
-        activeAdditions.reduce((sum, add) => sum + add.amount, 0);
+    if (this.type === 'investment') {
+        this.status = 'investimento';
+        this.paidAmount = this.amount;
+        return next();
+    }
+    if (this.paidAmount === undefined) {
+        this.paidAmount = 0;
+    }
+    if (this.paidAmount >= this.amount && this.amount > 0) {
+        this.status = 'pago';
+        this.paidAmount = this.amount;
+    }
+    else if (this.paidAmount > 0) {
+        this.status = 'parcial';
     }
     next();
 });

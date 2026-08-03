@@ -5,7 +5,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const Books_1 = __importDefault(require("../models/Books"));
 class BookController {
-    // Obter todos os livros de um usuário
     async getBooks(req, res) {
         try {
             const { idUser } = req.params;
@@ -14,7 +13,6 @@ class BookController {
                 res.status(404).json({ error: 'Usuário não encontrado' });
                 return;
             }
-            // Ordenar os livros por nome (ordem alfabética, crescente)
             userBooks.books.sort((a, b) => a.name.localeCompare(b.name));
             res.status(200).json(userBooks);
         }
@@ -22,7 +20,6 @@ class BookController {
             res.status(500).json({ error: error.message });
         }
     }
-    // Obter um livro específico por ID
     async getBookById(req, res) {
         try {
             const { idUser, id } = req.params;
@@ -43,7 +40,6 @@ class BookController {
             res.status(500).json({ error: error.message });
         }
     }
-    // Criar um novo livro
     async createBook(req, res) {
         try {
             const { idUser } = req.params;
@@ -60,7 +56,6 @@ class BookController {
             res.status(500).json({ error: error.message });
         }
     }
-    // Atualizar um livro existente
     async updateBook(req, res) {
         try {
             const { idUser, id } = req.params;
@@ -83,7 +78,6 @@ class BookController {
             res.status(500).json({ error: error.message });
         }
     }
-    // Deletar um livro
     async deleteBook(req, res) {
         try {
             const { idUser, id } = req.params;
@@ -105,7 +99,6 @@ class BookController {
             res.status(500).json({ error: error.message });
         }
     }
-    // Transferir um livro (empréstimo, venda, doação)
     async transferBook(req, res) {
         try {
             const { idUser, id } = req.params;

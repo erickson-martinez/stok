@@ -37,14 +37,14 @@ const mongoose_1 = __importStar(require("mongoose"));
 const CompanySchema = new mongoose_1.Schema({
     name: { type: String, required: true },
     cnpj: { type: String, unique: true, sparse: true },
-    phone: { type: String },
     email: { type: String },
     address: { type: String },
+    linkId: { type: String, unique: true, sparse: true },
     city: { type: String },
     state: { type: String },
     zipCode: { type: String },
     status: { type: String, enum: ['ativo', 'inativo'], default: 'ativo' },
-    owner: { type: String, ref: "User", required: true },
+    idEmail: { type: String, ref: "User", required: true },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
 });

@@ -33,26 +33,59 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-// models/ShoppingList.ts
 const mongoose_1 = __importStar(require("mongoose"));
-const productSchema = new mongoose_1.Schema({
-    name: { type: String, required: true, trim: true },
-    type: { type: String, enum: ['quilo', 'unidade', 'pacote', 'caixa', 'litro'] },
-    quantity: { type: Number, min: 0 },
-    brand: { type: String },
-    packQuantity: { type: Number, default: null, min: 0 },
-    value: { type: Number, min: 0 },
-    total: { type: Number, min: 0 }
-});
 const shoppingListSchema = new mongoose_1.Schema({
-    name: { type: String, required: true, trim: true },
-    marketId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Market', default: null },
-    idUser: { type: String, required: true, index: true },
-    idUserShared: { type: String, index: true }, // Campo opcional para compartilhamento
-    products: [productSchema],
-    completed: { type: Boolean, default: false }
+    userId: {
+        type: String,
+        required: true,
+        index: true
+    },
+    name: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    description: {
+        type: String,
+        trim: true,
+        default: ""
+    },
+    favorite: {
+        type: Boolean,
+        default: false
+    },
+    sharedWith: [{
+            type: String
+        }],
+    status: {
+        type: String,
+        enum: [
+            "active",
+            "completed",
+            "archived"
+        ],
+        default: "active"
+    },
+    metadata: {
+        date: {
+            type: Date
+        },
+        storeId: {
+            type: mongoose_1.Schema.Types.ObjectId,
+            ref: "Store",
+            default: null
+        },
+        latitude: {
+            type: Number,
+            default: null
+        },
+        longitude: {
+            type: Number,
+            default: null
+        }
+    }
 }, {
     timestamps: true
 });
-exports.default = mongoose_1.default.model('ShoppingList', shoppingListSchema);
+exports.default = mongoose_1.default.model("ShoppingList", shoppingListSchema);
 //# sourceMappingURL=ShoppingList.js.map

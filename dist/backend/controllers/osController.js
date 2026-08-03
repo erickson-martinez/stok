@@ -29,20 +29,15 @@ const decryptPhone = (encrypted) => {
         throw new Error('Telefone criptografado inválido ou chave incorreta');
     }
 };
-// Cache simples em memória (reinicia com o servidor) — ideal para poucos usuários
-// Em produção: usar Redis ou similar
-const phoneCache = new Map(); // plain → encrypted
+const phoneCache = new Map();
 async function getEncryptedPhone(plainPhone) {
     const trimmed = plainPhone.trim();
     if (phoneCache.has(trimmed)) {
         return phoneCache.get(trimmed);
     }
     const user = await User_1.default.findOne({ $expr: { $eq: [{ $toLower: '$phonePlain' }, trimmed.toLowerCase()] } }).lean();
-    // Alternativa (se você adicionar phonePlain no modelo User):
-    // const user = await User.findOne({ phonePlain: trimmed.toLowerCase() }).lean();
     if (!user)
         return null;
-    // Se o modelo User ainda não tem phonePlain, descriptografa para comparar
     try {
         if (decryptPhone(user.phone) === trimmed) {
             phoneCache.set(trimmed, user.phone);
@@ -53,11 +48,9 @@ async function getEncryptedPhone(plainPhone) {
     return null;
 }
 function normalizePhone(phone) {
-    return phone.replace(/\D/g, '').trim(); // remove tudo que não é dígito
-    // Opcional: adicionar DDD padrão do Brasil se necessário
+    return phone.replace(/\D/g, '').trim();
 }
 const osController = {
-    // POST /os
     async create(req, res) {
         try {
             let { openerPhone, empresaId, title, description, priority, category } = req.body;
@@ -87,8 +80,6 @@ const osController = {
                 res.status(404).json({ error: 'Empresa não encontrada' });
                 return;
             }
-            // Futuro: verificar se o usuário pode abrir OS nessa empresa
-            // if (!await canUserOpenOSForCompany(encryptedOpener, empresaId)) { ... }
             const os = new OrderService_1.default({
                 openerPhone: encryptedPhone,
                 companyId: new mongoose_1.default.Types.ObjectId(empresaId),
@@ -103,7 +94,7 @@ const osController = {
                 message: 'Ordem de serviço criada',
                 os: {
                     ...os.toObject(),
-                    openerPhone, // retorna o plain para o frontend
+                    openerPhone,
                 },
             });
         }
@@ -112,7 +103,6 @@ const osController = {
             res.status(500).json({ error: 'Erro interno ao criar ordem de serviço' });
         }
     },
-    // GET /os/my
     async getMyOrders(req, res) {
         try {
             const { phone } = req.query;
@@ -152,7 +142,6 @@ const osController = {
             res.status(500).json({ error: 'Erro ao listar suas ordens de serviço' });
         }
     },
-    // GET /os/company
     async getCompanyOrders(req, res) {
         try {
             const { empresaId, phone } = req.query;
@@ -173,7 +162,6 @@ const osController = {
                 res.status(404).json({ error: 'Empresa não encontrada' });
                 return;
             }
-            // Permissão: por enquanto apenas o dono — depois expandir para admins/gerentes/técnicos
             if (company.phone !== phone) {
                 res.status(403).json({ error: 'Você não tem permissão para ver os chamados desta empresa' });
                 return;
@@ -202,7 +190,6 @@ const osController = {
             res.status(500).json({ error: 'Erro ao listar chamados da empresa' });
         }
     },
-    // PATCH /os/:id/resolve
     async resolve(req, res) {
         try {
             const { id } = req.params;
@@ -232,7 +219,6 @@ const osController = {
             }
             const company = await Company_1.default.findById(os.companyId).lean();
             if (!company || company.phone !== encryptedResolver) {
-                // Futuro: permitir técnicos designados também
                 res.status(403).json({ error: 'Apenas o proprietário pode resolver chamados neste momento' });
                 return;
             }
@@ -255,7 +241,6 @@ const osController = {
             res.status(500).json({ error: 'Erro ao resolver ordem de serviço' });
         }
     },
-    // PATCH /os/:id/cancel
     async cancel(req, res) {
         try {
             const { id } = req.params;
@@ -295,7 +280,6 @@ const osController = {
             res.status(500).json({ error: 'Erro ao cancelar ordem de serviço' });
         }
     },
-    // PATCH /os/:id/start
     async start(req, res) {
         try {
             const { id } = req.params;
@@ -317,7 +301,6 @@ const osController = {
                 res.status(400).json({ error: 'Apenas ordens abertas podem ser iniciadas' });
                 return;
             }
-            // Futuro: verificar se o usuário tem permissão (dono ou técnico atribuído)
             os.status = 'em_andamento';
             await os.save();
             res.json({

@@ -34,39 +34,85 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const marketSchema = new mongoose_1.Schema({
+const shoppingItemSchema = new mongoose_1.Schema({
+    shoppingListId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "ShoppingList",
+        required: true,
+        index: true
+    },
     name: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
+        index: true
     },
-    address: {
+    brand: {
         type: String,
-        trim: true
+        trim: true,
+        default: ""
     },
-    number: {
+    barcode: {
         type: String,
-        trim: true
+        trim: true,
+        default: ""
     },
-    zip: {
+    category: {
         type: String,
-        trim: true
+        trim: true,
+        default: ""
     },
-    latitude: {
+    unit: {
+        type: String,
+        enum: [
+            "unidade",
+            "pacote",
+            "quilo",
+            "grama",
+            "caixa",
+            "litro",
+            "metro"
+        ],
+        default: "unidade"
+    },
+    packageQuantity: {
         type: Number,
-        default: null
+        default: null,
+        min: 0
     },
-    longitude: {
+    quantity: {
         type: Number,
-        default: null
+        required: false,
+        default: 1,
+        min: 1
     },
-    status: {
+    price: {
+        type: Number,
+        default: null,
+        min: 0
+    },
+    checked: {
+        type: Boolean,
+        default: false
+    },
+    notes: {
         type: String,
-        enum: ['active', 'inactive'],
-        default: 'active'
+        trim: true,
+        default: ""
     }
 }, {
     timestamps: true
 });
-exports.default = mongoose_1.default.model('Market', marketSchema);
-//# sourceMappingURL=Market.js.map
+shoppingItemSchema.index({
+    shoppingListId: 1,
+    checked: 1
+});
+shoppingItemSchema.index({
+    name: "text",
+    brand: "text"
+});
+shoppingItemSchema.index({
+    barcode: 1
+});
+exports.default = mongoose_1.default.model("ShoppingItem", shoppingItemSchema);
+//# sourceMappingURL=ShoppingItem.js.map

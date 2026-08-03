@@ -35,8 +35,9 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const PermissionSchema = new mongoose_1.Schema({
-    userPhone: { type: String, required: true, unique: true },
-    permissions: { type: [String], default: [] }, // Array de strings com nomes das permissões
+    idEmail: { type: String, required: true, unique: true },
+    email: { type: String },
+    permissions: { type: [String], default: [] },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
 });

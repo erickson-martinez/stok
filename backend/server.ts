@@ -3,6 +3,10 @@ import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 
+
+//clientPlans
+import subscriptionPlanController from "./controllers/subscriptionPlanController";
+import subscriptionClientController from "./controllers/subscriptionClientController";
 // Controllers
 import UserController from "./controllers/userController";
 import costController from "./controllers/costController";
@@ -38,7 +42,10 @@ dotenv.config();
 const app: Express = express();
 
 
-const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : [];
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
+    : [];
+const isDevelopment = process.env.NODE_ENV !== "production";
 
 // Configuração CORS - ajuste em produção!
 app.use(
@@ -50,7 +57,11 @@ app.use(
                 return callback(null, true);
             }
 
-            callback(new Error("Origin não permitida."));
+            if (isDevelopment) {
+                return callback(null, true);
+            }
+
+            callback(new Error("Origin nao permitida."));
         },
         credentials: true
     })
@@ -103,6 +114,24 @@ app.get('/api/v1/products/burgers', ProductBurgerController.getAllProductsBurger
 app.get('/api/v1/products/burgers/:id', ProductBurgerController.getProductBurgerById);
 app.put('/api/v1/products/burgers/:id', ProductBurgerController.updateProductBurger);
 app.delete('/api/v1/products/burgers/:id', ProductBurgerController.deleteProductBurger);
+
+// ── Subscription Plans ───────────────────────────
+
+app.post("/api/v1/subscription-plans", subscriptionPlanController.createPlan);
+app.get("/api/v1/subscription-plans", subscriptionPlanController.getPlans);
+app.get("/api/v1/subscription-plans/:id", subscriptionPlanController.getPlan);
+app.put("/api/v1/subscription-plans/:id", subscriptionPlanController.updatePlan);
+app.delete("/api/v1/subscription-plans/:id", subscriptionPlanController.deletePlan);
+
+// ── Subscription Clients ───────────────────────────
+
+app.post("/api/v1/subscription-clients", subscriptionClientController.createSubscriptionClient);
+app.get("/api/v1/subscription-clients", subscriptionClientController.getSubscriptionClients);
+app.get("/api/v1/subscription-clients/:id", subscriptionClientController.getSubscriptionClientById);
+app.put("/api/v1/subscription-clients/:id", subscriptionClientController.updateSubscriptionClient);
+app.patch("/api/v1/subscription-clients/:id/cancel", subscriptionClientController.cancelSubscription);
+app.delete("/api/v1/subscription-clients/:id", subscriptionClientController.deleteSubscriptionClient);
+
 
 // Rotas de barbeiros
 app.post("/api/v1/barbers", barberController.createBarber);
@@ -280,9 +309,10 @@ app.get("/api/v1/rh/user/companies", rhController.getUserCompanies);
 
 // Iniciar servidor
 const PORT = Number(process.env.PORT) || 4000;
+const host = process.env.HOST || "localhost";
 
 app.listen(PORT, () => {
-    console.log(`🚀 Servidor rodando na porta ${PORT}`);
+    console.log(`🚀 Servidor rodando na porta ${host || "localhost"}:${PORT}`);
     console.log(`Ambiente: ${process.env.NODE_ENV || "development"}`);
     console.log(`Data/hora inicialização: ${new Date().toLocaleString()}`);
 });

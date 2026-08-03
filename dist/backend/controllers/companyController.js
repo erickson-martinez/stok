@@ -3,65 +3,20 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const crypto_1 = __importDefault(require("crypto"));
-const bcrypt_1 = __importDefault(require("bcrypt"));
 const Company_1 = __importDefault(require("../models/Company"));
-const User_1 = __importDefault(require("../models/User"));
 const Permission_1 = __importDefault(require("../models/Permission"));
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
-const decryptPhone = (encrypted) => {
-    const [iv, encryptedText] = encrypted.split(":");
-    const decipher = crypto_1.default.createDecipheriv("aes-256-cbc", Buffer.from(ENCRYPTION_KEY, "hex"), Buffer.from(iv, "hex"));
-    let decrypted = decipher.update(encryptedText, "hex", "utf8");
-    decrypted += decipher.final("utf8");
-    return decrypted;
-};
 class CompanyController {
-    // Criar nova empresa
     async createCompany(req, res) {
         try {
-            const { name, cnpj, phone, email, address, city, state, zipCode, status, owner } = req.body;
-            // Validação básica
+            const { name, cnpj, email, address, city, linkId, state, zipCode, status, idEmail } = req.body;
             if (!name) {
                 res.status(400).json({ error: "Nome da empresa é obrigatório" });
                 return;
             }
-            if (!owner) {
-                res.status(400).json({ error: "Telefone do proprietário é obrigatório" });
+            if (!idEmail) {
+                res.status(400).json({ error: "ID do e-mail é obrigatório" });
                 return;
             }
-            // Buscar todos usuários e descriptografar para encontrar o proprietário
-            const targetPhone = String(owner).trim();
-            const users = await User_1.default.find({}).lean();
-            const userMap = new Map();
-            const userExists = users.some(u => decryptPhone(u.phone) === targetPhone);
-            users.forEach(user => {
-                const plainPhone = decryptPhone(user.phone);
-                userMap.set(plainPhone, user.phone); // plain → encrypted
-            });
-            const encryptedPhone = userMap.get(targetPhone);
-            console.log("Telefone proprietário (criptografado):", encryptedPhone);
-            // Se o proprietário não existe, criar um novo usuário
-            if (!userExists) {
-                try {
-                    const defaultPassword = "Teste@9898@9898";
-                    const hashedPassword = await bcrypt_1.default.hash(defaultPassword, 10);
-                    const newUser = new User_1.default({
-                        name: "Proprietário",
-                        phone: encryptedPhone,
-                        password: hashedPassword,
-                    });
-                    const savedUser = await newUser.save();
-                    savedUser._id.toString();
-                    console.log(`Novo usuário criado automaticamente: ${targetPhone}`);
-                }
-                catch (userCreateError) {
-                    console.error("Erro ao criar usuário proprietário:", userCreateError);
-                    res.status(500).json({ error: "Erro ao criar usuário proprietário" });
-                    return;
-                }
-            }
-            // Verificar se CNPJ já existe (se fornecido)
             if (cnpj) {
                 const existingCompany = await Company_1.default.findOne({ cnpj });
                 if (existingCompany) {
@@ -72,25 +27,25 @@ class CompanyController {
             const newCompany = new Company_1.default({
                 name,
                 cnpj,
-                phone,
+                linkId,
                 email,
                 address,
                 city,
                 state,
                 zipCode,
                 status: status || 'ativo',
-                owner: encryptedPhone,
+                idEmail,
+                createdAt: new Date(),
+                updatedAt: new Date(),
             });
             await newCompany.save();
-            // Criar permissões automáticas para o owner
             try {
-                if (encryptedPhone) {
-                    // Verificar se já existe permissão
-                    const existingPermission = await Permission_1.default.findOne({ userPhone: encryptedPhone });
+                if (idEmail) {
+                    const existingPermission = await Permission_1.default.findOne({ userEmail: idEmail });
                     if (!existingPermission) {
                         const defaultPermissions = ["rh", "aprovarHoras", "chamados"];
                         await Permission_1.default.create({
-                            userPhone: encryptedPhone,
+                            userEmail: idEmail,
                             permissions: defaultPermissions,
                         });
                     }
@@ -98,7 +53,6 @@ class CompanyController {
             }
             catch (permError) {
                 console.error("Aviso: Erro ao criar permissões automáticas:", permError);
-                // Não bloqueia a criação da empresa se houver erro na permissão
             }
             res.status(201).json({
                 success: true,
@@ -111,19 +65,10 @@ class CompanyController {
             res.status(500).json({ error: "Erro ao criar empresa" });
         }
     }
-    // Listar todas as empresas de um usuário
     async getCompanies(req, res) {
         try {
-            const phone = req.params.phone || req.query.phone;
-            const targetPhone = String(phone).trim();
-            const users = await User_1.default.find({}).lean();
-            const userMap = new Map();
-            users.forEach(user => {
-                const plainPhone = decryptPhone(user.phone);
-                userMap.set(plainPhone, user.phone); // plain → encrypted
-            });
-            const encryptedPhone = userMap.get(targetPhone);
-            const companies = await Company_1.default.find({ owner: encryptedPhone });
+            const { idEmail } = req.params;
+            const companies = await Company_1.default.find({ idEmail: idEmail });
             res.status(200).json({
                 success: true,
                 companies,
@@ -134,7 +79,6 @@ class CompanyController {
             res.status(500).json({ error: "Erro ao buscar empresas" });
         }
     }
-    // Obter uma empresa específica
     async getCompanyById(req, res) {
         try {
             const { id } = req.params;
@@ -153,12 +97,10 @@ class CompanyController {
             res.status(500).json({ error: "Erro ao buscar empresa" });
         }
     }
-    // Atualizar empresa
     async updateCompany(req, res) {
         try {
             const { id, status } = req.params;
-            const { name, cnpj, phone, email, address, city, state, zipCode } = req.body;
-            // Verificar se CNPJ já existe em outra empresa
+            const { name, cnpj, idEmail, email, address, linkId, city, state, zipCode } = req.body;
             if (cnpj) {
                 const existingCompany = await Company_1.default.findOne({ cnpj, _id: { $ne: id } });
                 if (existingCompany) {
@@ -169,7 +111,8 @@ class CompanyController {
             const updatedCompany = await Company_1.default.findByIdAndUpdate(id, {
                 name,
                 cnpj,
-                phone,
+                idEmail,
+                linkId,
                 email,
                 address,
                 city,
@@ -193,7 +136,6 @@ class CompanyController {
             res.status(500).json({ error: "Erro ao atualizar empresa" });
         }
     }
-    // Deletar empresa
     async deleteCompany(req, res) {
         try {
             const { id } = req.params;
@@ -212,12 +154,10 @@ class CompanyController {
             res.status(500).json({ error: "Erro ao deletar empresa" });
         }
     }
-    // Atualizar apenas o status da empresa
     async updateStatus(req, res) {
         try {
             const { id } = req.params;
             const { status } = req.body;
-            // Validar status
             if (!status || !['ativo', 'inativo'].includes(status)) {
                 res.status(400).json({ error: "Status deve ser 'ativo' ou 'inativo'" });
                 return;

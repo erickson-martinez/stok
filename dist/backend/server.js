@@ -7,15 +7,16 @@ const express_1 = __importDefault(require("express"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const cors_1 = __importDefault(require("cors"));
 const dotenv_1 = __importDefault(require("dotenv"));
-// Controllers
+const subscriptionPlanController_1 = __importDefault(require("./controllers/subscriptionPlanController"));
+const subscriptionClientController_1 = __importDefault(require("./controllers/subscriptionClientController"));
 const userController_1 = __importDefault(require("./controllers/userController"));
-//import whatsappRouter from './routes/whatsappRouter';
-const stockController_1 = __importDefault(require("./controllers/stockController")); // Sistema antigo
-const transactionController_1 = __importDefault(require("./controllers/transactionController")); // Novo sistema independente
+const costController_1 = __importDefault(require("./controllers/costController"));
+const companyConfigController_1 = __importDefault(require("./controllers/companyConfigController"));
+const stockController_1 = __importDefault(require("./controllers/stockController"));
+const transactionController_1 = __importDefault(require("./controllers/transactionController"));
 const activityController_1 = __importDefault(require("./controllers/activityController"));
-const marketController_1 = __importDefault(require("./controllers/marketController"));
+const storeController_1 = __importDefault(require("./controllers/storeController"));
 const shoppingListController_1 = __importDefault(require("./controllers/shoppingListController"));
-const productPriceController_1 = __importDefault(require("./controllers/productPriceController"));
 const bookControllers_1 = __importDefault(require("./controllers/bookControllers"));
 const scheduleController_1 = __importDefault(require("./controllers/scheduleController"));
 const companyController_1 = __importDefault(require("./controllers/companyController"));
@@ -23,22 +24,44 @@ const permissionController_1 = __importDefault(require("./controllers/permission
 const rhController_1 = __importDefault(require("./controllers/rhController"));
 const workRecordController_1 = __importDefault(require("./controllers/workRecordController"));
 const osController_1 = __importDefault(require("./controllers/osController"));
+const configController_1 = require("./controllers/configController");
+const productsBurgerController_1 = require("./controllers/productsBurgerController");
+const ordersController_1 = __importDefault(require("./controllers/ordersController"));
+const orderClientController_1 = __importDefault(require("./controllers/orderClientController"));
+const barberController_1 = __importDefault(require("./controllers/barberController"));
+const barberProductController_1 = __importDefault(require("./controllers/barberProductController"));
+const barberServiceController_1 = __importDefault(require("./controllers/barberServiceController"));
+const appointmentBarberController_1 = __importDefault(require("./controllers/appointmentBarberController"));
+const comparisonController_1 = __importDefault(require("./controllers/comparisonController"));
+const priceRecordController_1 = __importDefault(require("./controllers/priceRecordController"));
+const shoppingItemController_1 = __importDefault(require("./controllers/shoppingItemController"));
+const priceSearchController_1 = __importDefault(require("./controllers/priceSearchController"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
-// Configuração CORS - ajuste em produção!
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
+    : [];
+const isDevelopment = process.env.NODE_ENV !== "production";
 app.use((0, cors_1.default)({
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    origin(origin, callback) {
+        if (!origin)
+            return callback(null, true);
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+        if (isDevelopment) {
+            return callback(null, true);
+        }
+        callback(new Error("Origin nao permitida."));
+    },
+    credentials: true
 }));
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
-// Rota básica de teste/saúde
-app.get("/", (_req, res) => {
-    res.send("API V1 - Servidor Online\n" +
+app.get("/api/v1", (_req, res) => {
+    res.send("API V1.1.4.1 - Servidor Online\n" +
         `Data atual: ${new Date().toISOString()}\n`);
 });
-// Conexão com MongoDB
 const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
 if (!mongoUri) {
     throw new Error("MONGO_URI ou MONGODB_URI não definido nas variáveis de ambiente");
@@ -46,102 +69,163 @@ if (!mongoUri) {
 mongoose_1.default.connect(mongoUri)
     .then(() => console.log("✓ MongoDB conectado com sucesso"))
     .catch((err) => console.error("✗ Falha ao conectar no MongoDB:", err));
-// Rotas WhatsApp
-//app.use('/whatsapp', whatsappRouter);
-// ── Usuários ─────────────────────────────────────────────────────────
-app.get("/user/:phone?", userController_1.default.getUser);
-app.get("/users", userController_1.default.getUsers);
-app.post("/users", userController_1.default.createUser);
-app.post("/users/auth", userController_1.default.authenticateUser);
-app.patch("/users/:phone", userController_1.default.updateUser);
-// ── Estoque / Produtos ───────────────────────────────────────────────
-app.get("/products/:idUser", stockController_1.default.getProducts);
-app.post("/products", stockController_1.default.createProduct);
-app.put("/products/:id", stockController_1.default.updateProduct);
-app.delete("/products/:id", stockController_1.default.deleteProduct);
-app.post("/products/:id/share", stockController_1.default.shareProduct);
-// ── Novo Sistema: Transactions (independente) ────────────────────────
-app.post("/transactions/simple", transactionController_1.default.createSimple);
-app.post("/transactions/controlled", transactionController_1.default.createControlled);
-app.patch("/transactions/payment", transactionController_1.default.updatePaymentStatus);
-app.get("/transactions", transactionController_1.default.listTransactions);
-app.patch("/transactions/status", transactionController_1.default.markStatus);
-app.post("/transactions/follow", transactionController_1.default.followUser);
-app.delete("/transactions", transactionController_1.default.deleteTransaction);
-app.patch("/transactions/:transactionId/add-value", transactionController_1.default.addValue);
-app.patch("/transactions/:transactionId/subtract-value", transactionController_1.default.subtractValue);
-// Minhas OS
-app.post("/os", osController_1.default.create);
-app.get("/os/my", osController_1.default.getMyOrders);
-app.patch("/os/:id/cancel", osController_1.default.cancel);
-// Gestão da empresa
-app.get("/os/company", osController_1.default.getCompanyOrders);
-app.patch("/os/:id/resolve", osController_1.default.resolve);
-app.patch("/os/:id/start", osController_1.default.start);
-// ── Outras funcionalidades ───────────────────────────────────────────
-app.get("/activity/:phone", activityController_1.default.getActivities);
-app.post("/activity", activityController_1.default.createOrUpdateActivity);
-app.delete("/activity", activityController_1.default.deleteActivity);
-app.get("/markets", marketController_1.default.getMarketsAll);
-app.get("/markets/:name", marketController_1.default.getMarkets);
-app.post("/markets", marketController_1.default.saveMarket);
-app.patch("/markets/:id", marketController_1.default.updateMarket);
-app.delete("/markets", marketController_1.default.deleteMarket);
-// Shopping Lists
-app.get("/shopping-lists/:idUser", shoppingListController_1.default.getShoppingLists);
-app.get("/shopping-lists/shared/:idUser", shoppingListController_1.default.getSharedShoppingLists);
-app.post("/shopping-lists", shoppingListController_1.default.createShoppingList);
-app.post("/shopping-lists/:listId/share", shoppingListController_1.default.shareShoppingList);
-app.put("/shopping-lists/:listId/products", shoppingListController_1.default.saveProduct);
-app.delete("/shopping-lists/:listId/products", shoppingListController_1.default.deleteProduct);
-app.put("/shopping-lists/:listId", shoppingListController_1.default.updateList);
-app.put("/shopping-lists/:listId/complete", shoppingListController_1.default.completeList);
-app.delete("/shopping-lists/:listId", shoppingListController_1.default.deleteList);
-// Preços de produtos
-app.post("/product-price", productPriceController_1.default.saveProductPrice);
-app.get("/product-price/:productName/:days", productPriceController_1.default.getRecentProductPrices);
-app.get("/product-price/:productName/:marketId", productPriceController_1.default.getMarketProductPrice);
-app.post("/product-price/compare", productPriceController_1.default.comparePrices);
-// Livros
-app.get("/books/:idUser", bookControllers_1.default.getBooks);
-app.get("/books/:id", bookControllers_1.default.getBookById);
-app.post("/books/:idUser", bookControllers_1.default.createBook);
-app.put("/books/:id", bookControllers_1.default.updateBook);
-app.delete("/books/:id", bookControllers_1.default.deleteBook);
-app.post("/books/:id/transfer", bookControllers_1.default.transferBook);
-// Agendamentos
-app.get("/schedules/:idUser", scheduleController_1.default.getSchedules);
-app.post("/schedules", scheduleController_1.default.createSchedule);
-app.put("/schedules/:id", scheduleController_1.default.updateSchedule);
-app.delete("/schedules/:id", scheduleController_1.default.deleteSchedule);
-// Empresas
-app.post("/companies", companyController_1.default.createCompany);
-app.get("/companies/:phone?", companyController_1.default.getCompanies);
-app.get("/companies/details/:id", companyController_1.default.getCompanyById);
-app.put("/companies/:id", companyController_1.default.updateCompany);
-app.patch("/companies/:id/status", companyController_1.default.updateStatus);
-app.delete("/companies/:id", companyController_1.default.deleteCompany);
-// Permissões (Configurações de Acesso)
-app.post("/permissions", permissionController_1.default.createPermission);
-app.get("/permissions", permissionController_1.default.getPermissions);
-app.patch("/permissions", permissionController_1.default.updatePermissions);
-app.delete("/permissions/:userPhone", permissionController_1.default.deletePermissions);
-app.post('/work-records/clock-in', workRecordController_1.default.clockIn);
-app.patch('/work-records/:id/clock-out', workRecordController_1.default.clockOut);
-app.get("/work-records", workRecordController_1.default.list);
-app.patch("/work-records/:id/approve", workRecordController_1.default.approve);
-app.patch("/work-records/:id/reject", workRecordController_1.default.reject);
-app.delete("/work-records/:id", workRecordController_1.default.delete); // opcional
-app.post("/rh/link-user", rhController_1.default.linkUserToCompany);
-app.get("/rh/:empresaId/employees", rhController_1.default.listEmployees);
-app.get("/rh/company/:phone", rhController_1.default.listCompanyByEmployee);
-app.delete("/rh/unlink/:linkId", rhController_1.default.unlinkUser);
-app.patch("/rh/link/:linkId/status", rhController_1.default.updateLinkStatus);
-app.get("/rh/user/companies", rhController_1.default.getUserCompanies);
-// Iniciar servidor
+app.post("/api/v1/costs", costController_1.default.createCost);
+app.get("/api/v1/costs", costController_1.default.getCosts);
+app.get("/api/v1/costs/:id", costController_1.default.getCostById);
+app.put("/api/v1/costs/:id", costController_1.default.updateCost);
+app.delete("/api/v1/costs/:id", costController_1.default.deleteCost);
+app.post('/api/v1/config', configController_1.ConfigController.createConfig);
+app.get('/api/v1/config/:phone', configController_1.ConfigController.getConfig);
+app.get('/api/v1/config/product/:burger', configController_1.ConfigController.getProduct);
+app.get('/api/v1/config/caixa/:phone', configController_1.ConfigController.getCaixa);
+app.get('/api/v1/config/delivery/:phone', configController_1.ConfigController.getDelivery);
+app.patch('/api/v1/config', configController_1.ConfigController.updateConfig);
+app.patch('/api/v1/config/caixa-open/:phone/:open', configController_1.ConfigController.updateCaixaOpenDay);
+app.post('/api/v1/products/burgers', productsBurgerController_1.ProductBurgerController.createProductBurger);
+app.get('/api/v1/products/burgers', productsBurgerController_1.ProductBurgerController.getAllProductsBurger);
+app.get('/api/v1/products/burgers/:id', productsBurgerController_1.ProductBurgerController.getProductBurgerById);
+app.put('/api/v1/products/burgers/:id', productsBurgerController_1.ProductBurgerController.updateProductBurger);
+app.delete('/api/v1/products/burgers/:id', productsBurgerController_1.ProductBurgerController.deleteProductBurger);
+app.post("/api/v1/subscription-plans", subscriptionPlanController_1.default.createPlan);
+app.get("/api/v1/subscription-plans", subscriptionPlanController_1.default.getPlans);
+app.get("/api/v1/subscription-plans/:id", subscriptionPlanController_1.default.getPlan);
+app.put("/api/v1/subscription-plans/:id", subscriptionPlanController_1.default.updatePlan);
+app.delete("/api/v1/subscription-plans/:id", subscriptionPlanController_1.default.deletePlan);
+app.post("/api/v1/subscription-clients", subscriptionClientController_1.default.createSubscriptionClient);
+app.get("/api/v1/subscription-clients", subscriptionClientController_1.default.getSubscriptionClients);
+app.get("/api/v1/subscription-clients/:id", subscriptionClientController_1.default.getSubscriptionClientById);
+app.put("/api/v1/subscription-clients/:id", subscriptionClientController_1.default.updateSubscriptionClient);
+app.patch("/api/v1/subscription-clients/:id/cancel", subscriptionClientController_1.default.cancelSubscription);
+app.delete("/api/v1/subscription-clients/:id", subscriptionClientController_1.default.deleteSubscriptionClient);
+app.post("/api/v1/barbers", barberController_1.default.createBarber);
+app.get("/api/v1/barbers", barberController_1.default.getBarbers);
+app.get("/api/v1/barbers/:id", barberController_1.default.getBarberById);
+app.put("/api/v1/barbers/:id", barberController_1.default.updateBarber);
+app.delete("/api/v1/barbers/:id", barberController_1.default.deleteBarber);
+app.post("/api/v1/barber-products", barberProductController_1.default.createProduct);
+app.get("/api/v1/barber-products", barberProductController_1.default.getProducts);
+app.get("/api/v1/barber-products/:id", barberProductController_1.default.getProductById);
+app.put("/api/v1/barber-products/:id", barberProductController_1.default.updateProduct);
+app.patch("/api/v1/barber-products/:id/stock", barberProductController_1.default.updateStock);
+app.delete("/api/v1/barber-products/:id", barberProductController_1.default.deleteProduct);
+app.post("/api/v1/appointment-barbers", appointmentBarberController_1.default.createAppointment);
+app.get("/api/v1/appointment-barbers", appointmentBarberController_1.default.getAppointments);
+app.get("/api/v1/appointment-barbers/:id", appointmentBarberController_1.default.getAppointmentById);
+app.put("/api/v1/appointment-barbers/:id", appointmentBarberController_1.default.updateAppointment);
+app.patch("/api/v1/appointment-barbers/:id/status", appointmentBarberController_1.default.updateStatus);
+app.patch("/api/v1/appointment-barbers/:id/cancel", appointmentBarberController_1.default.cancelAppointment);
+app.delete("/api/v1/appointment-barbers/:id", appointmentBarberController_1.default.deleteAppointment);
+app.post("/api/v1/barber-services", barberServiceController_1.default.createService);
+app.get("/api/v1/barber-services", barberServiceController_1.default.getServices);
+app.get("/api/v1/barber-services/:id", barberServiceController_1.default.getServiceById);
+app.put("/api/v1/barber-services/:id", barberServiceController_1.default.updateService);
+app.delete("/api/v1/barber-services/:id", barberServiceController_1.default.deleteService);
+app.post('/api/v1/orders', ordersController_1.default.createOrder);
+app.get('/api/v1/orders/:burger', ordersController_1.default.getAllOrders);
+app.get('/api/v1/orders/delivery/:burger/:status?', ordersController_1.default.getDeliveryOrders);
+app.get('/api/v1/orders/my-delivery/:burger/:name', ordersController_1.default.getMyDeliveryOrders);
+app.get('/api/v1/orders/:id', ordersController_1.default.getOrderById);
+app.get('/api/v1/orders/phone/:phone', ordersController_1.default.getOrderByPhone);
+app.put('/api/v1/orders/:id', ordersController_1.default.updateOrder);
+app.patch('/api/v1/orders/:id/status/:name?', ordersController_1.default.updateOrderStatus);
+app.patch('/api/v1/orders/:id/payment', ordersController_1.default.updateOrderPayment);
+app.delete('/api/v1/orders/:id', ordersController_1.default.deleteOrder);
+app.get("/api/v1/company-config/:linkId", companyConfigController_1.default.getConfig);
+app.put("/api/v1/company-config/:linkId", companyConfigController_1.default.upsertConfig);
+app.delete("/api/v1/company-config/:linkId", companyConfigController_1.default.deleteConfig);
+app.get('/api/v1/client', orderClientController_1.default.getClientOrder);
+app.get('/api/v1/client/all', orderClientController_1.default.getClientOrders);
+app.patch('/api/v1/order-client/:id/payment', orderClientController_1.default.updateClientOrderPayment);
+app.patch('/api/v1/order-client/:id/status', orderClientController_1.default.updateClientOrderStatus);
+app.get("/api/v1/user", userController_1.default.getUser);
+app.get("/api/v1/users", userController_1.default.getUsers);
+app.post("/api/v1/users", userController_1.default.createUser);
+app.post("/api/v1/users/auth", userController_1.default.authenticateUser);
+app.patch("/api/v1/user/:idEmail", userController_1.default.updateIdEmail);
+app.patch("/api/v1/users/:idEmail", userController_1.default.updateUser);
+app.get("/api/v1/products/:idUser", stockController_1.default.getProducts);
+app.post("/api/v1/products", stockController_1.default.createProduct);
+app.put("/api/v1/products/:id", stockController_1.default.updateProduct);
+app.delete("/api/v1/products/:id", stockController_1.default.deleteProduct);
+app.post("/api/v1/products/:id/share", stockController_1.default.shareProduct);
+app.post("/api/v1/transactions/simple", transactionController_1.default.createSimple);
+app.post("/api/v1/transactions/controlled", transactionController_1.default.createControlled);
+app.get("/api/v1/transactions", transactionController_1.default.listTransactions);
+app.put("/api/v1/transactions/:transactionId", transactionController_1.default.updateTransaction);
+app.delete("/api/v1/transactions", transactionController_1.default.deleteTransaction);
+app.patch("/api/v1/transactions/status", transactionController_1.default.markStatus);
+app.patch("/api/v1/transactions/payment", transactionController_1.default.updatePaymentStatus);
+app.patch("/api/v1/transactions/request-payment", transactionController_1.default.requestPayment);
+app.patch("/api/v1/transactions/approve-payment", transactionController_1.default.approvePayment);
+app.patch("/api/v1/transactions/reject-payment", transactionController_1.default.rejectPayment);
+app.patch("/api/v1/transactions/follow", transactionController_1.default.followTransaction);
+app.patch("/api/v1/transactions/:transactionId/add-value", transactionController_1.default.addValue);
+app.patch("/api/v1/transactions/:transactionId/subtract-value", transactionController_1.default.subtractValue);
+app.patch("/api/v1/transactions/:idEmail?", transactionController_1.default.updateTransactionIdEmail);
+app.post("/api/v1/os", osController_1.default.create);
+app.get("/api/v1/os/my", osController_1.default.getMyOrders);
+app.patch("/api/v1/os/:id/cancel", osController_1.default.cancel);
+app.get("/api/v1/os/company", osController_1.default.getCompanyOrders);
+app.patch("/api/v1/os/:id/resolve", osController_1.default.resolve);
+app.patch("/api/v1/os/:id/start", osController_1.default.start);
+app.get("/api/v1/activity/:phone", activityController_1.default.getActivities);
+app.post("/api/v1/activity", activityController_1.default.createOrUpdateActivity);
+app.delete("/api/v1/activity", activityController_1.default.deleteActivity);
+app.get("/api/v1/stores", storeController_1.default.getStores);
+app.post("/api/v1/stores", storeController_1.default.createStore);
+app.patch("/api/v1/stores/:id", storeController_1.default.updateStore);
+app.delete("/api/v1/stores/:id", storeController_1.default.deleteStore);
+app.get("/api/v1/shopping-lists", shoppingListController_1.default.getShoppingLists);
+app.post("/api/v1/shopping-lists", shoppingListController_1.default.createShoppingList);
+app.patch("/api/v1/shopping-lists/:id", shoppingListController_1.default.updateShoppingList);
+app.delete("/api/v1/shopping-lists/:id", shoppingListController_1.default.deleteShoppingList);
+app.get("/api/v1/shopping-items", shoppingItemController_1.default.getShoppingItems);
+app.post("/api/v1/shopping-items", shoppingItemController_1.default.createShoppingItem);
+app.patch("/api/v1/shopping-items/:id", shoppingItemController_1.default.updateShoppingItem);
+app.delete("/api/v1/shopping-items/:id", shoppingItemController_1.default.deleteShoppingItem);
+app.get("/api/v1/price-records", priceRecordController_1.default.getPriceRecords);
+app.delete("/api/v1/price-records/:id", priceRecordController_1.default.deletePriceRecord);
+app.get("/api/v1/price-search", priceSearchController_1.default.search);
+app.post("/api/v1/comparisons/shopping-list", comparisonController_1.default.compareShoppingList);
+app.post("/api/v1/comparisons/product", comparisonController_1.default.compareProduct);
+app.get("/api/v1/comparisons/best-store", comparisonController_1.default.getBestStore);
+app.get("/api/v1/books/:idUser", bookControllers_1.default.getBooks);
+app.get("/api/v1/books/:id", bookControllers_1.default.getBookById);
+app.post("/api/v1/books/:idUser", bookControllers_1.default.createBook);
+app.put("/api/v1/books/:id", bookControllers_1.default.updateBook);
+app.delete("/api/v1/books/:id", bookControllers_1.default.deleteBook);
+app.post("/api/v1/books/:id/transfer", bookControllers_1.default.transferBook);
+app.get("/api/v1/schedules/:idUser", scheduleController_1.default.getSchedules);
+app.post("/api/v1/schedules", scheduleController_1.default.createSchedule);
+app.put("/api/v1/schedules/:id", scheduleController_1.default.updateSchedule);
+app.delete("/api/v1/schedules/:id", scheduleController_1.default.deleteSchedule);
+app.post("/api/v1/companies", companyController_1.default.createCompany);
+app.get("/api/v1/companies/:idEmail?", companyController_1.default.getCompanies);
+app.get("/api/v1/companies/details/:id", companyController_1.default.getCompanyById);
+app.put("/api/v1/companies/:id", companyController_1.default.updateCompany);
+app.patch("/api/v1/companies/:id/status", companyController_1.default.updateStatus);
+app.delete("/api/v1/companies/:id", companyController_1.default.deleteCompany);
+app.post("/api/v1/permissions", permissionController_1.default.createPermission);
+app.get("/api/v1/permissions/:idEmail?", permissionController_1.default.getPermissions);
+app.patch("/api/v1/permissions", permissionController_1.default.updatePermissions);
+app.patch("/api/v1/permissions/:idEmail", permissionController_1.default.updateidEmailPermissions);
+app.delete("/api/v1/permissions/:idEmail", permissionController_1.default.deletePermissions);
+app.post("/api/v1/work-records/clock-in", workRecordController_1.default.clockIn);
+app.patch("/api/v1/work-records/:id/clock-out", workRecordController_1.default.clockOut);
+app.get("/api/v1/work-records", workRecordController_1.default.list);
+app.patch("/api/v1/work-records/:id/approve", workRecordController_1.default.approve);
+app.patch("/api/v1/work-records/:id/reject", workRecordController_1.default.reject);
+app.delete("/api/v1/work-records/:id", workRecordController_1.default.delete);
+app.post("/api/v1/rh/link-user", rhController_1.default.linkUserToCompany);
+app.get("/api/v1/rh/:empresaId/employees", rhController_1.default.listEmployees);
+app.get("/api/v1/rh/company/:idEmail", rhController_1.default.listCompanyByEmployee);
+app.delete("/api/v1/rh/unlink/:linkId", rhController_1.default.unlinkUser);
+app.patch("/api/v1/rh/link/:linkId/status", rhController_1.default.updateLinkStatus);
+app.get("/api/v1/rh/user/companies", rhController_1.default.getUserCompanies);
 const PORT = Number(process.env.PORT) || 4000;
+const host = process.env.HOST || "localhost";
 app.listen(PORT, () => {
-    console.log(`🚀 Servidor rodando na porta ${PORT}`);
+    console.log(`🚀 Servidor rodando na porta ${host || "localhost"}:${PORT}`);
     console.log(`Ambiente: ${process.env.NODE_ENV || "development"}`);
     console.log(`Data/hora inicialização: ${new Date().toLocaleString()}`);
 });

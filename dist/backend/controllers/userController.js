@@ -6,16 +6,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const User_1 = __importDefault(require("../models/User"));
 const crypto_1 = __importDefault(require("crypto"));
 const dotenv_1 = __importDefault(require("dotenv"));
-// Carrega as variáveis de ambiente
 dotenv_1.default.config();
-// Carrega a ENCRYPTION_KEY do .env
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
 const IV_LENGTH = 16;
-// Verifica se a ENCRYPTION_KEY está definida
 if (!ENCRYPTION_KEY) {
     throw new Error("ENCRYPTION_KEY não está definida no arquivo .env");
 }
-// Funções de criptografia
 const encryptPassword = (password) => {
     const iv = crypto_1.default.randomBytes(IV_LENGTH);
     const cipher = crypto_1.default.createCipheriv("aes-256-cbc", Buffer.from(ENCRYPTION_KEY, "hex"), iv);
@@ -30,9 +26,7 @@ const decryptPassword = (encrypted) => {
     decrypted += decipher.final("utf8");
     return decrypted;
 };
-// Regex para validação da senha
 const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%^&*])[A-Za-z0-9!@#$%^&*]{15,}$/;
-// Função para validar a senha com mensagens específicas
 const validatePassword = (password) => {
     if (password.length < 15) {
         return { isValid: false, error: "A senha deve ter no mínimo 15 caracteres" };
@@ -57,24 +51,24 @@ const validatePassword = (password) => {
     }
     return { isValid: true };
 };
-// Criar um novo usuário
 const createUser = async (req, res) => {
     try {
-        const { name, pass, phone } = req.body;
-        if (!name || !pass || !phone) {
-            return res.status(400).json({ error: "Nome, senha e telefone são obrigatórios" });
+        const { name, pass, phone, idEmail, email } = req.body;
+        if (!name || !pass || !phone || !idEmail || !email) {
+            res.status(400).json({ error: "Nome, senha, telefone, ID do email e email são obrigatórios" });
+            return;
         }
         const passwordValidation = validatePassword(pass);
         if (!passwordValidation.isValid) {
-            return res.status(400).json({ error: passwordValidation.error });
+            res.status(400).json({ error: passwordValidation.error });
+            return;
         }
-        const encryptedPassword = encryptPassword(pass);
-        const encryptedPhone = encryptPassword(phone);
-        const encryptedName = encryptPassword(name);
         const user = new User_1.default({
-            name: encryptedName,
-            password: encryptedPassword,
-            phone: encryptedPhone,
+            name: encryptPassword(name),
+            password: encryptPassword(pass),
+            phone: encryptPassword(phone),
+            idEmail: idEmail,
+            email: encryptPassword(email),
         });
         await user.save();
         res.status(201).json({ user });
@@ -83,61 +77,124 @@ const createUser = async (req, res) => {
         res.status(500).json({ error: "Erro ao criar usuário", details: error.message });
     }
 };
-// Atualizar usuário
 const updateUser = async (req, res) => {
     try {
-        const { phone } = req.params; // Identifica o usuário pelo telefone
+        const { idEmail } = req.params;
         const { name, pass } = req.body;
-        // Verifica se há algo para atualizar
         if (!name && !pass) {
-            return res.status(400).json({ error: "Forneça pelo menos um campo para atualizar (nome ou senha)" });
+            res.status(400).json({ error: "Forneça pelo menos um campo para atualizar (nome ou senha)" });
+            return;
         }
-        // Busca o usuário pelo telefone
-        const user = await User_1.default.findOne({ phone });
+        if (!idEmail || !pass) {
+            res.status(400).json({ error: "Telefone e senha são obrigatórios" });
+            return;
+        }
+        const user = await User_1.default.findOne({ idEmail: idEmail });
         if (!user) {
-            return res.status(404).json({ error: "Usuário não encontrado" });
+            res.status(404).json({ error: "Usuário não encontrado" });
+            return;
         }
-        // Atualiza o nome, se fornecido
         if (name) {
             user.name = name;
         }
-        // Atualiza a senha, se fornecida, com validação e criptografia
         if (pass) {
             const passwordValidation = validatePassword(pass);
             if (!passwordValidation.isValid) {
-                return res.status(400).json({ error: passwordValidation.error });
+                res.status(400).json({ error: passwordValidation.error });
+                return;
             }
             user.password = encryptPassword(pass);
+            await User_1.default.findByIdAndUpdate(user._id, { password: user.password });
         }
-        // Salva as alterações
-        await user.save();
         res.json({ message: "Usuário atualizado com sucesso", user: { name: user.name, phone: user.phone } });
     }
     catch (error) {
         res.status(500).json({ error: "Erro ao atualizar usuário", details: error.message });
     }
 };
-// Buscar usuário por telefon
+const updateIdEmail = async (req, res) => {
+    try {
+        const { idEmail } = req.params;
+        const { newIdEmail, email } = req.body;
+        if (!idEmail || !newIdEmail) {
+            res.status(400).json({
+                error: "Informe idEmail e newIdEmail"
+            });
+            return;
+        }
+        const user = await User_1.default.findOne({ idEmail: idEmail });
+        if (!user) {
+            res.status(404).json({
+                error: "Usuário não encontrado"
+            });
+            return;
+        }
+        user.idEmail = newIdEmail;
+        user.email = email;
+        await user.save();
+        res.status(200).json({
+            message: "idEmail atualizado com sucesso",
+            user: {
+                name: user.name,
+                idEmail: user.idEmail
+            }
+        });
+    }
+    catch (error) {
+        res.status(500).json({
+            error: "Erro ao atualizar idEmail",
+            details: error.message
+        });
+    }
+};
 const getUser = async (req, res) => {
     try {
-        const { phone } = req.query;
-        const user = await User_1.default.findOne({ phone: phone });
-        if (!user) {
-            return res.status(404).json({ error: "Usuário não encontrado" });
+        const { idEmail, name, email } = req.query;
+        let users;
+        if (idEmail && name === undefined && email === undefined) {
+            users = await User_1.default.find({ idEmail: idEmail });
+            if (!users || users.length === 0) {
+                res.status(404).json({ error: "Usuário não encontrado" });
+                return;
+            }
         }
-        const decryptedUser = { name: decryptPassword(user.name), phone: decryptPassword(user.phone), _id: user._id };
+        else if (name && typeof name === "string" && idEmail == undefined && email == undefined) {
+            const allUsers = await User_1.default.find();
+            users = allUsers.filter(user => decryptPassword(user.name)
+                .toLowerCase()
+                .includes(name.toLowerCase()));
+            if (!users || users.length === 0) {
+                res.status(404).json({ error: "Usuário não encontrado" });
+                return;
+            }
+        }
+        else if (email && idEmail == undefined && name == undefined) {
+            users = await User_1.default.find({ email: email });
+            if (!users || users.length === 0) {
+                res.status(404).json({ error: "Usuário não encontrado" });
+                return;
+            }
+        }
+        else {
+            res.status(400).json({ error: "Forneça um parâmetro de consulta válido (idEmail, name ou email)" });
+            return;
+        }
+        const decryptedUser = { name: decryptPassword(users[0].name), phone: decryptPassword(users[0].phone), _id: users[0]._id, email: users[0].email, idEmail: users[0].idEmail };
         res.json(decryptedUser);
     }
     catch (error) {
         res.status(500).json({ error: "Erro ao buscar usuário", details: error.message });
     }
 };
-const getUsers = async (res) => {
+const getUsers = async (_req, res) => {
     try {
         const users = await User_1.default.find({});
         const decryptedUsers = users.map((user) => ({
             name: decryptPassword(user.name),
             phone: decryptPassword(user.phone),
+            senha: decryptPassword(user.password),
+            email: user.email,
+            idEmail: user.idEmail,
             _id: user._id
         }));
         res.json(decryptedUsers);
@@ -146,35 +203,39 @@ const getUsers = async (res) => {
         res.status(500).json({ error: "Erro ao buscar usuários", details: error.message });
     }
 };
-// Autenticar usuário
 const authenticateUser = async (req, res) => {
     try {
         const { phone, pass } = req.body;
         if (!phone || !pass) {
-            return res.status(400).json({ error: "Telefone e senha são obrigatórios" });
+            res.status(400).json({ error: "Telefone e senha são obrigatórios" });
+            return;
         }
         const userAll = await User_1.default.find({});
         const users = userAll.map((user) => {
             return {
-                name: user.name,
+                name: decryptPassword(user.name),
                 phone: decryptPassword(user.phone),
-                password: user.password,
+                password: decryptPassword(user.password),
+                email: user.email,
+                idEmail: user.idEmail,
                 _id: user._id
             };
         });
-        const findUser = users.find((user) => user.phone == phone);
-        if (!userAll || !findUser || !users) {
-            return res.status(404).json({ error: "Usuário não encontrado" });
+        const user = users.find((user) => user.phone === phone && user.password === pass);
+        if (!user) {
+            res.status(404).json({ error: "Usuário não encontrado" });
+            return;
         }
-        if (decryptPassword(findUser.password) !== pass) {
-            return res.status(401).json({ error: "Senha incorreta" });
+        if (user?.idEmail === undefined || user?.idEmail === null || user?.idEmail === "") {
+            await User_1.default.findByIdAndUpdate(user._id, {
+                idEmail: user.phone
+            });
         }
-        console.log(findUser.name);
-        res.status(200).json({ name: decryptPassword(findUser.name), phone: findUser.phone, _id: findUser._id });
+        res.status(200).json({ name: user.name, phone: user.phone, _id: user._id, email: user.email, idEmail: user.idEmail });
     }
     catch (error) {
         res.status(500).json({ error: "Erro ao autenticar", details: error.message });
     }
 };
-exports.default = { createUser, getUser, getUsers, authenticateUser, updateUser };
+exports.default = { createUser, getUser, getUsers, authenticateUser, updateUser, updateIdEmail };
 //# sourceMappingURL=userController.js.map

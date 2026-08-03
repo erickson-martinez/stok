@@ -5,7 +5,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.encryptPhone = encryptPhone;
 exports.decryptPassword = decryptPassword;
-// backend/utils/cryptoUtils.ts
 const crypto_1 = __importDefault(require("crypto"));
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
@@ -14,10 +13,6 @@ if (!ENCRYPTION_KEY) {
     throw new Error("ENCRYPTION_KEY não está definida no arquivo .env");
 }
 const IV_LENGTH = 16;
-/**
- * Criptografa um número de telefone (ou qualquer string) usando AES-256-CBC
- * Retorna no formato: iv:encrypted (hex)
- */
 function encryptPhone(text) {
     const iv = crypto_1.default.randomBytes(IV_LENGTH);
     const cipher = crypto_1.default.createCipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY, 'hex'), iv);
@@ -25,9 +20,6 @@ function encryptPhone(text) {
     encrypted += cipher.final('hex');
     return `${iv.toString('hex')}:${encrypted}`;
 }
-/**
- * Descriptografa o valor criptografado no formato iv:encrypted
- */
 function decryptPassword(encrypted) {
     const [ivHex, encryptedText] = encrypted.split(':');
     if (!ivHex || !encryptedText) {

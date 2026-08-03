@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importDefault(require("mongoose"));
 const WorkRecord_1 = __importDefault(require("../models/WorkRecord"));
-const Company_1 = __importDefault(require("../models/Company")); // assumindo que existe
+const Company_1 = __importDefault(require("../models/Company"));
 const User_1 = __importDefault(require("../models/User"));
 const Transaction_1 = __importDefault(require("../models/Transaction"));
 const crypto_1 = __importDefault(require("crypto"));
@@ -17,7 +17,6 @@ const IV_LENGTH = 16;
 if (!ENCRYPTION_KEY) {
     throw new Error("ENCRYPTION_KEY não está definida no arquivo .env");
 }
-// Funções de criptografia (consistentes com transactionController)
 const encryptPhone = (text) => {
     const iv = crypto_1.default.randomBytes(IV_LENGTH);
     const cipher = crypto_1.default.createCipheriv("aes-256-cbc", Buffer.from(ENCRYPTION_KEY, "hex"), iv);
@@ -33,8 +32,6 @@ const decryptPhone = (encrypted) => {
     return decrypted;
 };
 const workRecordController = {
-    // POST /work-records
-    // Funcionário registra seu ponto (entrada e opcionalmente saída)
     async create(req, res) {
         try {
             const { employeePhone, entryTime, exitTime, notes, companyId } = req.body;
@@ -43,12 +40,11 @@ const workRecordController = {
                 return;
             }
             const targetPhone = String(employeePhone).trim();
-            // Buscar todos usuários e mapear telefones descriptografados
             const users = await User_1.default.find({}).lean();
             const userMap = new Map();
             users.forEach(user => {
                 const plainPhone = decryptPhone(user.phone);
-                userMap.set(plainPhone, user.phone); // plain → encrypted
+                userMap.set(plainPhone, user.phone);
             });
             const encryptedPhone = userMap.get(targetPhone);
             if (!encryptedPhone) {
@@ -65,9 +61,7 @@ const workRecordController = {
                 targetCompanyId = new mongoose_1.default.Types.ObjectId(companyId);
             }
             else {
-                // Tentar encontrar vínculo RH automático
-                // Ajuste o nome do model conforme seu projeto (RhLink, EmployeeLink, etc.)
-                const RhLink = mongoose_1.default.model('RhLink'); // ← ALTERE PARA O NOME REAL DO MODEL
+                const RhLink = mongoose_1.default.model('RhLink');
                 const link = await RhLink.findOne({ userPhone: encryptedPhone });
                 if (!link || !link.companyId) {
                     res.status(403).json({ error: 'Funcionário não está vinculado a nenhuma empresa. Informe companyId manualmente.' });
@@ -75,11 +69,9 @@ const workRecordController = {
                 }
                 targetCompanyId = link.companyId;
             }
-            // ── Tratamento de datas: forçar UTC (sem offset de Brasília) ───────
             let entryDate;
             let exitDate;
             try {
-                // Se já tiver 'Z' ou offset, mantém; senão força UTC adicionando 'Z'
                 const entryStr = String(entryTime).trim();
                 entryDate = new Date(entryStr.endsWith('Z') || entryStr.includes('+') || entryStr.includes('-') ? entryStr : entryStr + 'Z');
                 if (exitTime) {
@@ -109,7 +101,7 @@ const workRecordController = {
             await record.save();
             const responseRecord = {
                 ...record.toObject(),
-                employeePhone: targetPhone, // retorna o telefone plano (como veio na requisição)
+                employeePhone: targetPhone,
             };
             res.status(201).json({
                 message: 'Registro de ponto criado com sucesso (aguardando aprovação) – horários tratados como UTC',
@@ -129,7 +121,6 @@ const workRecordController = {
                 return;
             }
             const targetPhone = String(employeePhone).trim();
-            // (Reaproveite a lógica de busca e descriptografia do telefone)
             const users = await User_1.default.find({}).lean();
             const userMap = new Map();
             users.forEach(user => {
@@ -141,7 +132,6 @@ const workRecordController = {
                 res.status(404).json({ error: 'Funcionário não encontrado' });
                 return;
             }
-            // Determinar companyId (igual ao seu código atual)
             let targetCompanyId;
             if (companyId) {
                 const company = await Company_1.default.findById(companyId);
@@ -152,7 +142,7 @@ const workRecordController = {
                 targetCompanyId = new mongoose_1.default.Types.ObjectId(companyId);
             }
             else {
-                const RhLink = mongoose_1.default.model('RhLink'); // ajuste o nome real
+                const RhLink = mongoose_1.default.model('RhLink');
                 const link = await RhLink.findOne({ userPhone: encryptedPhone });
                 if (!link || !link.companyId) {
                     res.status(403).json({ error: 'Funcionário sem vínculo. Informe companyId.' });
@@ -160,7 +150,6 @@ const workRecordController = {
                 }
                 targetCompanyId = link.companyId;
             }
-            // Tratamento de data (UTC)
             let entryDate;
             try {
                 const entryStr = String(entryTime).trim();
@@ -172,11 +161,10 @@ const workRecordController = {
                 res.status(400).json({ error: 'Formato de entryTime inválido. Use ISO 8601.' });
                 return;
             }
-            // Verificar se o funcionário já tem um ponto aberto (opcional, mas recomendado)
             const openRecord = await WorkRecord_1.default.findOne({
                 employeePhone: encryptedPhone,
                 companyId: targetCompanyId,
-                exitTime: { $exists: false }, // ou status: 'em andamento'
+                exitTime: { $exists: false },
             });
             if (openRecord) {
                 res.status(409).json({
@@ -192,12 +180,12 @@ const workRecordController = {
                 exitTime: undefined,
                 durationMinutes: undefined,
                 notes: notes ? String(notes).trim() : undefined,
-                status: 'pendente', // ou 'pendente'
+                status: 'pendente',
             });
             await record.save();
             const response = {
                 ...record.toObject(),
-                employeePhone: targetPhone, // devolve plano
+                employeePhone: targetPhone,
             };
             res.status(201).json({
                 message: 'Expediente iniciado com sucesso (clock-in)',
@@ -211,7 +199,7 @@ const workRecordController = {
     },
     async clockOut(req, res) {
         try {
-            const { id } = req.params; // :id do registro
+            const { id } = req.params;
             const { exitTime, notes } = req.body;
             if (!exitTime) {
                 res.status(400).json({ error: 'Campo obrigatório: exitTime' });
@@ -226,7 +214,6 @@ const workRecordController = {
                 res.status(400).json({ error: 'Este expediente já foi finalizado' });
                 return;
             }
-            // Tratamento de data (UTC)
             let exitDate;
             try {
                 const exitStr = String(exitTime).trim();
@@ -244,16 +231,14 @@ const workRecordController = {
             }
             const diffMs = exitDate.getTime() - record.entryTime.getTime();
             const durationMinutes = Math.round(diffMs / 60000);
-            // Atualizar
             record.exitTime = exitDate;
             record.durationMinutes = durationMinutes;
-            record.status = 'pendente'; // ou 'concluído', dependendo da regra de aprovação
+            record.status = 'pendente';
             if (notes)
                 record.notes = (record.notes ? record.notes + ' | ' : '') + String(notes).trim();
             await record.save();
             const response = {
                 ...record.toObject(),
-                // Se quiser, pode buscar o telefone plano novamente e devolver
             };
             res.status(200).json({
                 message: 'Expediente finalizado com sucesso (clock-out)',
@@ -265,11 +250,9 @@ const workRecordController = {
             res.status(500).json({ error: error.message || 'Erro interno' });
         }
     },
-    // GET /work-records
     async list(req, res) {
         try {
             const { companyId, employeePhone, status, month, year } = req.query;
-            // Validação obrigatória
             if (!companyId) {
                 res.status(400).json({ error: 'Parâmetro companyId é obrigatório para listar registros' });
                 return;
@@ -279,16 +262,14 @@ const workRecordController = {
             const userMap = new Map();
             users.forEach(user => {
                 const plainPhone = decryptPhone(user.phone);
-                userMap.set(plainPhone, user.phone); // plain → encrypted
+                userMap.set(plainPhone, user.phone);
             });
             const encryptedPhone = userMap.get(targetPhone);
-            // Construção da query
             const query = {
                 companyId: new mongoose_1.default.Types.ObjectId(companyId),
             };
-            // Filtro por telefone do funcionário (agora sem criptografia)
             if (encryptedPhone) {
-                if (encryptedPhone.length >= 10) { // validação mínima (ex: 11 dígitos com DDD)
+                if (encryptedPhone.length >= 10) {
                     query.employeePhone = encryptedPhone;
                 }
                 else {
@@ -296,7 +277,6 @@ const workRecordController = {
                     return;
                 }
             }
-            // Filtro por status
             if (status) {
                 const validStatuses = ['pendente', 'aprovado', 'rejeitado', 'cancelado'];
                 if (!validStatuses.includes(status)) {
@@ -305,7 +285,6 @@ const workRecordController = {
                 }
                 query.status = status;
             }
-            // Filtro por mês e ano
             if (month && year) {
                 const m = parseInt(month, 10);
                 const y = parseInt(year, 10);
@@ -313,20 +292,18 @@ const workRecordController = {
                     res.status(400).json({ error: 'Mês deve estar entre 1 e 12' });
                     return;
                 }
-                if (y < 2000 || y > 2100) { // faixa razoável para evitar bugs
+                if (y < 2000 || y > 2100) {
                     res.status(400).json({ error: 'Ano inválido' });
                     return;
                 }
-                // Ajuste: mês vem de 1 a 12, mas Date usa 0 a 11
                 const start = new Date(y, m - 1, 1, 0, 0, 0, 0);
-                const end = new Date(y, m, 0, 23, 59, 59, 999); // último dia do mês
+                const end = new Date(y, m, 0, 23, 59, 59, 999);
                 query.entryTime = { $gte: start, $lte: end };
             }
-            // Busca no banco
             const records = await WorkRecord_1.default.find(query)
-                .sort({ entryTime: -1 }) // mais recentes primeiro
+                .sort({ entryTime: -1 })
                 .populate('companyId', 'name fantasyName cnpj')
-                .lean(); // mais rápido, sem documentos mongoose
+                .lean();
             records.map(record => {
                 const usersRecord = { plainPhone: '', plainName: '', plainApprove: '' };
                 users.filter(user => {
@@ -342,7 +319,6 @@ const workRecordController = {
                 record.employeeName = usersRecord.plainName;
                 record.approvedBy = usersRecord.plainApprove;
             });
-            // Resposta
             res.json({
                 count: records.length,
                 records,
@@ -353,7 +329,6 @@ const workRecordController = {
             res.status(500).json({ error: 'Erro interno ao listar registros' });
         }
     },
-    // PATCH /work-records/:id/approve
     async approve(req, res) {
         try {
             const { id } = req.params;
@@ -383,7 +358,7 @@ const workRecordController = {
             await record.save();
             let generatedTransaction = null;
             if (generateTransaction && record.durationMinutes) {
-                const rate = hourlyRate ? Number(hourlyRate) : 25; // valor padrão R$/hora
+                const rate = hourlyRate ? Number(hourlyRate) : 25;
                 const amount = (record.durationMinutes / 60) * rate;
                 const transaction = new Transaction_1.default({
                     ownerPhone: record.employeePhone,
@@ -398,7 +373,7 @@ const workRecordController = {
                 await transaction.save();
                 generatedTransaction = {
                     ...transaction.toObject(),
-                    ownerPhone: decryptPhone(transaction.ownerPhone),
+                    ownerPhone: decryptPhone(transaction.idEmail),
                 };
             }
             const response = {
@@ -417,7 +392,6 @@ const workRecordController = {
             res.status(500).json({ error: error.message || 'Erro ao aprovar registro' });
         }
     },
-    // PATCH /work-records/:id/reject
     async reject(req, res) {
         try {
             const { id } = req.params;
@@ -455,7 +429,6 @@ const workRecordController = {
             res.status(500).json({ error: 'Erro ao rejeitar registro' });
         }
     },
-    // DELETE /work-records/:id
     async delete(req, res) {
         try {
             const { id } = req.params;
@@ -473,8 +446,6 @@ const workRecordController = {
                 res.status(403).json({ error: 'Apenas registros pendentes podem ser excluídos' });
                 return;
             }
-            // Opcional: verificar se requester é o próprio funcionário ou admin da empresa
-            // ...
             await WorkRecord_1.default.findByIdAndDelete(id);
             res.json({ message: 'Registro de ponto excluído com sucesso' });
         }

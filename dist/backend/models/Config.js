@@ -1,0 +1,69 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ConfigModel = void 0;
+const mongoose_1 = require("mongoose");
+const ConfigSchema = new mongoose_1.Schema({
+    BURGER: { type: String, required: true },
+    CNPJ: { type: String, required: true },
+    CAIXA: { type: [String], required: true },
+    CAIXA_OPEN_DAY: { type: String, required: true },
+    GARCOM: { type: [String], required: true },
+    DELIVERY: { type: [String], required: true },
+    PERIOD: { type: [{ day: String, start: String, end: String }], required: false },
+    phone: { type: String, required: true },
+    PAYMENT_METHODS: {
+        type: [String],
+        required: true,
+        default: ['Selecione', 'Dinheiro', 'PIX', 'Cartão Débito', 'Cartão Crédito'],
+    },
+    DEBIT_CARD_FEE_RATE: {
+        type: Number,
+        required: true,
+        default: 0.02,
+    },
+    CREDIT_CARD_FEE_RATE: {
+        type: Number,
+        required: true,
+        default: 0.05,
+    },
+    TAXA_POR_KM: {
+        type: Number,
+        required: true,
+        default: 1.5,
+    },
+    PREFIXOS_LOGRADOURO: {
+        type: [String],
+        required: true,
+        default: ['Rua', 'Avenida', 'Travessa', 'Alameda', 'Praça', ''],
+    },
+    latitude: {
+        type: String,
+        required: true,
+        default: '-20.4899098',
+    },
+    longitude: {
+        type: String,
+        required: true,
+        default: '-54.6371336',
+    },
+    TAXA_DELIVERY_FIXA: {
+        type: Number,
+        required: true,
+        default: 50.0,
+    },
+    DELIVERY_FEE: {
+        type: Number,
+        required: true,
+        default: 10.0,
+    },
+    TABLE_COUNT: {
+        type: Number,
+        required: true,
+        default: 6,
+    },
+    MANAGER_PHONE: { type: String },
+    COORDENATOR_PHONE: { type: [String] },
+    STATUS: { type: String, enum: ['active', 'inactive'], default: 'inactive' },
+});
+exports.ConfigModel = (0, mongoose_1.model)('Config', ConfigSchema);
+//# sourceMappingURL=Config.js.map

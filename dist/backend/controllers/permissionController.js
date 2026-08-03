@@ -20,58 +20,45 @@ const decryptPhone = (encrypted) => {
     return decrypted;
 };
 const permissionController = {
-    // Criar permissão para um usuário
     async createPermission(req, res) {
         try {
-            const { userPhone, permissions = [] } = req.body;
-            // Validar userPhone
-            if (!userPhone) {
-                res.status(400).json({ error: "userPhone é obrigatório" });
+            const { idEmail, email, permissions = [] } = req.body;
+            if (!idEmail) {
+                res.status(400).json({ error: "idEmail é obrigatório" });
                 return;
             }
-            if (typeof userPhone !== "string" || userPhone.trim() === "") {
-                res.status(400).json({ error: "userPhone deve ser uma string válida" });
+            if (typeof idEmail !== "string" || idEmail.trim() === "") {
+                res.status(400).json({ error: "idEmail deve ser uma string válida" });
                 return;
             }
-            const targetPhone = String(userPhone).trim();
-            // Validar permissions é um array
+            if (!email) {
+                res.status(400).json({ error: "email é obrigatório" });
+                return;
+            }
             if (!Array.isArray(permissions)) {
                 res.status(400).json({ error: "permissions deve ser um array" });
                 return;
             }
-            // Validar que todos os elementos do array são strings
             if (!permissions.every(p => typeof p === "string")) {
                 res.status(400).json({ error: "Todos os elementos de permissions devem ser strings" });
                 return;
             }
-            // Buscar todos usuários e descriptografar
-            const users = await User_1.default.find({}).lean();
-            const userMap = new Map();
-            users.forEach(user => {
-                const plainPhone = decryptPhone(user.phone);
-                userMap.set(plainPhone, user.phone); // plain → encrypted
-            });
-            const encryptedPhone = userMap.get(targetPhone);
-            if (!encryptedPhone) {
-                res.status(404).json({ error: `Usuário com telefone ${userPhone} não encontrado` });
-                return;
-            }
-            // Verificar se já existe permissão para este usuário
-            const existingPermission = await Permission_1.default.findOne({ userPhone: encryptedPhone });
+            const existingPermission = await Permission_1.default.findOne({ idEmail: idEmail });
             if (existingPermission) {
-                res.status(400).json({ error: `Permissão já existe para o usuário ${userPhone}` });
+                res.status(400).json({ error: `Permissão já existe para o usuário ${idEmail}` });
                 return;
             }
-            // Criar nova permissão
             const newPermission = new Permission_1.default({
-                userPhone: encryptedPhone,
+                idEmail: idEmail,
+                email: email,
                 permissions: permissions,
             });
             await newPermission.save();
             res.status(201).json({
                 success: true,
-                message: `Permissão criada com sucesso para ${userPhone}`,
-                userPhone: targetPhone,
+                message: `Permissão criada com sucesso para ${idEmail}`,
+                idEmail: idEmail,
+                email: email,
                 permissions: newPermission.permissions,
             });
         }
@@ -80,16 +67,14 @@ const permissionController = {
             res.status(500).json({ error: error.message || "Erro ao criar permissão" });
         }
     },
-    // Obter permissões - com filtro opcional por userPhone
     async getPermissions(req, res) {
         try {
-            const { userPhone } = req.query;
-            // Se userPhone não foi fornecido, retorna todas as permissões
-            if (!userPhone) {
+            const { idEmail, email } = req.query;
+            if (!idEmail) {
                 const permissions = await Permission_1.default.find({}).lean();
-                // Descriptografar telefones na resposta
                 const response = permissions.map(perm => ({
-                    userPhone: decryptPhone(perm.userPhone),
+                    idEmail: perm.idEmail,
+                    email: perm.email,
                     permissions: perm.permissions,
                     createdAt: perm.createdAt,
                     updatedAt: perm.updatedAt,
@@ -101,33 +86,21 @@ const permissionController = {
                 });
                 return;
             }
-            // Se userPhone foi fornecido, busca específico
-            const targetPhone = String(userPhone).trim();
-            // Buscar todos usuários e descriptografar
-            const users = await User_1.default.find({}).lean();
-            const userMap = new Map();
-            users.forEach(user => {
-                const plainPhone = decryptPhone(user.phone);
-                userMap.set(plainPhone, user.phone); // plain → encrypted
-            });
-            const encryptedPhone = userMap.get(targetPhone);
-            if (!encryptedPhone) {
-                res.status(404).json({ error: `Usuário com telefone ${userPhone} não encontrado` });
-                return;
-            }
-            let permissions = await Permission_1.default.findOne({ userPhone: encryptedPhone });
-            // Se não existir, criar com array vazio
+            let permissions = await Permission_1.default.findOne({ idEmail: idEmail }).lean();
             if (!permissions) {
-                permissions = new Permission_1.default({
-                    userPhone: encryptedPhone,
+                const newPermission = new Permission_1.default({
+                    idEmail: idEmail,
+                    email: email,
                     permissions: [],
                 });
-                await permissions.save();
+                const savedPermission = await newPermission.save();
+                permissions = savedPermission.toObject();
             }
             res.status(200).json({
                 success: true,
-                userPhone: targetPhone,
-                permissions: permissions.permissions,
+                idEmail: idEmail,
+                email: email,
+                permissions: permissions?.permissions ?? [],
             });
         }
         catch (error) {
@@ -135,21 +108,18 @@ const permissionController = {
             res.status(500).json({ error: error.message || "Erro ao obter permissões" });
         }
     },
-    // Atualizar permissões de um usuário (PATCH - atualização parcial)
     async updatePermissions(req, res) {
         try {
-            const { phone, add } = req.query;
+            const { idEmail, add } = req.query;
             const { permissions } = req.body;
-            // Validar userPhone
-            if (!phone) {
-                res.status(400).json({ error: "userPhone é obrigatório" });
+            if (!idEmail) {
+                res.status(400).json({ error: "idEmail é obrigatório" });
                 return;
             }
-            if (typeof phone !== "string" || phone.trim() === "") {
-                res.status(400).json({ error: "userPhone deve ser uma string válida" });
+            if (typeof idEmail !== "string" || idEmail.trim() === "") {
+                res.status(400).json({ error: "idEmail deve ser uma string válida" });
                 return;
             }
-            // Validar permissions
             if (permissions === undefined) {
                 res.status(400).json({
                     error: "Campo 'permissions' é obrigatório",
@@ -164,28 +134,23 @@ const permissionController = {
                 res.status(400).json({ error: "Todos os elementos de permissions devem ser strings" });
                 return;
             }
-            const targetPhone = String(phone).trim();
-            // Buscar todos usuários e descriptografar
-            const users = await User_1.default.find({}).lean();
-            const userMap = new Map();
-            users.forEach(user => {
-                const plainPhone = decryptPhone(user.phone);
-                userMap.set(plainPhone, user.phone);
-            });
-            const encryptedPhone = userMap.get(targetPhone);
-            if (!encryptedPhone) {
-                res.status(404).json({ error: `Usuário com telefone ${phone} não encontrado` });
-                return;
-            }
-            let permissionDoc = await Permission_1.default.findOne({ userPhone: encryptedPhone });
+            let permissionDoc = await Permission_1.default.findOne({ idEmail: idEmail });
             if (!permissionDoc) {
-                res.status(404).json({ error: `Permissões não encontradas para ${phone}` });
+                const newPermission = new Permission_1.default({
+                    idEmail: idEmail,
+                    permissions: permissions,
+                });
+                await newPermission.save();
+                res.status(201).json({
+                    success: true,
+                    message: `Permissão criada com sucesso para ${idEmail}`,
+                    idEmail: idEmail,
+                    permissions: newPermission.permissions,
+                });
                 return;
             }
-            // Remover permissões duplicadas mantendo a ordem
             const uniquePermissions = Array.from(new Set(permissions));
             if (add === "true") {
-                // Adicionar novas permissões (sem duplicar)
                 uniquePermissions.forEach(perm => {
                     if (!permissionDoc.permissions.includes(perm)) {
                         permissionDoc.permissions.push(perm);
@@ -193,15 +158,14 @@ const permissionController = {
                 });
             }
             else {
-                // Remover as permissões que estão na lista uniquePermissions
                 permissionDoc.permissions = permissionDoc.permissions.filter(perm => !uniquePermissions.includes(perm));
             }
             permissionDoc.updatedAt = new Date();
             await permissionDoc.save();
             res.status(200).json({
                 success: true,
-                message: `Permissões de ${phone} atualizadas com sucesso`,
-                userPhone: targetPhone,
+                message: `Permissões de ${idEmail} atualizadas com sucesso`,
+                idEmail: idEmail,
                 permissions: permissionDoc.permissions,
             });
         }
@@ -210,41 +174,80 @@ const permissionController = {
             res.status(500).json({ error: error.message || "Erro ao atualizar permissões" });
         }
     },
-    // Deletar permissões de um usuário
-    async deletePermissions(req, res) {
+    async updateidEmailPermissions(req, res) {
         try {
-            const { userPhone } = req.params;
-            // Validar userPhone
-            if (!userPhone) {
-                res.status(400).json({ error: "userPhone é obrigatório" });
+            const { idEmail } = req.params;
+            const { idEmailPermissions, email } = req.body;
+            if (!idEmail) {
+                res.status(400).json({ error: "idEmail é obrigatório" });
                 return;
             }
-            if (userPhone === "67984726820") {
+            if (typeof idEmail !== "string" || idEmail.trim() === "") {
+                res.status(400).json({ error: "idEmail deve ser uma string válida" });
+                return;
+            }
+            if (idEmailPermissions === undefined) {
+                res.status(400).json({
+                    error: "Campo 'idEmailPermissions' é obrigatório",
+                });
+                return;
+            }
+            let permissionDoc = await Permission_1.default.findOne({ idEmail: idEmail });
+            if (!permissionDoc) {
+                res.status(404).json({ error: `Permissões não encontradas para ${idEmail}` });
+                return;
+            }
+            permissionDoc.idEmail = idEmailPermissions;
+            if (email) {
+                permissionDoc.email = email;
+            }
+            permissionDoc.permissions = permissionDoc.permissions;
+            permissionDoc.updatedAt = new Date();
+            await permissionDoc.save();
+            res.status(200).json({
+                success: true,
+                message: `Permissões de ${idEmail} atualizadas com sucesso`,
+                idEmail: idEmailPermissions,
+                permissions: permissionDoc.permissions,
+            });
+        }
+        catch (error) {
+            console.error("Erro ao atualizar permissões:", error);
+            res.status(500).json({ error: error.message || "Erro ao atualizar permissões" });
+        }
+    },
+    async deletePermissions(req, res) {
+        try {
+            const { idEmail } = req.params;
+            if (!idEmail) {
+                res.status(400).json({ error: "idEmail é obrigatório" });
+                return;
+            }
+            if (idEmail === "admin@example.com") {
                 res.status(400).json({ error: "Não pode deletar permissões do admin" });
                 return;
             }
-            const targetPhone = String(userPhone).trim();
-            // Buscar todos usuários e descriptografar
+            const targetEmail = String(idEmail).trim();
             const users = await User_1.default.find({}).lean();
             const userMap = new Map();
             users.forEach(user => {
                 const plainPhone = decryptPhone(user.phone);
-                userMap.set(plainPhone, user.phone); // plain → encrypted
+                userMap.set(plainPhone, user.phone);
             });
-            const encryptedPhone = userMap.get(targetPhone);
+            const encryptedPhone = userMap.get(targetEmail);
             if (!encryptedPhone) {
-                res.status(404).json({ error: `Usuário com telefone ${userPhone} não encontrado` });
+                res.status(404).json({ error: `Usuário com email ${idEmail} não encontrado` });
                 return;
             }
-            const deletedPermission = await Permission_1.default.findOneAndDelete({ userPhone: encryptedPhone });
+            const deletedPermission = await Permission_1.default.findOneAndDelete({ idEmail: targetEmail });
             if (!deletedPermission) {
-                res.status(404).json({ error: `Permissões não encontradas para ${userPhone}` });
+                res.status(404).json({ error: `Permissões não encontradas para ${idEmail}` });
                 return;
             }
             res.status(200).json({
                 success: true,
-                message: `Permissões de ${userPhone} deletadas com sucesso`,
-                userPhone: targetPhone,
+                message: `Permissões de ${idEmail} deletadas com sucesso`,
+                idEmail: targetEmail,
             });
         }
         catch (error) {

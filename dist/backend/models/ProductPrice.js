@@ -72,7 +72,6 @@ const productPriceSchema = new mongoose_1.Schema({
 }, {
     timestamps: true
 });
-// Índice composto para garantir apenas um registro por produto/mercado
 productPriceSchema.index({ productName: 1, marketId: 1 }, { unique: true });
 exports.default = mongoose_1.default.model('ProductPrice', productPriceSchema);
 //# sourceMappingURL=ProductPrice.js.map

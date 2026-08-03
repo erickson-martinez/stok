@@ -34,7 +34,6 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-// Schema para os livros (subdocumento)
 const BookSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
     description: { type: String },
@@ -49,21 +48,18 @@ const BookSchema = new mongoose_1.Schema({
     pages: { type: Number, required: true },
     isTransferred: { type: Boolean, default: false }
 }, {
-    timestamps: true // Adiciona createdAt e updatedAt para cada livro
+    timestamps: true
 });
-// Schema principal do usuário
 const BooksSchema = new mongoose_1.Schema({
     idUser: {
         type: String,
         required: true,
-        unique: true, // Isso já cria o índice
+        unique: true,
     },
-    books: [BookSchema] // Array de subdocumentos Book
+    books: [BookSchema]
 }, {
-    timestamps: true // Adiciona createdAt e updatedAt para o usuário
+    timestamps: true
 });
-// Mantém o índice de texto para busca
 BooksSchema.index({ 'books.name': 'text', 'books.author': 'text' });
-// Removido: BooksSchema.index({ phone: 1 }); // Já é criado por unique: true
 exports.default = mongoose_1.default.model('Books', BooksSchema);
 //# sourceMappingURL=Books.js.map

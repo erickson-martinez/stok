@@ -1,13 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-// routes/whatsappRouter.ts
 const express_1 = require("express");
 const whatsappClient_1 = require("../whatsapp/whatsappClient");
 const router = (0, express_1.Router)();
 router.get('/webhook', (req, res) => {
     const response = whatsappClient_1.Whatsapp.get(req.query);
-    if (response)
-        return res.status(200).send(response);
+    if (response) {
+        res.status(200).send(response);
+        return;
+    }
     res.sendStatus(403);
 });
 router.post('/webhook', async (req, res) => {

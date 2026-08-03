@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const crypto_1 = __importDefault(require("crypto"));
 const Company_1 = __importDefault(require("../models/Company"));
-const Employee_1 = __importDefault(require("../models/Employee")); // ← assumindo que você criou o modelo como sugerido
+const Employee_1 = __importDefault(require("../models/Employee"));
 const User_1 = __importDefault(require("../models/User"));
 const Permission_1 = __importDefault(require("../models/Permission"));
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || "0123456789abcdef0123456789abcdef0123456789abcdef";
@@ -17,37 +17,20 @@ const decryptPhone = (encrypted) => {
     return decrypted;
 };
 class RhController {
-    // POST /rh/link-user
     async linkUserToCompany(req, res) {
         try {
-            const { userPhone: plainUserPhone, empresaId } = req.body;
-            if (!plainUserPhone || !empresaId) {
-                res.status(400).json({ error: "userPhone e empresaId são obrigatórios" });
+            const { idEmail, empresaId, role } = req.body;
+            if (!idEmail || !empresaId) {
+                res.status(400).json({ error: "idEmail e empresaId são obrigatórios" });
                 return;
             }
-            const targetPhone = String(plainUserPhone).trim();
-            const users = await User_1.default.find({}).lean();
-            const userMap = new Map(); // plain → encrypted
-            users.forEach(user => {
-                const plainPhone = decryptPhone(user.phone);
-                userMap.set(plainPhone, user.phone);
-            });
-            const encryptedPhone = userMap.get(targetPhone);
-            if (!encryptedPhone) {
-                res.status(404).json({
-                    error: "Usuário não encontrado com este número de telefone"
-                });
-                return;
-            }
-            // ── Verifica se a empresa existe ────────────────────────────────
             const company = await Company_1.default.findById(empresaId);
             if (!company) {
                 res.status(404).json({ error: "Empresa não encontrada" });
                 return;
             }
-            // ── Verifica vínculo existente ──────────────────────────────────
             const existingLink = await Employee_1.default.findOne({
-                userPhone: encryptedPhone,
+                idEmail: idEmail,
                 company: empresaId,
                 companyName: company.name,
             });
@@ -58,7 +41,6 @@ class RhController {
                     });
                     return;
                 }
-                // Reativa o vínculo
                 existingLink.status = "ativo";
                 existingLink.updatedAt = new Date();
                 await existingLink.save();
@@ -69,23 +51,20 @@ class RhController {
                 });
                 return;
             }
-            // ── Cria novo vínculo ───────────────────────────────────────────
             const newLink = await Employee_1.default.create({
-                userPhone: encryptedPhone,
+                idEmail: idEmail,
                 companyName: company.name,
+                linkId: company.linkId,
                 company: empresaId,
-                role: "funcionario", // ou vem do body se quiser
-                status: "ativo", // ou "pendente" se preferir aprovação
+                role: role || "funcionario",
+                status: "ativo",
                 admittedAt: new Date(),
             });
-            // Opcional: adicionar permissão básica (se quiser)
             try {
-                await Permission_1.default.findOneAndUpdate({ userPhone: encryptedPhone }, { $addToSet: { permissions: "rh" } }, // exemplo
-                { upsert: true, new: true });
+                await Permission_1.default.findOneAndUpdate({ idEmail: idEmail }, { $addToSet: { permissions: "rh" } }, { upsert: true, new: true });
             }
             catch (permErr) {
                 console.warn("Não foi possível atualizar permissões:", permErr);
-                // não trava a operação
             }
             res.status(201).json({
                 success: true,
@@ -98,7 +77,6 @@ class RhController {
             res.status(500).json({ error: "Erro interno ao vincular usuário" });
         }
     }
-    // GET /rh/company/:empresaId/employees
     async listEmployees(req, res) {
         const { empresaId } = req.params;
         if (!empresaId) {
@@ -108,10 +86,9 @@ class RhController {
         try {
             const employees = await Employee_1.default.find({ company: empresaId });
             const listEmployeesPromises = employees.map(async (emp) => {
-                const user = await User_1.default.findOne({ phone: emp.userPhone }).lean();
+                const user = await User_1.default.findOne({ idEmail: emp.idEmail }).lean();
                 if (!user) {
-                    res.status(400).json({ error: "ID da empresa é obrigatório" });
-                    return;
+                    return null;
                 }
                 return {
                     name: decryptPhone(user.name),
@@ -119,10 +96,10 @@ class RhController {
                     companyName: emp.companyName,
                     role: emp.role,
                     status: emp.status,
-                    userPhone: decryptPhone(emp.userPhone),
+                    userEmail: emp.idEmail,
                 };
             });
-            const listEmployees = await Promise.all(listEmployeesPromises);
+            const listEmployees = (await Promise.all(listEmployeesPromises)).filter((item) => item !== null);
             res.status(200).json({
                 success: true,
                 listEmployees
@@ -135,20 +112,12 @@ class RhController {
     }
     async listCompanyByEmployee(req, res) {
         try {
-            const { phone } = req.params;
-            if (!phone) {
-                res.status(400).json({ error: "Telefone do usuário é obrigatório" });
+            const { idEmail } = req.params;
+            if (!idEmail) {
+                res.status(400).json({ error: "ID do usuário é obrigatório" });
                 return;
             }
-            const targetPhone = String(phone).trim();
-            const users = await User_1.default.find({}).lean();
-            const userMap = new Map(); // plain → encrypted
-            users.forEach(user => {
-                const plainPhone = decryptPhone(user.phone);
-                userMap.set(plainPhone, user.phone);
-            });
-            const encryptedPhone = userMap.get(targetPhone);
-            const employees = await Employee_1.default.find({ userPhone: encryptedPhone })
+            const employees = await Employee_1.default.find({ idEmail: idEmail })
                 .lean();
             res.status(200).json({
                 success: true,
@@ -160,7 +129,6 @@ class RhController {
             res.status(500).json({ error: "Erro ao listar funcionários" });
         }
     }
-    // DELETE /rh/link/:linkId
     async unlinkUser(req, res) {
         try {
             const { linkId } = req.params;
@@ -179,7 +147,6 @@ class RhController {
             res.status(500).json({ error: "Erro ao desvincular" });
         }
     }
-    // PATCH /rh/link/:linkId/status
     async updateLinkStatus(req, res) {
         try {
             const { linkId } = req.params;
@@ -207,7 +174,6 @@ class RhController {
             res.status(500).json({ error: "Erro interno" });
         }
     }
-    // GET /rh/user/companies  (empresas que o usuário está vinculado)
     async getUserCompanies(req, res) {
         try {
             const { phone } = req.query;
@@ -216,7 +182,6 @@ class RhController {
                 return;
             }
             const targetPhone = String(phone).trim();
-            // ── Mesmo padrão de busca ───────────────────────────────────────
             const users = await User_1.default.find({}).lean();
             const userMap = new Map();
             let encryptedPhone;
@@ -231,8 +196,7 @@ class RhController {
                 res.status(404).json({ error: "Usuário não encontrado" });
                 return;
             }
-            // Busca vínculos
-            const links = await Employee_1.default.find({ userPhone: encryptedPhone })
+            const links = await Employee_1.default.find({ idEmail: encryptedPhone })
                 .populate("company", "name cnpj status owner")
                 .lean();
             res.status(200).json({

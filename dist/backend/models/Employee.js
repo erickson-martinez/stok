@@ -35,7 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const EmployeeSchema = new mongoose_1.Schema({
-    userPhone: {
+    idEmail: {
         type: String,
         required: true,
         index: true,
@@ -46,9 +46,12 @@ const EmployeeSchema = new mongoose_1.Schema({
         required: true,
         index: true,
     },
+    linkId: {
+        type: String,
+        required: true,
+    },
     role: {
         type: String,
-        enum: ["admin", "rh", "gerente", "funcionario", "outros"],
         default: "funcionario",
     },
     status: {
@@ -64,7 +67,6 @@ const EmployeeSchema = new mongoose_1.Schema({
 }, {
     timestamps: true,
 });
-// Índice composto para evitar duplicatas (mesmo usuário na mesma empresa)
-EmployeeSchema.index({ userPhone: 1, company: 1 }, { unique: true });
+EmployeeSchema.index({ idEmail: 1, company: 1 }, { unique: true });
 exports.default = mongoose_1.default.model("Employee", EmployeeSchema);
 //# sourceMappingURL=Employee.js.map

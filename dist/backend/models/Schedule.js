@@ -33,7 +33,6 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-// models/Schedule.ts
 const mongoose_1 = __importStar(require("mongoose"));
 const scheduleSchema = new mongoose_1.Schema({
     title: { type: String, required: true, trim: true },
