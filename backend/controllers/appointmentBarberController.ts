@@ -666,6 +666,20 @@ function calculateTotals(items: SnapshotItem[]): {
     };
 }
 
+function calculateWeekdayDiscount(
+    dataAgendada: Date,
+    subtotalServicos: number
+): number {
+    const dayOfWeek = dataAgendada.getDay();
+    const hasWeekdayDiscount = dayOfWeek >= 1 && dayOfWeek <= 3;
+
+    if (!hasWeekdayDiscount || subtotalServicos <= 0) {
+        return 0;
+    }
+
+    return Math.min(5, subtotalServicos);
+}
+
 // Criar agendamento
 const createAppointment = async (
     req: Request,
@@ -840,6 +854,11 @@ const createAppointment = async (
             session
         );
 
+        const descontoDiaSemana = calculateWeekdayDiscount(
+            parsedDate,
+            subtotalServicos
+        );
+
         const pagamento = assinatura.possui
             ? {
                 status: "assinatura" as const,
@@ -853,11 +872,11 @@ const createAppointment = async (
             : {
                 status: "pendente" as const,
                 formas: [] as string[],
-                desconto: 0,
+                desconto: descontoDiaSemana,
                 subtotalServicos,
                 subtotalProdutos,
                 valorOriginal,
-                valorCobrado: valorOriginal,
+                valorCobrado: valorOriginal - descontoDiaSemana,
             };
 
         const appointment = new AppointmentBarber({

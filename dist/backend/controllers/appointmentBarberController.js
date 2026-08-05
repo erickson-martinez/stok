@@ -369,6 +369,14 @@ function calculateTotals(items) {
         valorOriginal: subtotalServicos + subtotalProdutos,
     };
 }
+function calculateWeekdayDiscount(dataAgendada, subtotalServicos) {
+    const dayOfWeek = dataAgendada.getDay();
+    const hasWeekdayDiscount = dayOfWeek >= 1 && dayOfWeek <= 3;
+    if (!hasWeekdayDiscount || subtotalServicos <= 0) {
+        return 0;
+    }
+    return Math.min(5, subtotalServicos);
+}
 const createAppointment = async (req, res) => {
     const session = await mongoose_1.default.startSession();
     try {
@@ -441,6 +449,7 @@ const createAppointment = async (req, res) => {
         const items = createItemsSnapshot(servicosIds, produtos, serviceMap, productMap);
         const { subtotalServicos, subtotalProdutos, valorOriginal, } = calculateTotals(items);
         const assinatura = await validateSubscription(clienteTelefoneFormatado, linkIdFormatado, parsedDate, session);
+        const descontoDiaSemana = calculateWeekdayDiscount(parsedDate, subtotalServicos);
         const pagamento = assinatura.possui
             ? {
                 status: "assinatura",
@@ -454,11 +463,11 @@ const createAppointment = async (req, res) => {
             : {
                 status: "pendente",
                 formas: [],
-                desconto: 0,
+                desconto: descontoDiaSemana,
                 subtotalServicos,
                 subtotalProdutos,
                 valorOriginal,
-                valorCobrado: valorOriginal,
+                valorCobrado: valorOriginal - descontoDiaSemana,
             };
         const appointment = new AppointmentBarber_1.default({
             clienteNome: clienteNome.trim(),
