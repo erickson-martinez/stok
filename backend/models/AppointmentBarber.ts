@@ -39,7 +39,8 @@ export interface IAppointmentPayment {
 
 export interface IAppointmentBarber extends Document {
     clienteNome: string;
-    clienteTelefone: string;
+    clienteTelefone?: string;
+    clienteEmail?: string;
 
     barbeiroId: string;
 
@@ -247,7 +248,15 @@ const AppointmentBarberSchema = new Schema<IAppointmentBarber>(
 
         clienteTelefone: {
             type: String,
-            required: true,
+            default: "",
+            index: true,
+        },
+
+        clienteEmail: {
+            type: String,
+            default: "",
+            lowercase: true,
+            trim: true,
             index: true,
         },
 
@@ -373,11 +382,23 @@ AppointmentBarberSchema.index({
 });
 
 AppointmentBarberSchema.index({
+    clienteEmail: 1,
+});
+
+AppointmentBarberSchema.index({
     barbeiroId: 1,
 });
 
 AppointmentBarberSchema.index({
     clienteTelefone: 1,
+    barbeiroId: 1,
+    dataAgendada: 1,
+    status: 1,
+    linkId: 1,
+});
+
+AppointmentBarberSchema.index({
+    clienteEmail: 1,
     barbeiroId: 1,
     dataAgendada: 1,
     status: 1,

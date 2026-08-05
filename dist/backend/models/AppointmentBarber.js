@@ -161,7 +161,14 @@ const AppointmentBarberSchema = new mongoose_1.Schema({
     },
     clienteTelefone: {
         type: String,
-        required: true,
+        default: "",
+        index: true,
+    },
+    clienteEmail: {
+        type: String,
+        default: "",
+        lowercase: true,
+        trim: true,
         index: true,
     },
     barbeiroId: {
@@ -266,10 +273,20 @@ AppointmentBarberSchema.index({
     clienteTelefone: 1,
 });
 AppointmentBarberSchema.index({
+    clienteEmail: 1,
+});
+AppointmentBarberSchema.index({
     barbeiroId: 1,
 });
 AppointmentBarberSchema.index({
     clienteTelefone: 1,
+    barbeiroId: 1,
+    dataAgendada: 1,
+    status: 1,
+    linkId: 1,
+});
+AppointmentBarberSchema.index({
+    clienteEmail: 1,
     barbeiroId: 1,
     dataAgendada: 1,
     status: 1,

@@ -270,13 +270,23 @@ async function validateScheduleConflict(barbeiroId, linkId, dataAgendada, horari
         throw new HttpError(409, "Horário indisponível.");
     }
 }
-async function validatePendingDuplicate(clienteTelefone, barbeiroId, linkId, dataAgendada, horarios, session) {
+async function validatePendingDuplicate(clienteTelefone, clienteEmail, barbeiroId, linkId, dataAgendada, horarios, session) {
+    const contactFilters = [];
+    if (clienteTelefone) {
+        contactFilters.push({ clienteTelefone });
+    }
+    if (clienteEmail) {
+        contactFilters.push({ clienteEmail });
+    }
+    if (!contactFilters.length) {
+        return;
+    }
     const inicioDia = new Date(dataAgendada);
     inicioDia.setHours(0, 0, 0, 0);
     const fimDia = new Date(dataAgendada);
     fimDia.setHours(23, 59, 59, 999);
     const duplicate = await AppointmentBarber_1.default.findOne({
-        clienteTelefone,
+        $or: contactFilters,
         barbeiroId,
         linkId,
         status: "pendente",
@@ -380,7 +390,7 @@ function calculateWeekdayDiscount(dataAgendada, subtotalServicos) {
 const createAppointment = async (req, res) => {
     const session = await mongoose_1.default.startSession();
     try {
-        const { clienteNome, clienteTelefone, barbeiroId, dataAgendada, horarios, linkId, quantidadePessoas, nomesAcompanhantes, descricaoServicos, } = req.body;
+        const { clienteNome, clienteTelefone, clienteEmail, barbeiroId, dataAgendada, horarios, linkId, quantidadePessoas, nomesAcompanhantes, descricaoServicos, } = req.body;
         const servicosIds = parseIdList(req.body.servicosIds);
         const produtos = parseProductSelections(req.body.produtos, req.body.produtosIds);
         if (typeof clienteNome !== "string" ||
@@ -390,10 +400,17 @@ const createAppointment = async (req, res) => {
             });
             return;
         }
-        if (typeof clienteTelefone !== "string" ||
-            clienteTelefone.trim().length === 0) {
+        if (clienteTelefone !== undefined &&
+            typeof clienteTelefone !== "string") {
             res.status(400).json({
-                error: "clienteTelefone é obrigatório",
+                error: "clienteTelefone invalido",
+            });
+            return;
+        }
+        if (clienteEmail !== undefined &&
+            typeof clienteEmail !== "string") {
+            res.status(400).json({
+                error: "clienteEmail invalido",
             });
             return;
         }
@@ -433,7 +450,12 @@ const createAppointment = async (req, res) => {
             });
             return;
         }
-        const clienteTelefoneFormatado = clienteTelefone.trim();
+        const clienteTelefoneFormatado = typeof clienteTelefone === "string"
+            ? clienteTelefone.trim()
+            : "";
+        const clienteEmailFormatado = typeof clienteEmail === "string"
+            ? clienteEmail.trim().toLowerCase()
+            : "";
         const barbeiroIdFormatado = barbeiroId.trim();
         const linkIdFormatado = linkId.trim();
         const horariosFormatados = horarios.map((item) => item.trim());
@@ -442,13 +464,15 @@ const createAppointment = async (req, res) => {
         session.startTransaction();
         const barber = await validateBarber(barbeiroIdFormatado, linkIdFormatado, session);
         await validateScheduleConflict(barbeiroIdFormatado, linkIdFormatado, parsedDate, horariosFormatados, session);
-        await validatePendingDuplicate(clienteTelefoneFormatado, barbeiroIdFormatado, linkIdFormatado, parsedDate, horariosFormatados, session);
+        await validatePendingDuplicate(clienteTelefoneFormatado, clienteEmailFormatado, barbeiroIdFormatado, linkIdFormatado, parsedDate, horariosFormatados, session);
         const serviceMap = await fetchServices(servicosIds, linkIdFormatado, session);
         const productMap = await fetchProducts(produtos, linkIdFormatado, session);
         validateProductStock(produtos, productMap);
         const items = createItemsSnapshot(servicosIds, produtos, serviceMap, productMap);
         const { subtotalServicos, subtotalProdutos, valorOriginal, } = calculateTotals(items);
-        const assinatura = await validateSubscription(clienteTelefoneFormatado, linkIdFormatado, parsedDate, session);
+        const assinatura = clienteTelefoneFormatado
+            ? await validateSubscription(clienteTelefoneFormatado, linkIdFormatado, parsedDate, session)
+            : { possui: false };
         const descontoDiaSemana = calculateWeekdayDiscount(parsedDate, subtotalServicos);
         const pagamento = assinatura.possui
             ? {
@@ -472,6 +496,7 @@ const createAppointment = async (req, res) => {
         const appointment = new AppointmentBarber_1.default({
             clienteNome: clienteNome.trim(),
             clienteTelefone: clienteTelefoneFormatado,
+            clienteEmail: clienteEmailFormatado,
             barbeiroId: barbeiroIdFormatado,
             dataAgendada: parsedDate,
             horarios: horariosFormatados,
@@ -621,15 +646,30 @@ const updateAppointment = async (req, res) => {
             updateData.clienteNome = req.body.clienteNome.trim();
         }
         if ("clienteTelefone" in req.body) {
-            if (typeof req.body.clienteTelefone !== "string" ||
-                req.body.clienteTelefone.trim().length === 0) {
+            if (req.body.clienteTelefone !== undefined &&
+                typeof req.body.clienteTelefone !== "string") {
                 res.status(400).json({
                     error: "clienteTelefone inválido",
                 });
                 return;
             }
             updateData.clienteTelefone =
-                req.body.clienteTelefone.trim();
+                typeof req.body.clienteTelefone === "string"
+                    ? req.body.clienteTelefone.trim()
+                    : "";
+        }
+        if ("clienteEmail" in req.body) {
+            if (req.body.clienteEmail !== undefined &&
+                typeof req.body.clienteEmail !== "string") {
+                res.status(400).json({
+                    error: "clienteEmail invalido",
+                });
+                return;
+            }
+            updateData.clienteEmail =
+                typeof req.body.clienteEmail === "string"
+                    ? req.body.clienteEmail.trim().toLowerCase()
+                    : "";
         }
         if ("dataAgendada" in req.body) {
             const parsedDate = new Date(req.body.dataAgendada);

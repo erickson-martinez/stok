@@ -69,7 +69,9 @@ export interface IAppointmentBarber {
 
     clienteNome: string;
 
-    clienteTelefone: string;
+    clienteTelefone?: string;
+
+    clienteEmail?: string;
 
     barbeiroId: string;
 

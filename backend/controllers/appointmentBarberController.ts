@@ -499,12 +499,29 @@ async function validateScheduleConflict(
 
 async function validatePendingDuplicate(
     clienteTelefone: string,
+    clienteEmail: string,
     barbeiroId: string,
     linkId: string,
     dataAgendada: Date,
     horarios: string[],
     session: mongoose.ClientSession
 ): Promise<void> {
+    const contactFilters: Array<
+        { clienteTelefone: string } | { clienteEmail: string }
+    > = [];
+
+    if (clienteTelefone) {
+        contactFilters.push({ clienteTelefone });
+    }
+
+    if (clienteEmail) {
+        contactFilters.push({ clienteEmail });
+    }
+
+    if (!contactFilters.length) {
+        return;
+    }
+
     const inicioDia = new Date(dataAgendada);
     inicioDia.setHours(0, 0, 0, 0);
 
@@ -512,7 +529,7 @@ async function validatePendingDuplicate(
     fimDia.setHours(23, 59, 59, 999);
 
     const duplicate = await AppointmentBarber.findOne({
-        clienteTelefone,
+        $or: contactFilters,
         barbeiroId,
         linkId,
         status: "pendente",
@@ -691,6 +708,7 @@ const createAppointment = async (
         const {
             clienteNome,
             clienteTelefone,
+            clienteEmail,
             barbeiroId,
             dataAgendada,
             horarios,
@@ -718,11 +736,22 @@ const createAppointment = async (
         }
 
         if (
-            typeof clienteTelefone !== "string" ||
-            clienteTelefone.trim().length === 0
+            clienteTelefone !== undefined &&
+            typeof clienteTelefone !== "string"
         ) {
             res.status(400).json({
-                error: "clienteTelefone é obrigatório",
+                error: "clienteTelefone invalido",
+            });
+
+            return;
+        }
+
+        if (
+            clienteEmail !== undefined &&
+            typeof clienteEmail !== "string"
+        ) {
+            res.status(400).json({
+                error: "clienteEmail invalido",
             });
 
             return;
@@ -784,7 +813,14 @@ const createAppointment = async (
             return;
         }
 
-        const clienteTelefoneFormatado = clienteTelefone.trim();
+        const clienteTelefoneFormatado =
+            typeof clienteTelefone === "string"
+                ? clienteTelefone.trim()
+                : "";
+        const clienteEmailFormatado =
+            typeof clienteEmail === "string"
+                ? clienteEmail.trim().toLowerCase()
+                : "";
         const barbeiroIdFormatado = barbeiroId.trim();
         const linkIdFormatado = linkId.trim();
         const horariosFormatados = horarios.map((item: string) =>
@@ -813,6 +849,7 @@ const createAppointment = async (
 
         await validatePendingDuplicate(
             clienteTelefoneFormatado,
+            clienteEmailFormatado,
             barbeiroIdFormatado,
             linkIdFormatado,
             parsedDate,
@@ -847,12 +884,14 @@ const createAppointment = async (
             valorOriginal,
         } = calculateTotals(items);
 
-        const assinatura = await validateSubscription(
-            clienteTelefoneFormatado,
-            linkIdFormatado,
-            parsedDate,
-            session
-        );
+        const assinatura = clienteTelefoneFormatado
+            ? await validateSubscription(
+                clienteTelefoneFormatado,
+                linkIdFormatado,
+                parsedDate,
+                session
+            )
+            : { possui: false };
 
         const descontoDiaSemana = calculateWeekdayDiscount(
             parsedDate,
@@ -882,6 +921,7 @@ const createAppointment = async (
         const appointment = new AppointmentBarber({
             clienteNome: clienteNome.trim(),
             clienteTelefone: clienteTelefoneFormatado,
+            clienteEmail: clienteEmailFormatado,
             barbeiroId: barbeiroIdFormatado,
             dataAgendada: parsedDate,
             horarios: horariosFormatados,
@@ -1067,6 +1107,7 @@ const updateAppointment = async (
             [key: string]: unknown;
             clienteNome?: string;
             clienteTelefone?: string;
+            clienteEmail?: string;
             dataAgendada?: Date;
             horarios?: string[];
             quantidadePessoas?: number;
@@ -1100,8 +1141,8 @@ const updateAppointment = async (
 
         if ("clienteTelefone" in req.body) {
             if (
-                typeof req.body.clienteTelefone !== "string" ||
-                req.body.clienteTelefone.trim().length === 0
+                req.body.clienteTelefone !== undefined &&
+                typeof req.body.clienteTelefone !== "string"
             ) {
                 res.status(400).json({
                     error: "clienteTelefone inválido",
@@ -1111,7 +1152,27 @@ const updateAppointment = async (
             }
 
             updateData.clienteTelefone =
-                req.body.clienteTelefone.trim();
+                typeof req.body.clienteTelefone === "string"
+                    ? req.body.clienteTelefone.trim()
+                    : "";
+        }
+
+        if ("clienteEmail" in req.body) {
+            if (
+                req.body.clienteEmail !== undefined &&
+                typeof req.body.clienteEmail !== "string"
+            ) {
+                res.status(400).json({
+                    error: "clienteEmail invalido",
+                });
+
+                return;
+            }
+
+            updateData.clienteEmail =
+                typeof req.body.clienteEmail === "string"
+                    ? req.body.clienteEmail.trim().toLowerCase()
+                    : "";
         }
 
         if ("dataAgendada" in req.body) {
