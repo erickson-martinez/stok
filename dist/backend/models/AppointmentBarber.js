@@ -232,6 +232,11 @@ const AppointmentBarberSchema = new mongoose_1.Schema({
             possui: false,
         }),
     },
+    assinaturaAplicada: {
+        type: Boolean,
+        default: false,
+        index: true,
+    },
     pagamento: {
         type: AppointmentPaymentSchema,
         default: () => ({

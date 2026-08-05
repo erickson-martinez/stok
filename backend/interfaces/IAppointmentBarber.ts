@@ -111,6 +111,8 @@ export interface IAppointmentBarber {
      */
     assinatura?: IAppointmentSubscription;
 
+    assinaturaAplicada?: boolean;
+
     /**
      * Informações financeiras do atendimento.
      */

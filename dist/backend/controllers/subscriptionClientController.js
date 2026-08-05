@@ -8,7 +8,7 @@ const SubscriptionPlan_1 = __importDefault(require("../models/SubscriptionPlan")
 const User_1 = __importDefault(require("../models/User"));
 const createSubscriptionClient = async (req, res) => {
     try {
-        const { nome, telefone, email, planoId, observacao, linkId } = req.body;
+        const { nome, telefone, email, planoId, observacao, pagamento, linkId } = req.body;
         if (!nome ||
             !telefone ||
             !email ||
@@ -16,6 +16,13 @@ const createSubscriptionClient = async (req, res) => {
             !linkId) {
             res.status(400).json({
                 error: "nome, telefone, email, planoId e linkId são obrigatórios"
+            });
+            return;
+        }
+        const pagamentoStatus = pagamento?.status ?? "pendente";
+        if (!["pendente", "pago", "cancelado"].includes(pagamentoStatus)) {
+            res.status(400).json({
+                error: "Status de pagamento invÃ¡lido"
             });
             return;
         }
@@ -56,6 +63,26 @@ const createSubscriptionClient = async (req, res) => {
             idEmail,
             planoId,
             ativo: true,
+            pagamento: {
+                status: pagamentoStatus,
+                formas: Array.isArray(pagamento?.formas)
+                    ? pagamento.formas
+                    : [],
+                valorOriginal: plano.valorMensal,
+                valorCobrado: typeof pagamento?.valorCobrado === "number"
+                    ? pagamento.valorCobrado
+                    : plano.valorMensal,
+                valorRecebido: typeof pagamento?.valorRecebido === "number"
+                    ? pagamento.valorRecebido
+                    : undefined,
+                troco: typeof pagamento?.troco === "number"
+                    ? pagamento.troco
+                    : undefined,
+                dataPagamento: pagamento?.status === "pago"
+                    ? new Date()
+                    : undefined,
+                usuarioPagamento: pagamento?.usuarioPagamento
+            },
             observacao,
             dataInicio: new Date(),
             linkId
@@ -133,10 +160,21 @@ const updateSubscriptionClient = async (req, res) => {
 };
 const cancelSubscription = async (req, res) => {
     try {
-        const cliente = await SubscriptionClient_1.default.findByIdAndUpdate(req.params.id, {
+        const assinaturaAtual = await SubscriptionClient_1.default.findById(req.params.id);
+        if (!assinaturaAtual) {
+            res.status(404).json({
+                error: "Assinante nÃ£o encontrado"
+            });
+            return;
+        }
+        const updateData = {
             ativo: false,
             dataFim: new Date()
-        }, {
+        };
+        if (assinaturaAtual.pagamento?.status === "pendente") {
+            updateData["pagamento.status"] = "cancelado";
+        }
+        const cliente = await SubscriptionClient_1.default.findByIdAndUpdate(req.params.id, updateData, {
             new: true
         });
         if (!cliente) {

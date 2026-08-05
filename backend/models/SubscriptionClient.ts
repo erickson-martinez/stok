@@ -18,6 +18,17 @@ export interface ISubscriptionClient extends Document {
 
     ativo: boolean;
 
+    pagamento: {
+        status: "pendente" | "pago" | "cancelado";
+        formas: string[];
+        valorOriginal: number;
+        valorCobrado: number;
+        valorRecebido?: number;
+        troco?: number;
+        dataPagamento?: Date;
+        usuarioPagamento?: string;
+    };
+
     dataInicio: Date;
 
     dataFim?: Date;
@@ -75,6 +86,45 @@ const SubscriptionClientSchema = new Schema(
         ativo: {
             type: Boolean,
             default: true
+        },
+
+        pagamento: {
+            status: {
+                type: String,
+                enum: ["pendente", "pago", "cancelado"],
+                default: "pendente"
+            },
+
+            formas: {
+                type: [String],
+                default: []
+            },
+
+            valorOriginal: {
+                type: Number,
+                default: 0
+            },
+
+            valorCobrado: {
+                type: Number,
+                default: 0
+            },
+
+            valorRecebido: {
+                type: Number
+            },
+
+            troco: {
+                type: Number
+            },
+
+            dataPagamento: {
+                type: Date
+            },
+
+            usuarioPagamento: {
+                type: String
+            }
         },
 
         dataInicio: {

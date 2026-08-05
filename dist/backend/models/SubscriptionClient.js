@@ -71,6 +71,37 @@ const SubscriptionClientSchema = new mongoose_1.Schema({
         type: Boolean,
         default: true
     },
+    pagamento: {
+        status: {
+            type: String,
+            enum: ["pendente", "pago", "cancelado"],
+            default: "pendente"
+        },
+        formas: {
+            type: [String],
+            default: []
+        },
+        valorOriginal: {
+            type: Number,
+            default: 0
+        },
+        valorCobrado: {
+            type: Number,
+            default: 0
+        },
+        valorRecebido: {
+            type: Number
+        },
+        troco: {
+            type: Number
+        },
+        dataPagamento: {
+            type: Date
+        },
+        usuarioPagamento: {
+            type: String
+        }
+    },
     dataInicio: {
         type: Date,
         default: Date.now

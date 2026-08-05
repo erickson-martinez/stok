@@ -69,6 +69,8 @@ export interface IAppointmentBarber extends Document {
 
     assinatura?: IAppointmentSubscription;
 
+    assinaturaAplicada: boolean;
+
     pagamento: IAppointmentPayment;
 
     createdBy?: string;
@@ -330,6 +332,12 @@ const AppointmentBarberSchema = new Schema<IAppointmentBarber>(
             default: () => ({
                 possui: false,
             }),
+        },
+
+        assinaturaAplicada: {
+            type: Boolean,
+            default: false,
+            index: true,
         },
 
         pagamento: {

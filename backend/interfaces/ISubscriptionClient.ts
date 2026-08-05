@@ -18,6 +18,17 @@ export interface ISubscriptionClient {
 
     ativo: boolean;
 
+    pagamento: {
+        status: "pendente" | "pago" | "cancelado";
+        formas: string[];
+        valorOriginal: number;
+        valorCobrado: number;
+        valorRecebido?: number;
+        troco?: number;
+        dataPagamento?: Date;
+        usuarioPagamento?: string;
+    };
+
     dataInicio: Date;
 
     dataFim?: Date;
