@@ -28,9 +28,7 @@ const SubscriptionPlanSchema = new Schema(
     {
         codigo: {
             type: Number,
-            required: true,
-            unique: true,
-            index: true
+            required: true
         },
 
         nome: {
@@ -76,6 +74,11 @@ const SubscriptionPlanSchema = new Schema(
     {
         timestamps: true
     }
+);
+
+SubscriptionPlanSchema.index(
+    { linkId: 1, codigo: 1 },
+    { unique: true }
 );
 
 export default mongoose.model<ISubscriptionPlan>(
