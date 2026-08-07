@@ -38,6 +38,10 @@ type ProductSelection = {
     quantidade: number;
 };
 
+// Configuração
+const WEEKDAY_DISCOUNT_DAYS = [1, 2, 3, 4]; // Segunda, Terça, Quarta e Quinta
+const WEEKDAY_DISCOUNT_VALUE = 5;
+
 type AppointmentStatus =
     | "pendente"
     | "atendendo"
@@ -688,13 +692,15 @@ function calculateWeekdayDiscount(
     subtotalServicos: number
 ): number {
     const dayOfWeek = dataAgendada.getDay();
-    const hasWeekdayDiscount = dayOfWeek >= 1 && dayOfWeek <= 3;
 
-    if (!hasWeekdayDiscount || subtotalServicos <= 0) {
+    if (
+        !WEEKDAY_DISCOUNT_DAYS.includes(dayOfWeek) ||
+        subtotalServicos <= 0
+    ) {
         return 0;
     }
 
-    return Math.min(5, subtotalServicos);
+    return Math.min(WEEKDAY_DISCOUNT_VALUE, subtotalServicos);
 }
 
 // Criar agendamento
