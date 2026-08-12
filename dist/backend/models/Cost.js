@@ -48,6 +48,29 @@ const CostSchema = new mongoose_1.Schema({
         type: Number,
         required: true,
     },
+    status: {
+        type: String,
+        enum: ["pendente", "pago"],
+        default: "pendente",
+        required: true,
+    },
+    dateInicial: {
+        type: Date,
+        required: false,
+    },
+    dateFinal: {
+        type: Date,
+        required: false,
+    },
+    idTransacao: {
+        type: [
+            {
+                id: { type: String, required: true },
+                mesAnoReferencia: { type: String, required: true },
+            },
+        ],
+        default: [],
+    },
     tipo: {
         type: String,
         enum: ["fixo", "variavel"],

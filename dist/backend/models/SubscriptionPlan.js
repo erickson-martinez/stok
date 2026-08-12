@@ -37,9 +37,7 @@ const mongoose_1 = __importStar(require("mongoose"));
 const SubscriptionPlanSchema = new mongoose_1.Schema({
     codigo: {
         type: Number,
-        required: true,
-        unique: true,
-        index: true
+        required: true
     },
     nome: {
         type: String,
@@ -77,5 +75,6 @@ const SubscriptionPlanSchema = new mongoose_1.Schema({
 }, {
     timestamps: true
 });
+SubscriptionPlanSchema.index({ linkId: 1, codigo: 1 }, { unique: true });
 exports.default = mongoose_1.default.model("SubscriptionPlan", SubscriptionPlanSchema);
 //# sourceMappingURL=SubscriptionPlan.js.map

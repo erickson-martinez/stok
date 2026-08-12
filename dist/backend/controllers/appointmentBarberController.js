@@ -10,6 +10,8 @@ const BarberService_1 = __importDefault(require("../models/BarberService"));
 const BarberProduct_1 = __importDefault(require("../models/BarberProduct"));
 const SubscriptionClient_1 = __importDefault(require("../models/SubscriptionClient"));
 const SubscriptionPlan_1 = __importDefault(require("../models/SubscriptionPlan"));
+const WEEKDAY_DISCOUNT_DAYS = [1, 2, 3, 4];
+const WEEKDAY_DISCOUNT_VALUE = 5;
 class HttpError extends Error {
     statusCode;
     constructor(statusCode, message) {
@@ -381,11 +383,11 @@ function calculateTotals(items) {
 }
 function calculateWeekdayDiscount(dataAgendada, subtotalServicos) {
     const dayOfWeek = dataAgendada.getDay();
-    const hasWeekdayDiscount = dayOfWeek >= 1 && dayOfWeek <= 3;
-    if (!hasWeekdayDiscount || subtotalServicos <= 0) {
+    if (!WEEKDAY_DISCOUNT_DAYS.includes(dayOfWeek) ||
+        subtotalServicos <= 0) {
         return 0;
     }
-    return Math.min(5, subtotalServicos);
+    return Math.min(WEEKDAY_DISCOUNT_VALUE, subtotalServicos);
 }
 const createAppointment = async (req, res) => {
     const session = await mongoose_1.default.startSession();

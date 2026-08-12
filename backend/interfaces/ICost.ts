@@ -3,9 +3,18 @@ export interface ICost {
     linkId: string;
     nome: string;
     valor: number;
+    dateInicial?: Date;
+    dateFinal?: Date;
+    status: "pago" | "pendente";
+    idTransacao: idTransacao[];
     tipo:
     | "fixo"
     | "variavel";
     createdAt?: Date;
     updatedAt?: Date;
+}
+
+interface idTransacao {
+    id: string;
+    mesAnoReferencia: string;
 }
