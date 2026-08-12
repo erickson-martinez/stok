@@ -36,6 +36,7 @@ import comparisonController from "./controllers/comparisonController";
 import priceRecordController from "./controllers/priceRecordController";
 import shoppingItemController from "./controllers/shoppingItemController";
 import priceSearchController from "./controllers/priceSearchController";
+import * as commissionController from "./controllers/commissionController";
 
 dotenv.config();
 
@@ -163,6 +164,15 @@ app.get("/api/v1/barber-services", barberServiceController.getServices);
 app.get("/api/v1/barber-services/:id", barberServiceController.getServiceById);
 app.put("/api/v1/barber-services/:id", barberServiceController.updateService);
 app.delete("/api/v1/barber-services/:id", barberServiceController.deleteService);
+
+// ── Barber Commissions ─────────────────────────────────
+app.post("/api/v1/commissions", commissionController.createCommission);
+app.get("/api/v1/commissions/by-link", commissionController.getCommissionsByLinkId);
+app.get("/api/v1/commissions/by-status", commissionController.getCommissionsByStatus);
+app.get("/api/v1/commissions/by-barber", commissionController.getCommissionsByBarber);
+app.get("/api/v1/commissions/:id", commissionController.getCommissionById);
+app.put("/api/v1/commissions/:id", commissionController.updateCommission);
+app.delete("/api/v1/commissions/:id", commissionController.deleteCommission);
 
 // Rotas de pedidos
 app.post('/api/v1/orders', OrdersController.createOrder);
