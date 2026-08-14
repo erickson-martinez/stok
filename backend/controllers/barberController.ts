@@ -6,6 +6,7 @@ const createBarber = async (req: Request, res: Response): Promise<void> => {
     try {
         const {
             nome,
+            email,
             idEmail,
             comissao,
             comissaoAssinatura,
@@ -25,6 +26,7 @@ const createBarber = async (req: Request, res: Response): Promise<void> => {
 
         const barber = new Barbeiro({
             nome,
+            email,
             idEmail,
             comissao,
             comissaoAssinatura,

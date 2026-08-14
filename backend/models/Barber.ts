@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IBarber extends Document {
     nome: string;
+    email: string;
     idEmail: string;
     comissao: number;
     comissaoAssinatura?: number;
@@ -15,6 +16,10 @@ export interface IBarber extends Document {
 
 const BarberSchema: Schema = new Schema({
     nome: {
+        type: String,
+        required: true,
+    },
+    email: {
         type: String,
         required: true,
     },
