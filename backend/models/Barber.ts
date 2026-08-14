@@ -5,6 +5,7 @@ export interface IBarber extends Document {
     idEmail: string;
     comissao: number;
     comissaoAssinatura?: number;
+    valorBaseComissaoAssinatura?: number;
     corte: number;
     diasTrabalhados: string[];
     linkId: string;
@@ -25,6 +26,10 @@ const BarberSchema: Schema = new Schema({
         default: 0,
     },
     comissaoAssinatura: {
+        type: Number,
+        default: 0,
+    },
+    valorBaseComissaoAssinatura: {
         type: Number,
         default: 0,
     },
