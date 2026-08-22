@@ -2,6 +2,7 @@ import express, { Express } from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
+import dns from "dns";
 
 
 //clientPlans
@@ -47,6 +48,17 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
     : [];
 const isDevelopment = process.env.NODE_ENV !== "production";
+
+const configuredDnsServers = process.env.DNS_SERVERS
+    ? process.env.DNS_SERVERS.split(",").map((server) => server.trim()).filter(Boolean)
+    : [];
+
+if (configuredDnsServers.length > 0) {
+    dns.setServers(configuredDnsServers);
+} else if (isDevelopment) {
+    // Helps environments where the default resolver refuses SRV queries.
+    dns.setServers(["8.8.8.8", "1.1.1.1"]);
+}
 
 // Configuração CORS - ajuste em produção!
 app.use(
@@ -97,7 +109,8 @@ mongoose.connect(mongoUri)
 app.post("/api/v1/costs", costController.createCost);
 app.get("/api/v1/costs", costController.getCosts);
 app.get("/api/v1/costs/:id", costController.getCostById);
-app.put("/api/v1/costs/:id", costController.updateCost);
+app.put("/api/v1/costs/:id/status", costController.updateCostStatus);
+app.put("/api/v1/costs/:id/transaction", costController.updateCostTransaction);
 app.delete("/api/v1/costs/:id", costController.deleteCost);
 
 // Rotas de configuração

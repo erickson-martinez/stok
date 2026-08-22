@@ -4,7 +4,7 @@ export interface ICost extends Document {
     linkId: string;
     nome: string;
     valor: number;
-    status: "pendente" | "pago";
+    status: "pendente" | "concluido";
     dateInicial?: Date;
     dateFinal?: Date;
     idTransacao?: idTransacao[];
@@ -17,6 +17,7 @@ export interface ICost extends Document {
 interface idTransacao {
     id: string;
     mesAnoReferencia: string;
+    status: "pago" | "pendente";
 }
 
 const CostSchema: Schema = new Schema(
@@ -39,7 +40,7 @@ const CostSchema: Schema = new Schema(
 
         status: {
             type: String,
-            enum: ["pendente", "pago"],
+            enum: ["pendente", "concluido"],
             default: "pendente",
             required: true,
         },
@@ -59,6 +60,7 @@ const CostSchema: Schema = new Schema(
                 {
                     id: { type: String, required: true },
                     mesAnoReferencia: { type: String, required: true },
+                    status: { type: String, enum: ["pago", "pendente"], required: true },
                 },
             ],
             default: [],

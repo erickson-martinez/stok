@@ -218,8 +218,60 @@ const getCostById = async (
     }
 };
 
-// Atualizar custo e marcar pagamento mensal
-const updateCost = async (
+// Atualizar status do custo para concluido
+const updateCostStatus = async (
+    req: Request,
+    res: Response
+): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        if (!status) {
+            res.status(400).json({
+                error: "status e obrigatorio",
+            });
+
+            return;
+        }
+
+        if (!["pendente", "concluido"].includes(status)) {
+            res.status(400).json({
+                error: "status deve ser pendente ou concluido",
+            });
+
+            return;
+        }
+
+        const cost = await Cost.findByIdAndUpdate(
+            id,
+            { status },
+            { new: true, runValidators: true }
+        );
+
+        if (!cost) {
+            res.status(404).json({
+                error: "Custo nao encontrado",
+            });
+
+            return;
+        }
+
+        res.json({
+            message: "Status do custo atualizado com sucesso",
+            cost,
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            error: "Erro ao atualizar status do custo",
+            details: (error as Error).message,
+        });
+    }
+};
+
+// Criar ou atualizar transacao mensal do custo
+const updateCostTransaction = async (
     req: Request,
     res: Response
 ): Promise<void> => {
@@ -228,24 +280,20 @@ const updateCost = async (
         const {
             idTransacao,
             mesAnoReferencia,
-            status,
-            ...costData
+            statusTransacao,
         } = req.body;
 
-        if (status && !["pendente", "pago"].includes(status)) {
+        if (!idTransacao || !mesAnoReferencia || !statusTransacao) {
             res.status(400).json({
-                error: "status deve ser pendente ou pago",
+                error: "idTransacao, mesAnoReferencia e statusTransacao sao obrigatorios",
             });
 
             return;
         }
 
-        if (
-            (idTransacao && !mesAnoReferencia) ||
-            (!idTransacao && mesAnoReferencia)
-        ) {
+        if (!["pago", "pendente"].includes(statusTransacao)) {
             res.status(400).json({
-                error: "idTransacao e mesAnoReferencia devem ser enviados juntos",
+                error: "statusTransacao deve ser pago ou pendente",
             });
 
             return;
@@ -261,41 +309,34 @@ const updateCost = async (
             return;
         }
 
-        Object.assign(cost, costData);
+        const transacoes = cost.idTransacao || [];
+        const transacaoIndex = transacoes.findIndex(
+            (transacao) =>
+                transacao.mesAnoReferencia === mesAnoReferencia
+        );
 
-        if (status) {
-            cost.status = status;
+        if (transacaoIndex >= 0) {
+            transacoes[transacaoIndex].id = idTransacao;
+            transacoes[transacaoIndex].status = statusTransacao;
+        } else {
+            transacoes.push({
+                id: idTransacao,
+                mesAnoReferencia,
+                status: statusTransacao,
+            });
         }
 
-        if (idTransacao && mesAnoReferencia) {
-            const transacoes = cost.idTransacao || [];
-            const transacaoIndex = transacoes.findIndex(
-                (transacao) =>
-                    transacao.mesAnoReferencia === mesAnoReferencia
-            );
-
-            if (transacaoIndex >= 0) {
-                transacoes[transacaoIndex].id = idTransacao;
-            } else {
-                transacoes.push({
-                    id: idTransacao,
-                    mesAnoReferencia,
-                });
-            }
-
-            cost.idTransacao = transacoes;
-        }
-
+        cost.idTransacao = transacoes;
         const updatedCost = await cost.save();
 
         res.json({
-            message: "Custo atualizado com sucesso",
+            message: "Transacao mensal atualizada com sucesso",
             cost: updatedCost,
         });
 
     } catch (error) {
         res.status(500).json({
-            error: "Erro ao atualizar custo",
+            error: "Erro ao atualizar transacao mensal",
             details: (error as Error).message,
         });
     }
@@ -336,6 +377,7 @@ export default {
     createCost,
     getCosts,
     getCostById,
-    updateCost,
+    updateCostStatus,
+    updateCostTransaction,
     deleteCost,
 };

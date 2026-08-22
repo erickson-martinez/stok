@@ -5,7 +5,7 @@ export interface ICost {
     valor: number;
     dateInicial?: Date;
     dateFinal?: Date;
-    status: "pago" | "pendente";
+    status: "concluido" | "pendente";
     idTransacao: idTransacao[];
     tipo:
     | "fixo"
@@ -16,5 +16,6 @@ export interface ICost {
 
 interface idTransacao {
     id: string;
+    status: "pago" | "pendente";
     mesAnoReferencia: string;
 }
